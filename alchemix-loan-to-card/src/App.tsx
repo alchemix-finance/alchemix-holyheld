@@ -1,35 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
-
+const App: React.FC = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="app-container">
+      {/* Header */}
+      <header className="header">
+        <div className="logo">
+          <span role="img" aria-label="alchemy-logo">
+            🧪
+          </span>{' '}
+          Alchemix Loan To Card
+        </div>
+        <ConnectButton />
+      </header>
 
-export default App
+      {/* Main Content */}
+      <main className="main-content">
+        <div className="card">
+          <label htmlFor="deposit-asset">Select deposit asset</label>
+          <select id="deposit-asset">
+            <option value="ETH">ETH</option>
+            <option value="DAI">DAI</option>
+          </select>
+          <p>Balance: 0.0000 MAX</p>
+        </div>
+
+        <div className="card">
+          <label htmlFor="yield-strategy">Select yield strategy</label>
+          <select id="yield-strategy">
+            <option value="compound">Compound</option>
+            <option value="aave">Aave</option>
+          </select>
+          <p>Current Balance: 0.0000</p>
+        </div>
+
+        <div className="card">
+          <label htmlFor="loan-asset">Select loan asset</label>
+          <select id="loan-asset">
+            <option value="DAI">DAI</option>
+            <option value="USDC">USDC</option>
+          </select>
+          <p>Borrowable Limit: 0.0000</p>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default App;

@@ -1,42 +1,127 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* General Reset */
+body {
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #0d0d0d; /* Dark background */
+  color: #fff; /* Light text */
+}
+
+/* App Container */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: #161616; /* Slightly lighter background for header */
+  border-bottom: 1px solid #333;
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  font-size: 1rem; /* Slightly smaller for mobile */
+  font-weight: bold;
+  color: #ffa500; /* Alchemix orange */
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Main Content */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
+/* Card Style */
 .card {
-  padding: 2em;
+  background-color: #1c1c1c; /* Slightly lighter for contrast */
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  width: 100%; /* Full width for mobile */
+  max-width: 350px; /* Limit for larger screens */
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.read-the-docs {
-  color: #888;
+.card label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem; /* Slightly smaller for mobile */
+}
+
+.card select {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #0d0d0d;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-size: 0.9rem; /* Adjusted size */
+  margin-bottom: 0.5rem;
+}
+
+.card p {
+  margin: 0;
+  font-size: 0.8rem; /* Smaller font for balance text */
+  color: #999;
+}
+
+/* Connect Button */
+.connect-button {
+  background-color: #ffa500; /* Alchemix orange */
+  color: #000;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem; /* Adjusted padding */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 90%; /* Fit the button nicely on mobile */
+  max-width: 350px; /* Restrict size on larger devices */
+}
+
+.connect-button:hover {
+  background-color: #ffb84d; /* Lighter orange on hover */
+}
+
+/* Media Queries for Mobile */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column; /* Stack logo and connect button */
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .main-content {
+    gap: 1rem; /* Reduce spacing between elements */
+    margin-top: 1rem;
+  }
+
+  .connect-button {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .card {
+    padding: 0.75rem 1rem;
+  }
+
+  .card label,
+  .card select,
+  .card p {
+    font-size: 0.8rem; /* Smaller text for mobile */
+  }
 }
