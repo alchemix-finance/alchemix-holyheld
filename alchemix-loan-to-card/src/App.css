@@ -2,8 +2,9 @@
 body {
   margin: 0;
   font-family: 'Arial', sans-serif;
-  background-color: #0d0d0d; /* Dark background */
-  color: #fff; /* Light text */
+  background: linear-gradient(to bottom, #0d0d0d, #1c1c1c); /* Alchemix background */
+  color: rgba(255, 255, 255, 0.9); /* Light beige text */
+  min-height: 100vh;
 }
 
 /* App Container */
@@ -18,15 +19,18 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  background-color: #161616; /* Slightly lighter background for header */
-  border-bottom: 1px solid #333;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(to bottom, #161616, #0d0d0d); /* Header gradient */
+  border-bottom: 1px solid #333333;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
 }
 
 .logo {
-  font-size: 1rem; /* Slightly smaller for mobile */
-  font-weight: bold;
-  color: #ffa500; /* Alchemix orange */
+  height: 64px;
 }
 
 /* Main Content */
@@ -34,18 +38,18 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
+  gap: 2rem;
+  margin-top: 2rem;
   padding: 1rem;
 }
 
 /* Card Style */
 .card {
-  background-color: #1c1c1c; /* Slightly lighter for contrast */
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  width: 100%; /* Full width for mobile */
-  max-width: 350px; /* Limit for larger screens */
+  background-color: #1c1c1c; /* Matches the dark theme */
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 400px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -53,75 +57,100 @@ body {
   display: block;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  font-size: 0.9rem; /* Slightly smaller for mobile */
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9); /* Alchemix beige */
 }
 
-.card select {
+.dropdown {
   width: 100%;
   padding: 0.5rem;
-  background-color: #0d0d0d;
-  color: #fff;
-  border: 1px solid #333;
-  border-radius: 4px;
-  font-size: 0.9rem; /* Adjusted size */
-  margin-bottom: 0.5rem;
-}
-
-.card p {
-  margin: 0;
-  font-size: 0.8rem; /* Smaller font for balance text */
-  color: #999;
-}
-
-/* Connect Button */
-.connect-button {
-  background-color: #ffa500; /* Alchemix orange */
-  color: #000;
-  font-weight: bold;
+  background-color: #0d0d0d; /* Dropdown background */
+  color: rgba(255, 255, 255, 0.9); /* Text color */
+  border: 1px solid #333333;
+  border-radius: 5px;
   font-size: 1rem;
-  padding: 0.75rem 1.5rem; /* Adjusted padding */
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  width: 90%; /* Fit the button nicely on mobile */
-  max-width: 350px; /* Restrict size on larger devices */
 }
 
-.connect-button:hover {
-  background-color: #ffb84d; /* Lighter orange on hover */
+.dropdown:focus {
+  outline: none;
+  border-color: #e7c089; /* Highlight on focus */
 }
 
-/* Media Queries for Mobile */
+.balance-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7); /* Subtle gray for balance */
+}
+
+
+/* Mobile Responsiveness */
 @media (max-width: 768px) {
   .header {
-    flex-direction: column; /* Stack logo and connect button */
+    flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
-    padding: 1rem;
-  }
-
-  .logo {
-    font-size: 1.1rem;
   }
 
   .main-content {
-    gap: 1rem; /* Reduce spacing between elements */
-    margin-top: 1rem;
-  }
-
-  .connect-button {
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
+    gap: 1rem;
   }
 
   .card {
-    padding: 0.75rem 1rem;
+    padding: 1rem;
   }
 
-  .card label,
-  .card select,
-  .card p {
-    font-size: 0.8rem; /* Smaller text for mobile */
+  .dropdown {
+    font-size: 0.9rem;
   }
+}
+
+/* Dropdown Styling */
+.dropdown {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  background-color: #0d0d0d; /* Matches Alchemix theme */
+  color: rgba(255, 255, 255, 0.9); /* Light text */
+  border: 1px solid #333333;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.dropdown:focus {
+  outline: none;
+  border-color: #e7c089; /* Highlight border on focus */
+}
+
+/* Input Field Styling */
+.input-field {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  background-color: #0d0d0d; /* Matches Alchemix theme */
+  color: rgba(255, 255, 255, 0.9); /* Light text */
+  border: 1px solid #333333;
+  border-radius: 5px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.6); /* Subtle placeholder color */
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #e7c089; /* Highlight border on focus */
+}
+
+/* Margin Utility */
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+/* Balance Text */
+.balance-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7); /* Subtle gray for balance */
 }
