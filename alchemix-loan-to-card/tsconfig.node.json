@@ -1,16 +1,17 @@
 {
   "compilerOptions": {
     "jsx": "react",
-    "composite": true, // Obligatoire pour les projets référencés
-    "target": "ES2022",
-    "module": "CommonJS",
+    "composite": true, // Required for referenced projects
+    "target": "ES2022", // Ensures modern features
+    "module": "esnext", // Supports import.meta
+    "moduleResolution": "node", // Ensures compatibility with Node.js resolution
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "strict": true,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"]
     },
-    "outDir": "./dist" // Spécifie le répertoire de sortie
+    "outDir": "./dist" // Specifies the output directory
   },
   "include": ["src/**/*"]
 }

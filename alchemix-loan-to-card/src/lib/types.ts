@@ -1,7 +1,8 @@
 import { Address } from "viem";
-import { useVaults } from "./queries/useVaults";
+import { VAULTS, VaultsConfig } from "./queries/useVaults";
 import { useTransmuters } from "./queries/useTransmuters";
 import { useProposals } from "./queries/useProposals";
+import { SupportedChainId } from "./wagmi/wagmiConfig";
 
 export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
@@ -52,7 +53,8 @@ export interface UnderlyingTokensParams {
   enabled: boolean;
 }
 
-export type Vault = NonNullable<ReturnType<typeof useVaults>["data"]>[number];
+export type Vault = VaultsConfig[SupportedChainId][`0x${string}`];
+
 export type Transmuter = NonNullable<
   ReturnType<typeof useTransmuters>["data"]
 >[number];

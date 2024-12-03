@@ -1,78 +1,55 @@
-/**
- * We override the rpcUrls for each chain to use our own list of rpcs.
- * If the app is running on the production url, we use infura rpcs.
- */
-
 import { arbitrum, mainnet, optimism, fantom } from "viem/chains";
 import type { Chain } from "@rainbow-me/rainbowkit";
 
-const IS_VERCEL_PRODUCTION = __VERCEL_ENV__ === "production";
-const INFURA_KEY = import.meta.env.VITE_INFURA_API_KEY;
+type SupportedChainId = 1 | 10 | 42161 | 1337;
 
-const mainnetRpcs = IS_VERCEL_PRODUCTION
-  ? [
-      `https://mainnet.infura.io/v3/${INFURA_KEY}`,
-      "https://ethereum-rpc.publicnode.com",
-    ]
-  : [
-      "https://1rpc.io/eth",
-      "https://ethereum-rpc.publicnode.com",
-      "https://ethereum.blockpi.network/v1/rpc/public",
-      "https://eth.drpc.org",
-      "https://eth-mainnet.public.blastapi.io",
-      "https://rpc.ankr.com/eth",
-    ];
+export const isSupported = (chainId: number): chainId is SupportedChainId => {
+  return chainId === 1 || chainId === 10 || chainId === 42161 || chainId === 1337;
+};
+
+// Configuration de la chaîne locale Ganache
+const ganacheChain = {
+  id: 1337,
+  name: 'Ganache',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Ethereum',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: {
+      http: ['http://127.0.0.1:8545'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'Local Explorer', url: '' },
+  },
+  testnet: true,
+} as const satisfies Chain;
 
 const mainnetWithRpcs = {
   ...mainnet,
   rpcUrls: {
     default: {
-      http: mainnetRpcs,
+      http: ['https://ethereum-rpc.publicnode.com'],
     },
   },
 } as const satisfies Chain;
-
-const optimismRpcs = IS_VERCEL_PRODUCTION
-  ? [
-      `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,
-      "https://optimism-rpc.publicnode.com",
-    ]
-  : [
-      "https://optimism.blockpi.network/v1/rpc/public",
-      "https://1rpc.io/op",
-      "https://optimism-rpc.publicnode.com",
-      "https://optimism-mainnet.public.blastapi.io",
-      "https://rpc.ankr.com/optimism",
-    ];
 
 const optimismWithRpcs = {
   ...optimism,
   rpcUrls: {
     default: {
-      http: optimismRpcs,
+      http: ['https://optimism-rpc.publicnode.com'],
     },
   },
 } as const satisfies Chain;
-
-const arbitrumRpcs = IS_VERCEL_PRODUCTION
-  ? [
-      `https://arbitrum-mainnet.infura.io/v3/${INFURA_KEY}`,
-      "https://arbitrum-one-rpc.publicnode.com",
-    ]
-  : [
-      "https://arb1.arbitrum.io/rpc",
-      "https://1rpc.io/arb",
-      "https://arbitrum-one.publicnode.com",
-      "https://arbitrum-one-rpc.publicnode.com",
-      "https://rpc.ankr.com/arbitrum",
-      "https://arbitrum-one.public.blastapi.io",
-    ];
 
 const arbitrumWithRpcs = {
   ...arbitrum,
   rpcUrls: {
     default: {
-      http: arbitrumRpcs,
+      http: ['https://arbitrum-one-rpc.publicnode.com'],
     },
   },
 } as const satisfies Chain;
@@ -81,20 +58,23 @@ const fantomWithRpcsAndIcon = {
   ...fantom,
   rpcUrls: {
     default: {
-      http: [
-        "https://rpc.ankr.com/fantom",
-        "https://fantom-rpc.publicnode.com",
-        "https://1rpc.io/ftm",
-        "https://fantom.blockpi.network/v1/rpc/public",
-      ],
+      http: ['https://fantom-rpc.publicnode.com'],
     },
   },
   iconUrl: "/images/icons/fantom_blue.svg",
 } as const satisfies Chain;
 
 export const chains = [
+  ganacheChain,
   mainnetWithRpcs,
   optimismWithRpcs,
   arbitrumWithRpcs,
   fantomWithRpcsAndIcon,
 ] as const;
+
+export const supportedChains = {
+  [mainnetWithRpcs.id]: mainnetWithRpcs,
+  [optimismWithRpcs.id]: optimismWithRpcs,
+  [arbitrumWithRpcs.id]: arbitrumWithRpcs,
+  [ganacheChain.id]: ganacheChain,
+} as const;

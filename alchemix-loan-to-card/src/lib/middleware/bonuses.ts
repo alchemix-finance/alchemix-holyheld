@@ -1,17 +1,17 @@
 import { fantom, mainnet, optimism } from "viem/chains";
 import { formatEther, formatUnits } from "viem";
-import { rewardRouterAbi } from "@/abi/rewardRouter";
+import { rewardRouterAbi } from "../../abi/rewardRouter";
 import {
   BONUS_REWARDS_END_TIMESTAMPS,
   REWARD_ROUTER_ADDRESSES,
   REWARD_TOKENS,
-} from "@/lib/config/rewardRouterAddresses";
+} from "../../lib/config/rewardRouterAddresses";
 import { BonusFn } from "@/lib/config/metadataTypes";
 import { getAaveReserves } from "./aave";
 import { getVesperReserves } from "./vesper";
 import { alchemistV2Abi } from "@/abi/alchemistV2";
 import { dayjs } from "@/lib/dayjs";
-import { queryClient } from "@/components/providers/QueryProvider";
+import { queryClient } from "../../components/providers/QueryProvider";
 import {
   fetchPriceInEth,
   useEthPriceQueryOptions,

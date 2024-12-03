@@ -8,6 +8,13 @@ import { wagmiConfig } from "../../lib/wagmi/wagmiConfig";
 import { QueryKeys } from "./queriesSchema";
 import { ONE_MINUTE_IN_MS } from "../../lib/constants";
 
+type SupportedChainId = keyof typeof ALCHEMISTS_METADATA;
+
+const isSupportedChain = (chainId: number): chainId is SupportedChainId => {
+  return chainId in ALCHEMISTS_METADATA;
+};
+
+
 export const useAlchemists = () => {
   const chain = useChain();
   const { address = zeroAddress } = useAccount();
@@ -17,6 +24,9 @@ export const useAlchemists = () => {
   return useQuery({
     queryKey: [QueryKeys.Alchemists, chain.id, address],
     queryFn: async () => {
+      if (!isSupportedChain(chain.id)) {
+        throw new Error(`Chain ${chain.id} not supported`);
+      }
       const alchemistsMetadata = ALCHEMISTS_METADATA[chain.id];
 
       const alchemistsArr = [

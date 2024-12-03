@@ -2,14 +2,14 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "target": "ES2022",
-    "module": "es2022",
+    "module": "esnext", // Try esnext for broader compatibility
     "useDefineForClassFields": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "moduleResolution": "bundler",
+    "moduleResolution": "node", // Ensure resolution aligns with module system
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true, // Ok ici, car il ne s'agit pas d'un projet référencé
+    "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
     "baseUrl": "./src",

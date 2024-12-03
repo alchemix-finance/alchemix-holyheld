@@ -61,6 +61,7 @@ export interface VaultMetadata {
   synthAssetType: SynthAsset;
   underlyingSymbol: string;
   yieldSymbol: string;
+  image: string; 
   messages: VaultMessage[];
   api: {
     apr: AprFn;
@@ -69,6 +70,7 @@ export interface VaultMetadata {
     bonus: BonusFn;
   };
   disabledDepositTokens: Address[];
+  disabledWithdrawTokens: string[];
   wethGateway?: Address;
   gateway?: Address;
   migrator?: Address;

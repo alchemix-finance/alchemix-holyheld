@@ -1,5 +1,5 @@
 import { zeroAddress } from "viem";
-import { arbitrum, fantom, mainnet, optimism } from "viem/chains";
+import { arbitrum, fantom, mainnet, optimism, defichainEvm } from "viem/chains";
 import { SYNTH_ASSETS } from "@/lib/config/synths";
 import { SupportedChainId } from "@/lib/wagmi/wagmiConfig";
 import { VaultMetadata } from "@/lib/config/metadataTypes";
@@ -29,6 +29,32 @@ export const IGNORED_VAULTS: `0x${string}`[] = [
   "0xDC8Eb117A9987cF2ED45E9082Adc13C03922Fa0a",
 ];
 
+export const ganache = ({
+  id: 1337, // ID standard utilisé pour Ganache (ou personnalisez si nécessaire)
+  name: 'Ganache',
+  network: 'ganache',
+  nativeCurrency: {
+    name: 'Ethereum',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ['http://127.0.0.1:8545'], // Adresse par défaut pour Ganache local
+    },
+    public: {
+      http: ['http://127.0.0.1:8545'], // Adresse publique (similaire pour local)
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Etherscan (Ganache)',
+      url: 'http://127.0.0.1:8545', // Pas de block explorer spécifique
+    },
+  },
+  testnet: true,
+});
+
 export type VaultsConfig = {
   [chainId in SupportedChainId]: {
     [yieldToken: `0x${string}`]: VaultMetadata;
@@ -36,6 +62,22 @@ export type VaultsConfig = {
 };
 
 export const VAULTS: VaultsConfig = {
+  [ganache.id]: {
+    "0x337B4B933d60F40CB57DD19AE834Af103F049810": {
+      label: "Ganache Vault Example",
+      synthAssetType: SYNTH_ASSETS.ALUSD, // ou ALETH selon vos besoins
+      underlyingSymbol: "DAI",
+      yieldSymbol: "gDAI",
+      messages: [],
+      api: {
+        apr: getNoBonus, // Remplacez par une méthode APR si applicable
+        yieldType: "APR",
+        provider: "ganache",
+        bonus: getNoBonus,
+      },
+      disabledDepositTokens: [],
+    },
+  },
   [mainnet.id]: {
     //alUSD
     "0xdA816459F1AB5631232FE5e97a05BBBb94970c95": {
@@ -43,6 +85,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "DAI",
       yieldSymbol: "yvDAI",
+      image: "yvDAI.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       api: {
@@ -52,12 +95,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE": {
       label: "Yearn yvUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDC",
       yieldSymbol: "yvUSDC",
+      image: "yvUSDC.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       api: {
@@ -67,12 +112,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x7Da96a3891Add058AdA2E826306D812C638D87a7": {
       label: "Yearn yvUSDT",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDT",
       yieldSymbol: "yvUSDT",
+      image: "yvUSDC.svg",
       messages: [{ message: "Vault is disabled.", type: "warning" }],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       api: {
@@ -82,12 +129,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xcE4a49d7ed99C7c8746B713EE2f0C9aA631688d8": {
       label: "AAVE aDAI",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "DAI",
       yieldSymbol: "aDAI",
+      image: "aDAI.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       yieldTokenOverride: "0x028171bCA77440897B824Ca71D1c56caC55b68A3",
@@ -98,12 +147,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getAaveBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xf591D878608e2e5c7D4f1E499330f4AB9BbaE37a": {
       label: "AAVE aUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDC",
       yieldSymbol: "aUSDC",
+      image: "aUSDC.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       yieldTokenOverride: "0xBcca60bB61934080951369a648Fb03DF4F96263C",
@@ -114,12 +165,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getAaveBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xBC11De1F20e83F0a6889B8c7A7868E722694E315": {
       label: "AAVE aUSDT",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDT",
       yieldSymbol: "aUSDT",
+      image: "aUSDT.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       yieldTokenOverride: "0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811",
@@ -130,12 +183,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getAaveBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x3B27F92C0e212C671EA351827EDF93DB27cc0c65": {
       label: "Yearn yvUSDT",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDT",
       yieldSymbol: "yvUSDT",
+      image: "yvUSDT.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       api: {
@@ -145,12 +200,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xa8b607Aa09B6A2E306F93e74c282Fb13f6A80452": {
       label: "Vesper vaUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDC",
       yieldSymbol: "vaUSDC",
+      image: "vaUSDC.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       api: {
@@ -160,12 +217,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getVesperBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x0538C8bAc84E95A9dF8aC10Aad17DbE81b9E36ee": {
       label: "Vesper vaDAI",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "DAI",
       yieldSymbol: "vaDAI",
+      image: "vaDAI.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       api: {
@@ -175,12 +234,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getVesperBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xc14900dFB1Aa54e7674e1eCf9ce02b3b35157ba5": {
       label: "Vesper vaFRAX",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "FRAX",
       yieldSymbol: "vaFRAX",
+      image: "vaFRAX.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       api: {
@@ -190,12 +251,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getVesperBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x318334A6dD21d16A8442aB0b7204E81Aa3FB416E": {
       label: "Aave aFRAX",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "FRAX",
       yieldSymbol: "aFRAX",
+      image: "aFRAX.svg",
       messages: [],
       migrator: "0xE1F27adD45652812BAD02E26EEc588F0EF97e1d3",
       yieldTokenOverride: "0xd4937682df3C8aEF4FE912A96A74121C0829E664",
@@ -206,6 +269,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getAaveBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     //alETH
     "0xa258C4606Ca8206D8aA700cE2143D7db854D168c": {
@@ -213,6 +277,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "yvWETH",
+      image: "yvWETH.svg",
       messages: [],
       wethGateway: "0xA22a7ec2d82A471B1DAcC4B37345Cf428E76D67A",
       migrator: "0xb4E7cc74e004F95AEe7565a97Dbfdea9c1761b24",
@@ -223,12 +288,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0": {
       label: "Lido wstETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "wstETH",
+      image: "wstETH.svg",
       messages: [],
       wethGateway: "0xA22a7ec2d82A471B1DAcC4B37345Cf428E76D67A",
       gateway: "0xA22a7ec2d82A471B1DAcC4B37345Cf428E76D67A",
@@ -240,12 +307,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xae78736Cd615f374D3085123A210448E74Fc6393": {
       label: "Rocket rETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "rETH",
+      image: "rETH.svg",
       messages: [],
       wethGateway: "0xA22a7ec2d82A471B1DAcC4B37345Cf428E76D67A",
       migrator: "0xb4E7cc74e004F95AEe7565a97Dbfdea9c1761b24",
@@ -256,12 +325,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [GAS_ADDRESS, WETH_MAINNET_ADDRESS],
+      disabledWithdrawTokens: [GAS_ADDRESS, WETH_MAINNET_ADDRESS],
     },
     "0x61134511187a9a2DF38D10DBe07Ba2e8E5563967": {
       label: "AAVE aWETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "aWETH",
+      image: "awETH.svg",
       messages: [],
       wethGateway: "0xA22a7ec2d82A471B1DAcC4B37345Cf428E76D67A",
       migrator: "0xb4E7cc74e004F95AEe7565a97Dbfdea9c1761b24",
@@ -273,12 +344,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getAaveBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xd1C117319B3595fbc39b471AB1fd485629eb05F2": {
       label: "Vesper vaETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "vaETH",
+      image: "vaETH.svg",
       messages: [],
       wethGateway: "0xA22a7ec2d82A471B1DAcC4B37345Cf428E76D67A",
       migrator: "0xb4E7cc74e004F95AEe7565a97Dbfdea9c1761b24",
@@ -289,12 +362,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getVesperBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xac3E018457B222d93114458476f3E3416Abbe38F": {
       label: "Frax sfrxETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "FRXETH",
       yieldSymbol: "sfrxETH",
+      image: "sfrxETH.svg",
       messages: [],
       migrator: "0xb4E7cc74e004F95AEe7565a97Dbfdea9c1761b24",
       api: {
@@ -304,6 +379,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
   },
   [fantom.id]: {
@@ -313,6 +389,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "DAI",
       yieldSymbol: "yDAI",
+      image: "yDAI.svg",
       messages: [{ message: "Vault is disabled.", type: "warning" }],
       api: {
         apr: getYearnApy,
@@ -321,12 +398,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xEF0210eB96c7EB36AF8ed1c20306462764935607": {
       label: "Yearn yUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDC",
       yieldSymbol: "yUSDC",
+      image: "yUSDC.svg",
       messages: [{ message: "Vault is disabled.", type: "warning" }],
       api: {
         apr: getYearnApy,
@@ -335,12 +414,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x148c05caf1Bb09B5670f00D511718f733C54bC4c": {
       label: "Yearn fUSDT",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDT",
       yieldSymbol: "fUSDT",
+      image: "fUSDT.svg",
       messages: [{ message: "Vault is disabled.", type: "warning" }],
       api: {
         apr: getYearnApy,
@@ -349,6 +430,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
   },
   [optimism.id]: {
@@ -358,6 +440,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "DAI",
       yieldSymbol: "aDAI",
+      image: "aDAI.svg",
       messages: [],
       gateway: "0x6076A6B474F336c566E4Ba551a5934E3ba5e7193",
       yieldTokenOverride: "0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE",
@@ -368,6 +451,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
 
     "0x4186Eb285b1efdf372AC5896a08C346c7E373cC4": {
@@ -375,6 +459,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDC",
       yieldSymbol: "aUSDC",
+      image: "aUSDC.svg",
       messages: [],
       gateway: "0x6076A6B474F336c566E4Ba551a5934E3ba5e7193",
       yieldTokenOverride: "0x625E7708f30cA75bfd92586e17077590C60eb4cD",
@@ -385,12 +470,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x2680b58945A31602E4B6122C965c2849Eb76Dd3B": {
       label: "AAVE aUSDT",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDT",
       yieldSymbol: "aUSDT",
+      image: "aUSDT.svg",
       messages: [],
       gateway: "0x6076A6B474F336c566E4Ba551a5934E3ba5e7193",
       yieldTokenOverride: "0x6ab707Aca953eDAeFBc4fD23bA73294241490620",
@@ -401,16 +488,17 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x059Eaa296B18E0d954632c8242dDb4a271175EeD": {
       label: "Yearn yvUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDC",
       yieldSymbol: "yvUSDC",
+      image: "yvUSDC.svg",
       messages: [
         {
-          message:
-            "Yearn yvUSDC is currently disabled for underlying token deposit and withdraw.",
+          message: "Yearn yvUSDC is currently disabled for underlying token deposit and withdraw.",
           type: "warning",
           learnMoreUrl: "https://discord.com/invite/yearn",
         },
@@ -424,16 +512,17 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x0A86aDbF58424EE2e304b395aF0697E850730eCD": {
       label: "Yearn yvDAI",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "DAI",
       yieldSymbol: "yvDAI",
+      image: "yvDAI.svg",
       messages: [
         {
-          message:
-            "Yearn yvDAI is currently disabled for underlying token deposit and withdraw.",
+          message: "Yearn yvDAI is currently disabled for underlying token deposit and withdraw.",
           type: "warning",
           learnMoreUrl: "https://discord.com/invite/yearn",
         },
@@ -447,6 +536,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     //alETH
     "0x337B4B933d60F40CB57DD19AE834Af103F049810": {
@@ -454,6 +544,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "aWETH",
+      image: "aWETH.svg",
       messages: [],
       wethGateway: "0xDB3fE4Da32c2A79654D98e5a41B22173a0AF3933",
       gateway: "0xBa3e8437a06397430036E23fF9153408a3203aFD",
@@ -466,12 +557,14 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb": {
       label: "Lido wstETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "wstETH",
+      image: "wstETH.svg",
       messages: [],
       wethGateway: "0xDB3fE4Da32c2A79654D98e5a41B22173a0AF3933",
       migrator: "0x00E33722ba54545667E76a18CE9D544130eEAbcC",
@@ -482,16 +575,17 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     "0xE62DDa84e579e6A37296bCFC74c97349D2C59ce3": {
       label: "Yearn yvWETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "yvWETH",
+      image: "yvWETH.svg",
       messages: [
         {
-          message:
-            "Yearn yvWETH is currently disabled for underlying token deposit and withdraw.",
+          message: "Yearn yvWETH is currently disabled for underlying token deposit and withdraw.",
           type: "warning",
           learnMoreUrl: "https://discord.com/invite/yearn",
         },
@@ -506,6 +600,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
   },
   [arbitrum.id]: {
@@ -515,6 +610,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "USDC",
       yieldSymbol: "aUSDC",
+      image: "aUSDC.svg",
       messages: [],
       gateway: "0x3e1ccc66c755Fdbc7fbf7D667aA843c062Daf304",
       yieldTokenOverride: "0x724dc807b04555b71ed48a6896b6F41593b8C637",
@@ -525,6 +621,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
     //alETH
     "0x5979D7b546E38E414F7E9822514be443A4800529": {
@@ -532,6 +629,7 @@ export const VAULTS: VaultsConfig = {
       synthAssetType: SYNTH_ASSETS.ALETH,
       underlyingSymbol: "WETH",
       yieldSymbol: "wstETH",
+      image: "wstETH.svg",
       messages: [],
       wethGateway: "0x7C679D851688072e23fE41d1753004eb11E98D8c",
       api: {
@@ -541,8 +639,10 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
+      disabledWithdrawTokens: [],
     },
   },
+  1337: {}
 };
 
 export const MAX_LOSS_CHECKER_ADDRESSES = {

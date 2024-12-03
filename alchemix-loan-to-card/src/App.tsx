@@ -1,64 +1,112 @@
 import { useEffect, useState } from 'react';
 import * as React from "react";
-import { ethers } from 'ethers';
-import { ConnectButton ,Theme, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
-import './App.css';
+import { formatUnits } from 'ethers';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount, useWalletClient } from 'wagmi';
+import { zeroAddress } from 'viem';
+import { useBorrowableLimit } from './hooks/useBorrowableLimit';
+import { useChain } from './hooks/useChain';
+import { VAULTS } from './lib/queries/useVaults';
+import { SYNTH_ASSETS, SYNTH_ASSETS_METADATA } from './lib/config/synths';
 import logo from './assets/ALCX_Std_logo.png';
+import './App.css';
+import Select from 'react-select';
 
 const App: React.FC = () => {
-  const [depositAsset, setDepositAsset] = useState<string>('alUSD');
+  const [depositAsset, setDepositAsset] = useState<string>('');
   const [depositAmount, setDepositAmount] = useState<string>('');
-  const [yieldStrategies, setYieldStrategies] = useState<string[]>([]); // Dynamic strategies
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
-  const [loanAsset, setLoanAsset] = useState<string>('DAI');
+  const [loanAsset, setLoanAsset] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number>(0);
 
-  // Fetch strategies from the blockchain
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const chain = useChain();
+
+  
+
+  // Get available deposit assets from vaults config
+  const availableDepositAssets = React.useMemo(() => {
+    if (!chain.id) return [];
+    
+    const vaults = VAULTS[chain.id];
+    if (!vaults) return [];
+
+    // Get unique underlying symbols
+    return [...new Set(Object.values(vaults).map(vault => vault.underlyingSymbol))];
+  }, [chain.id]);
+  
+
+  // Get available yield strategies for selected deposit asset
+  const availableStrategies = React.useMemo(() => {
+    if (!chain.id || !depositAsset) return [];
+    
+    const vaults = VAULTS[chain.id];
+    if (!vaults) return [];
+
+    return Object.entries(vaults)
+      .filter(([_, vault]) => vault.underlyingSymbol === depositAsset)
+      .map(([address, vault]) => ({
+        address,
+        label: vault.label,
+        image: vault.image,
+        yieldSymbol: vault.yieldSymbol
+      }));
+  }, [chain.id, depositAsset]);
+
   useEffect(() => {
-    const fetchStrategies = async () => {
-      try {
-        setIsLoading(true);
+    if (depositAsset && availableStrategies.length > 0) {
+      setIsLoading(false); // Les stratégies sont chargées
+    } else {
+      setIsLoading(true); // Aucune stratégie ou chargement en cours
+    }
+  }, [depositAsset, availableStrategies]);
 
-        // Example: Replace with your smart contract interaction
-        const provider = new ethers.JsonRpcProvider('https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID');
-        const contractAddress = '0xYourContractAddress'; // Replace with the correct contract address
-        const abi = [
-          // Replace with the correct ABI method
-          'function getYieldStrategies() public view returns (string[])',
-        ];
-        const contract = new ethers.Contract(contractAddress, abi, provider);
-
-        // Fetch strategies
-        const strategies: string[] = await contract.getYieldStrategies();
-        setYieldStrategies(strategies);
-
-        // Automatically select the first strategy as default
-        if (strategies.length > 0) {
-          setSelectedStrategy(strategies[0]);
-        }
-
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Failed to fetch strategies:', err);
-        setError('Failed to load strategies. Please try again later.');
-        setIsLoading(false);
+  useEffect(() => {
+    try {
+      if (!chain.id || !VAULTS[chain.id]) {
+        throw new Error('Vaults not configured for this chain.');
       }
-    };
+      setError(null); // Aucun problème
+    } catch (err: any) {
+      setError(err.message); // Capture l'erreur
+      setIsLoading(false);
+    }
+  }, [chain.id]);
+  
 
-    fetchStrategies();
+  const formattedStrategies = availableStrategies.map((strategy) => ({
+    value: strategy.address,
+    label: strategy.label,
+  }));
+
+  // Get available loan assets
+  const availableLoanAssets = React.useMemo(() => {
+    return Object.entries(SYNTH_ASSETS_METADATA).map(([key, metadata]) => ({
+      symbol: key,
+      ...metadata
+    }));
   }, []);
 
-  const handleInputChange = (value: string, setState: React.Dispatch<React.SetStateAction<string>>) => {
-    const regex = /^[0-9]*[.]?[0-9]*$/; // Allow only numbers and one decimal point
+  // Borrowable limit hook
+  const { borrowableLimit, isCalculating } = useBorrowableLimit(
+    depositAmount,
+    depositAsset,
+    address || zeroAddress,
+    walletClient || null
+  );
+
+  const handleInputChange = (value: string) => {
+    const regex = /^[0-9]*[.]?[0-9]*$/;
     if (regex.test(value)) {
-      setState(value);
+      setDepositAmount(value);
     }
   };
 
   return (
     <div className="app-container">
-      {/* Header */}
       <header className="header">
         <div className="logo-section">
           <img src={logo} alt="Alchemix Logo" className="logo" />
@@ -66,7 +114,6 @@ const App: React.FC = () => {
         <ConnectButton />
       </header>
 
-      {/* Main Content */}
       <main className="main-content">
         {/* Deposit Asset Section */}
         <div className="card">
@@ -77,19 +124,24 @@ const App: React.FC = () => {
             value={depositAsset}
             onChange={(e) => setDepositAsset(e.target.value)}
           >
-            <option value="alUSD">alUSD</option>
-            <option value="alETH">alETH</option>
+            <option value="">Select asset</option>
+            {availableDepositAssets.map((asset) => (
+              <option key={asset} value={asset}>
+                {asset}
+              </option>
+            ))}
           </select>
-          <label htmlFor="deposit-amount" className="mt-2">Enter deposit amount</label>
+
+          <label htmlFor="deposit-amount">Enter deposit amount</label>
           <input
             id="deposit-amount"
             type="text"
             value={depositAmount}
-            onChange={(e) => handleInputChange(e.target.value, setDepositAmount)}
+            onChange={(e) => handleInputChange(e.target.value)}
             placeholder="0.00"
             className="input-field"
           />
-          <p className="balance-text">Balance: 0.0000 MAX</p>
+          <p className="balance-text">Balance: {balance.toFixed(4)} MAX</p>
         </div>
 
         {/* Yield Strategy Section */}
@@ -97,21 +149,30 @@ const App: React.FC = () => {
           <label htmlFor="yield-strategy">Select yield strategy</label>
           {isLoading ? (
             <p>Loading strategies...</p>
-          ) : error ? (
-            <p className="error-text">{error}</p>
           ) : (
-            <select
-              id="yield-strategy"
-              className="dropdown"
-              value={selectedStrategy}
-              onChange={(e) => setSelectedStrategy(e.target.value)}
-            >
-              {yieldStrategies.map((strategy, index) => (
-                <option key={index} value={strategy}>
-                  {strategy}
-                </option>
-              ))}
-            </select>
+            <Select
+  options={formattedStrategies}
+  value={formattedStrategies.find((s) => s.value === selectedStrategy)}
+  onChange={(option) => setSelectedStrategy(option?.value || '')}
+  styles={{
+    control: (base) => ({
+      ...base,
+      backgroundColor: '#000', // Fond noir
+      border: '1px solid #444', // Bordure grise foncée
+      color: '#fff', // Texte blanc
+    }),
+    option: (base, { isFocused }) => ({
+      ...base,
+      backgroundColor: isFocused ? '#333' : '#000', // Gris foncé sur hover, noir sinon
+      color: '#fff', // Texte toujours blanc
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: '#fff', // Texte de la valeur sélectionnée en blanc
+    }),
+  }}
+/>
+
           )}
           <p className="balance-text">Current Balance: 0.0000</p>
         </div>
@@ -125,10 +186,23 @@ const App: React.FC = () => {
             value={loanAsset}
             onChange={(e) => setLoanAsset(e.target.value)}
           >
-            <option value="DAI">DAI</option>
-            <option value="USDC">USDC</option>
+            <option value="">Select asset</option>
+            {availableLoanAssets.map((asset) => (
+              <option key={asset.symbol} value={asset.symbol}>
+                <div className="flex items-center">
+                  <img 
+                    src={asset.icon} 
+                    alt={asset.label} 
+                    className="w-6 h-6 mr-2"
+                  />
+                  {asset.label}
+                </div>
+              </option>
+            ))}
           </select>
-          <p className="balance-text">Borrowable Limit: 0.0000</p>
+          <p className="balance-text">
+            Borrowable Limit: {formatUnits(borrowableLimit, 18)}
+          </p>
         </div>
       </main>
     </div>

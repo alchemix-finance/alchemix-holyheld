@@ -439,10 +439,8 @@ export const VAULTS: VaultsConfig = {
       image: "yvUSDC.svg",
       messages: [
         {
-          message:
-            "Yearn yvUSDC is currently disabled for underlying token deposit and withdraw.",
+          message: "Yearn yvUSDC is currently disabled for underlying token deposit and withdraw.",
           type: "warning",
-          linkHref: "https://discord.com/invite/yearn",
         },
       ],
       gateway: "0xC02670867efac6D988F40878a5559a8D96002A56",
@@ -464,10 +462,8 @@ export const VAULTS: VaultsConfig = {
       image: "yvDAI.svg",
       messages: [
         {
-          message:
-            "Yearn yvDAI is currently disabled for underlying token deposit and withdraw.",
+          message: "Yearn yvDAI is currently disabled for underlying token deposit and withdraw.",
           type: "warning",
-          linkHref: "https://discord.com/invite/yearn",
         },
       ],
       gateway: "0xC02670867efac6D988F40878a5559a8D96002A56",
@@ -526,10 +522,8 @@ export const VAULTS: VaultsConfig = {
       image: "yvWETH.svg",
       messages: [
         {
-          message:
-            "Yearn yvWETH is currently disabled for underlying token deposit and withdraw.",
+          message: "Yearn yvWETH is currently disabled for underlying token deposit and withdraw.",
           type: "warning",
-          linkHref: "https://discord.com/invite/yearn",
         },
       ],
       gateway: "0xedE36d3F423EF198abE82D2463E0a18bcF2d9397",
@@ -583,6 +577,7 @@ export const VAULTS: VaultsConfig = {
       disabledWithdrawTokens: [],
     },
   },
+  1337: {}
 };
 
 export const MAX_LOSS_CHECKER_ADDRESSES = {
