@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import HolyheldSDK, { Network, TransferData, TopUpStep, TopUpCallbackConfig } from '@holyheld/sdk';
+import HolyheldSDK, { Network, TransferData, TopUpCallbackConfig } from '@holyheld/sdk';
 
 interface UseHolyheldSDKReturn {
   validateHolytag: (holytag: string) => Promise<boolean>;
@@ -21,6 +21,7 @@ interface UseHolyheldSDKReturn {
     supportsSignTypedDataV4: boolean,
     callbacks: TopUpCallbackConfig
   ) => Promise<void>;
+  getServerSettings: () => Promise<any>;
   isInitialized: boolean;
   isProcessing: boolean;
   error: string | null;
@@ -93,10 +94,23 @@ export const useHolyheldSDK = (): UseHolyheldSDKReturn => {
     );
   };
 
+  const getServerSettings = async () => {
+    if (!sdk) throw new Error('SDK not initialized');
+    try {
+      const data = await sdk.getServerSettings();
+      console.log('Server Settings:', data);
+      return data;
+    } catch (err) {
+      console.error('Error fetching server settings:', err);
+      throw err;
+    }
+  };
+
   return {
     validateHolytag,
     convertToEUR,
     performTopUp,
+    getServerSettings,
     isInitialized,
     isProcessing,
     error,
