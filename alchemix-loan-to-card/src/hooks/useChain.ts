@@ -1,38 +1,35 @@
 import { useAccount } from "wagmi";
 import { mainnet } from "viem/chains";
 import { useMemo } from "react";
-
 import { wagmiConfig } from "../lib/wagmi/wagmiConfig";
 import { tenderlyForkChain } from "../lib/wagmi/tenderly";
 
 const defaultChain = tenderlyForkChain ?? mainnet;
 
 /**
- * Hook to get reading chain.
- * @returns If connected chain supported, returns connected chain, otherwise returns default chain.
+ * Hook to get the current chain.
+ * If the connected chain is unsupported, returns the default chain.
+ * @returns The currently connected chain or the default chain if unsupported.
  */
 export const useChain = () => {
-  // use Account returns connected chain
-  // if not connected, chain is undefined
-  const { chain } = useAccount<typeof wagmiConfig>();
-
-  const chainUnsupported = useChainUnsupported();
+  const { chain } = useAccount<typeof wagmiConfig>(); // Retrieve the connected chain
+  const isUnsupported = useChainUnsupported();
 
   return useMemo(() => {
-    if (!chain || chainUnsupported) {
-      return defaultChain;
-    }
-    return chain;
-  }, [chain, chainUnsupported]);
+    // Return default chain if no chain is connected or if the chain is unsupported
+    return chain && !isUnsupported ? chain : defaultChain;
+  }, [chain, isUnsupported]);
 };
 
+/**
+ * Hook to determine if the current chain is unsupported.
+ * @returns `true` if the connected chain is unsupported, otherwise `false`.
+ */
 export const useChainUnsupported = () => {
-  const { chain } = useAccount<typeof wagmiConfig>();
+  const { chain } = useAccount<typeof wagmiConfig>(); // Retrieve the connected chain
+
   return useMemo(() => {
-    if (wagmiConfig.chains.some((c: { id: number | undefined; }) => c.id === chain?.id)) {
-      return false;
-    } else {
-      return true;
-    }
+    // Check if the connected chain is in the supported chains list
+    return !wagmiConfig.chains.some((c: { id: number }) => c.id === chain?.id);
   }, [chain]);
 };

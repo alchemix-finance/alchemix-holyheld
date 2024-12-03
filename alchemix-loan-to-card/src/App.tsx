@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as React from "react";
 import { formatUnits } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -7,7 +7,8 @@ import { zeroAddress } from 'viem';
 import { useBorrowableLimit } from './hooks/useBorrowableLimit';
 import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
-import { SYNTH_ASSETS, SYNTH_ASSETS_METADATA } from './lib/config/synths';
+import { SYNTH_ASSETS_METADATA } from './lib/config/synths';
+import { useHolyheldSDK } from './hooks/useHolyheld';
 import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
 import Select from 'react-select';
@@ -20,29 +21,26 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
-
+  const [eurAmount, setEurAmount] = useState<string>('');
+  const [holytag, setHolytag] = useState<string>('');
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const chain = useChain();
 
-  
+  const { validateHolytag, convertToEUR, performTopUp } = useHolyheldSDK();
 
-  // Get available deposit assets from vaults config
-  const availableDepositAssets = React.useMemo(() => {
+  const availableDepositAssets = useMemo(() => {
     if (!chain.id) return [];
-    
+
     const vaults = VAULTS[chain.id];
     if (!vaults) return [];
 
-    // Get unique underlying symbols
-    return [...new Set(Object.values(vaults).map(vault => vault.underlyingSymbol))];
+    return [...new Set(Object.values(vaults).map((vault) => vault.underlyingSymbol))];
   }, [chain.id]);
-  
 
-  // Get available yield strategies for selected deposit asset
-  const availableStrategies = React.useMemo(() => {
+  const availableStrategies = useMemo(() => {
     if (!chain.id || !depositAsset) return [];
-    
+
     const vaults = VAULTS[chain.id];
     if (!vaults) return [];
 
@@ -52,51 +50,86 @@ const App: React.FC = () => {
         address,
         label: vault.label,
         image: vault.image,
-        yieldSymbol: vault.yieldSymbol
+        yieldSymbol: vault.yieldSymbol,
       }));
   }, [chain.id, depositAsset]);
 
-  useEffect(() => {
-    if (depositAsset && availableStrategies.length > 0) {
-      setIsLoading(false); // Les stratégies sont chargées
-    } else {
-      setIsLoading(true); // Aucune stratégie ou chargement en cours
-    }
-  }, [depositAsset, availableStrategies]);
+  const availableLoanAssets = useMemo(() => {
+    return Object.entries(SYNTH_ASSETS_METADATA).map(([key, metadata]) => ({
+      symbol: key,
+      ...metadata,
+    }));
+  }, []);
 
   useEffect(() => {
-    try {
-      if (!chain.id || !VAULTS[chain.id]) {
-        throw new Error('Vaults not configured for this chain.');
-      }
-      setError(null); // Aucun problème
-    } catch (err: any) {
-      setError(err.message); // Capture l'erreur
+    if (depositAsset && availableStrategies.length > 0) {
       setIsLoading(false);
+    } else {
+      setIsLoading(true);
     }
-  }, [chain.id]);
-  
+  }, [depositAsset, availableStrategies]);
 
   const formattedStrategies = availableStrategies.map((strategy) => ({
     value: strategy.address,
     label: strategy.label,
   }));
 
-  // Get available loan assets
-  const availableLoanAssets = React.useMemo(() => {
-    return Object.entries(SYNTH_ASSETS_METADATA).map(([key, metadata]) => ({
-      symbol: key,
-      ...metadata
-    }));
-  }, []);
 
-  // Borrowable limit hook
-  const { borrowableLimit, isCalculating } = useBorrowableLimit(
-    depositAmount,
-    depositAsset,
-    address || zeroAddress,
-    walletClient || null
-  );
+
+  const handleValidateHolytag = async () => {
+    try {
+      const isValid = await validateHolytag(holytag);
+      alert(isValid ? 'Holytag is valid!' : 'Holytag is not valid!');
+    } catch (err) {
+      console.error('Error validating holytag:', err);
+      setError('Failed to validate holytag.');
+    }
+  };
+
+  const handleConvertToEUR = async () => {
+    if (!depositAsset || !depositAmount || !chain?.name) {
+      setError('Please select an asset and enter an amount.');
+      return;
+    }
+
+    try {
+      const { EURAmount } = await convertToEUR(depositAsset, 18, depositAmount, chain.name);
+      setEurAmount(EURAmount);
+      alert(`Converted to: €${EURAmount}`);
+    } catch (err) {
+      console.error('Error converting to EUR:', err);
+      setError('Failed to convert tokens to EUR.');
+    }
+  };
+
+  const handleTopUp = async () => {
+    if (!walletClient || !address || !chain?.name || !holytag || !eurAmount) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+
+    try {
+      await performTopUp(
+        {}, // Placeholder for public client
+        walletClient,
+        address,
+        depositAsset,
+        chain.name,
+        depositAmount,
+        undefined, // Transfer data if necessary
+        holytag,
+        true,
+        {
+          onHashGenerate: (hash) => console.log('Transaction Hash:', hash),
+          onStepChange: (step) => console.log('Current Step:', step),
+        }
+      );
+      alert('Top-up successful!');
+    } catch (err) {
+      console.error('Error during top-up:', err);
+      setError('Failed to perform top-up.');
+    }
+  };
 
   const handleInputChange = (value: string) => {
     const regex = /^[0-9]*[.]?[0-9]*$/;
@@ -115,6 +148,19 @@ const App: React.FC = () => {
       </header>
 
       <main className="main-content">
+        {/* Holytag Validation Section */}
+        <div className="card">
+          <label htmlFor="holytag">Enter Holytag</label>
+          <input
+            id="holytag"
+            type="text"
+            value={holytag}
+            onChange={(e) => setHolytag(e.target.value)}
+            placeholder="Enter Holytag"
+            className="input-field"
+          />
+          <button onClick={handleValidateHolytag}>Validate Holytag</button>
+        </div>
         {/* Deposit Asset Section */}
         <div className="card">
           <label htmlFor="deposit-asset">Select deposit asset</label>
@@ -144,7 +190,7 @@ const App: React.FC = () => {
           <p className="balance-text">Balance: {balance.toFixed(4)} MAX</p>
         </div>
 
-        {/* Yield Strategy Section */}
+          {/* Yield Strategy Section */}
         <div className="card">
           <label htmlFor="yield-strategy">Select yield strategy</label>
           {isLoading ? (
@@ -189,20 +235,17 @@ const App: React.FC = () => {
             <option value="">Select asset</option>
             {availableLoanAssets.map((asset) => (
               <option key={asset.symbol} value={asset.symbol}>
-                <div className="flex items-center">
-                  <img 
-                    src={asset.icon} 
-                    alt={asset.label} 
-                    className="w-6 h-6 mr-2"
-                  />
-                  {asset.label}
-                </div>
+                {asset.label}
               </option>
             ))}
           </select>
           <p className="balance-text">
-            Borrowable Limit: {formatUnits(borrowableLimit, 18)}
+            Borrowable Limit: {}
           </p>
+        </div>
+         {/* Top-Up Section */}
+         <div className="card">
+          <button onClick={handleTopUp}>Perform Top-Up</button>
         </div>
       </main>
     </div>
