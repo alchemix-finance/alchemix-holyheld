@@ -52,7 +52,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE": {
       label: "Yearn yvUSDC",
@@ -68,7 +67,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x7Da96a3891Add058AdA2E826306D812C638D87a7": {
       label: "Yearn yvUSDT",
@@ -84,7 +82,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xcE4a49d7ed99C7c8746B713EE2f0C9aA631688d8": {
       label: "AAVE aDAI",
@@ -101,7 +98,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xf591D878608e2e5c7D4f1E499330f4AB9BbaE37a": {
       label: "AAVE aUSDC",
@@ -118,7 +114,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xBC11De1F20e83F0a6889B8c7A7868E722694E315": {
       label: "AAVE aUSDT",
@@ -135,7 +130,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x3B27F92C0e212C671EA351827EDF93DB27cc0c65": {
       label: "Yearn yvUSDT",
@@ -151,7 +145,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xa8b607Aa09B6A2E306F93e74c282Fb13f6A80452": {
       label: "Vesper vaUSDC",
@@ -167,7 +160,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x0538C8bAc84E95A9dF8aC10Aad17DbE81b9E36ee": {
       label: "Vesper vaDAI",
@@ -183,7 +175,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xc14900dFB1Aa54e7674e1eCf9ce02b3b35157ba5": {
       label: "Vesper vaFRAX",
@@ -199,7 +190,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x318334A6dD21d16A8442aB0b7204E81Aa3FB416E": {
       label: "Aave aFRAX",
@@ -216,7 +206,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     //alETH
     "0xa258C4606Ca8206D8aA700cE2143D7db854D168c": {
@@ -234,7 +223,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0": {
       label: "Lido wstETH",
@@ -252,7 +240,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xae78736Cd615f374D3085123A210448E74Fc6393": {
       label: "Rocket rETH",
@@ -269,7 +256,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [GAS_ADDRESS, WETH_MAINNET_ADDRESS],
-      disabledWithdrawTokens: [],
     },
     "0x61134511187a9a2DF38D10DBe07Ba2e8E5563967": {
       label: "AAVE aWETH",
@@ -287,7 +273,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xd1C117319B3595fbc39b471AB1fd485629eb05F2": {
       label: "Vesper vaETH",
@@ -304,7 +289,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xac3E018457B222d93114458476f3E3416Abbe38F": {
       label: "Frax sfrxETH",
@@ -320,7 +304,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
   },
   [fantom.id]: {
@@ -339,7 +322,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xEF0210eB96c7EB36AF8ed1c20306462764935607": {
       label: "Yearn yUSDC",
@@ -355,7 +337,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x148c05caf1Bb09B5670f00D511718f733C54bC4c": {
       label: "Yearn fUSDT",
@@ -371,7 +352,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
   },
   [optimism.id]: {
@@ -392,7 +372,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
 
     "0x4186Eb285b1efdf372AC5896a08C346c7E373cC4": {
@@ -411,7 +390,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x2680b58945A31602E4B6122C965c2849Eb76Dd3B": {
       label: "AAVE aUSDT",
@@ -429,7 +407,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x059Eaa296B18E0d954632c8242dDb4a271175EeD": {
       label: "Yearn yvUSDC",
@@ -452,7 +429,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x0A86aDbF58424EE2e304b395aF0697E850730eCD": {
       label: "Yearn yvDAI",
@@ -475,7 +451,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     //alETH
     "0x337B4B933d60F40CB57DD19AE834Af103F049810": {
@@ -495,7 +470,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb": {
       label: "Lido wstETH",
@@ -512,7 +486,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     "0xE62DDa84e579e6A37296bCFC74c97349D2C59ce3": {
       label: "Yearn yvWETH",
@@ -535,7 +508,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
   },
   [arbitrum.id]: {
@@ -556,7 +528,6 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
     //alETH
     "0x5979D7b546E38E414F7E9822514be443A4800529": {
@@ -574,10 +545,8 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-      disabledWithdrawTokens: [],
     },
   },
-  1337: {}
 };
 
 export const MAX_LOSS_CHECKER_ADDRESSES = {

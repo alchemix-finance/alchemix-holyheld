@@ -1,24 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import * as React from "react";
-import { formatUnits } from 'ethers';
+import { formatUnits, parseUnits } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWalletClient } from 'wagmi';
-import { zeroAddress } from 'viem';
+import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
+import { erc20Abi } from 'viem';
 import { useBorrowableLimit } from './hooks/useBorrowableLimit';
 import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
-import { SYNTH_ASSETS_METADATA } from './lib/config/synths';
 import { useHolyheldSDK } from './hooks/useHolyheld';
 import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
 import Select from 'react-select';
+import { Network } from '@holyheld/sdk';
+import { useAlchemixDeposit } from './hooks/useAlchemixLoan';
+import { useMintAl } from './hooks/UseMintAlETH';
+import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES, SYNTH_ASSETS_METADATA } from "@/lib/config/synths";
+import type { SynthAsset } from "@/lib/config/synths";
+import { CONTRACTS } from './lib/wagmi/chains';
+import { useAlchemists } from "@/lib/queries/useAlchemists";
+
 
 const App: React.FC = () => {
   const [depositAsset, setDepositAsset] = useState<string>('');
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [loanAsset, setLoanAsset] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [eurAmount, setEurAmount] = useState<string>('');
@@ -26,24 +33,34 @@ const App: React.FC = () => {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const chain = useChain();
+  const publicClient = usePublicClient();
 
-  const { validateHolytag, convertToEUR, performTopUp } = useHolyheldSDK();
+  const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
+  const { deposit, isLoading: isDepositLoading, error: depositError } = useAlchemixDeposit();
+  const { mint, isLoading: isMinting, error: mintError } = useMintAl();
+  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists();
+
+  
 
   const availableDepositAssets = useMemo(() => {
     if (!chain.id) return [];
-
     const vaults = VAULTS[chain.id];
     if (!vaults) return [];
+    
+    const assets = [...new Set(Object.values(vaults).map((vault) => vault.underlyingSymbol))];
 
-    return [...new Set(Object.values(vaults).map((vault) => vault.underlyingSymbol))];
+    // Ajouter ETH si pas déjà présent
+    if (!assets.includes('ETH')) {
+      assets.push('ETH');
+    }
+  
+    return assets;
   }, [chain.id]);
 
   const availableStrategies = useMemo(() => {
     if (!chain.id || !depositAsset) return [];
-
     const vaults = VAULTS[chain.id];
     if (!vaults) return [];
-
     return Object.entries(vaults)
       .filter(([_, vault]) => vault.underlyingSymbol === depositAsset)
       .map(([address, vault]) => ({
@@ -74,8 +91,6 @@ const App: React.FC = () => {
     label: strategy.label,
   }));
 
-
-
   const handleValidateHolytag = async () => {
     try {
       const isValid = await validateHolytag(holytag);
@@ -86,37 +101,247 @@ const App: React.FC = () => {
     }
   };
 
-  const handleConvertToEUR = async () => {
-    if (!depositAsset || !depositAmount || !chain?.name) {
-      setError('Please select an asset and enter an amount.');
-      return;
-    }
-
-    try {
-      const { EURAmount } = await convertToEUR(depositAsset, 18, depositAmount, chain.name);
-      setEurAmount(EURAmount);
-      alert(`Converted to: €${EURAmount}`);
-    } catch (err) {
-      console.error('Error converting to EUR:', err);
-      setError('Failed to convert tokens to EUR.');
+  const handleInputChange = (value: string) => {
+    const regex = /^[0-9]*[.]?[0-9]*$/;
+    if (regex.test(value)) {
+      setDepositAmount(value);
     }
   };
 
-  const handleTopUp = async () => {
-    if (!walletClient || !address || !chain?.name || !holytag || !eurAmount) {
-      setError('Please fill in all required fields.');
-      return;
+  const getSynthToken = (asset: string): { type: SynthAsset; address: string } => {
+    const assetUpper = asset.toUpperCase();
+    const chainId = chain?.id;
+    
+    if (!chainId || !(chainId in CONTRACTS)) {
+      throw new Error(`Unsupported chain ID: ${chainId}`);
     }
 
+    // Cast explicite du chainId
+const typedChainId = chainId as keyof typeof CONTRACTS;
+
+// Typage explicite des clés de TOKENS
+type TokenKey = keyof typeof CONTRACTS[typeof typedChainId]["TOKENS"];
+
+const tokenKey = depositAsset.toUpperCase() as TokenKey;
+
+
+    if (assetUpper === 'WETH' || assetUpper === 'ETH') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
+      return {
+        type: SYNTH_ASSETS.ALETH,
+        address
+      };
+    }
+    
+    if (assetUpper === 'USDC' || assetUpper === 'DAI' || assetUpper === 'USDT') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
+      return {
+        type: SYNTH_ASSETS.ALUSD,
+        address
+      };
+    }
+    
+    throw new Error(`Unsupported deposit asset: ${asset}`);
+  };
+
+  const mapNetworkName = (networkName: string): Network => {
+    const networkMapping: Record<string, Network> = {
+      'arbitrum one': Network.arbitrum,
+      arbitrum: Network.arbitrum,
+      polygon: Network.polygon,
+      ethereum: Network.ethereum,
+      optimism: Network.optimism,
+      'op mainnet': Network.optimism,
+    };
+    return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
+  };
+
+  const handleTopUp = async () => {
+    console.log('Handle Top-Up initiated.');
+  
     try {
+      if (!address || !walletClient || !chain || !publicClient) {
+        throw new Error('Please connect your wallet and select a chain.');
+      }
+  
+      if (!depositAmount || parseFloat(depositAmount) <= 0) {
+        throw new Error('Please enter a valid deposit amount.');
+      }
+  
+      if (!depositAsset) {
+        throw new Error('Please select a deposit asset.');
+      }
+
+      if (alchemistsError) {
+        throw new Error('Failed to fetch alchemists data.');
+      }
+      console.log("Available alchemists:", alchemists);
+      console.log("Deposit asset:", depositAsset.toUpperCase());
+      console.log("Synth types in alchemists:", alchemists?.map((al) => al.synthType));
+
+      const synthMapping: Record<string, string> = {
+        USDC: "alUSD",
+        DAI: "alUSD",
+        WETH: "alETH",
+        ETH: "alETH",
+      };
+
+      const mappedSynthType = synthMapping[depositAsset.toUpperCase()] || depositAsset.toUpperCase();
+
+
+
+      // Récupération de l'alchimiste pour l'actif sélectionné
+      const alchemist = alchemists?.find((al) => al.synthType === mappedSynthType);
+
+      
+      if (!alchemist) {
+      throw new Error(`No alchemist found for asset: ${depositAsset}`);
+      }
+
+      const alchemistAddress = alchemist.address;
+  
+      // Étape 1 : Vérification des paramètres
+      console.log('Fetching server settings...');
+      const serverSettings = await sdk.getServerSettings();
+      if (!serverSettings.external.isTopupEnabled) {
+        throw new Error('Top-up is currently disabled.');
+      }
+  
+      console.log('Validating holytag...');
+      const isValidTag = await validateHolytag(holytag);
+      if (!isValidTag) {
+        throw new Error('Invalid Holytag.');
+      }
+
+      type SupportedChainId = keyof typeof CONTRACTS;
+      type TokenKey = keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
+      
+      const chainId = chain.id as SupportedChainId;
+      const tokenKey = depositAsset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
+      const tokenInfo = CONTRACTS[chainId]?.TOKENS[tokenKey];
+  
+      console.log("Token Key:", tokenKey);
+      console.log("Token Info:", tokenInfo);
+
+      if (!tokenInfo) {
+        throw new Error(`Token configuration not found for asset: ${depositAsset}`);
+      }
+
+
+      const tokenAddress = tokenInfo.token;
+      const depositDecimals = tokenInfo.decimals;
+
+      const depositAmountWei = parseUnits(depositAmount, depositDecimals);
+  
+      if (!tokenAddress || !depositDecimals) {
+        throw new Error(`Invalid token configuration for ${depositAsset} on chain ID ${chainId}.`);
+      }
+
+      console.log("Token Address:", tokenAddress);
+    console.log("Deposit Amount (Wei):", depositAmountWei.toString());
+
+    
+      // Étape 2 : Approve
+      console.log(`Approving ${depositAmount} (in Wei: ${depositAmountWei}) for token ${tokenAddress} to ${alchemistAddress}...`);
+      const approveHash = await walletClient.writeContract({
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [alchemistAddress, depositAmountWei],
+      });
+  
+      console.log('Approve transaction sent, waiting for confirmation...');
+      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      console.log('Approve confirmed:', approveReceipt);
+      
+      if (!approveReceipt || approveReceipt.status !== "success") {
+        throw new Error('Approve transaction failed.');
+      }
+      
+  
+      // Étape 3 : Dépôt
+      console.log('Depositing to Alchemix...');
+      const depositResult = await deposit(
+        selectedStrategy as `0x${string}`,
+        depositAmount,
+        address as `0x${string}`,
+        depositAsset
+      );
+  
+      if (!depositResult) throw new Error('Deposit failed.');
+      console.log('Waiting for deposit confirmation...');
+      const depositReceipt = await publicClient.waitForTransactionReceipt({
+        hash: depositResult.transactionHash,
+      });
+      console.log('Deposit confirmed:', depositReceipt);
+  
+      // Étape 4 : Mint
+      const depositFloat = parseFloat(depositAmount);
+      const mintAmountFloat = depositFloat / 2;
+      const mintAmount = mintAmountFloat.toString();
+  
+      const { type: synthType, address: synthAddress } = getSynthToken(depositAsset);
+  
+      console.log('Minting synthetic token...', { mintingAmount: mintAmount });
+      const mintResult = await mint(
+        mintAmount.toString(),
+        address as `0x${string}`,
+        synthType
+      );
+  
+      if (!mintResult) throw new Error(`${synthType} minting failed.`);
+      console.log('Waiting for mint transaction confirmation...');
+      const mintReceipt = await publicClient.waitForTransactionReceipt({
+        hash: mintResult.transactionHash,
+      });
+      console.log('Mint confirmed:', mintReceipt);
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 2 secondes de pause
+
+/*       // Étape 5 : Vérification du solde synthétique
+      console.log('Verifying synthetic token balance...');
+      const synthBalance = await publicClient.readContract({
+        address: synthAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address],
+      });
+  
+      if (BigInt(synthBalance.toString()) < BigInt(mintResult.mintedAmount)) {
+        throw new Error('Synthetic token balance not yet updated.');
+      }
+      console.log('Current synthetic token balance:', synthBalance.toString()); */
+  
+      // Étape 6 : Conversion en EUR
+      const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), 18);
+      console.log('Converting to EUR...');
+      const mappedNetwork = mapNetworkName(chain.name);
+
+      const { EURAmount, transferData } = await convertToEUR(
+        synthAddress,
+        18,
+        formattedAmount,
+        mappedNetwork
+      );
+  
+      if (
+        parseFloat(EURAmount) < parseFloat(serverSettings.external.minTopUpAmountInEUR) ||
+        parseFloat(EURAmount) > parseFloat(serverSettings.external.maxTopUpAmountInEUR)
+      ) {
+        throw new Error(
+          `Amount must be between €${serverSettings.external.minTopUpAmountInEUR} and €${serverSettings.external.maxTopUpAmountInEUR}.`
+        );
+      }
+  
+      // Étape 7 : Top-Up
+      console.log('Executing top-up...');
       await performTopUp(
-        {}, // Placeholder for public client
+        publicClient,
         walletClient,
         address,
-        depositAsset,
-        chain.name,
-        depositAmount,
-        undefined, // Transfer data if necessary
+        synthAddress,
+        mappedNetwork,
+        mintResult.mintedAmount,
+        transferData,
         holytag,
         true,
         {
@@ -124,19 +349,18 @@ const App: React.FC = () => {
           onStepChange: (step) => console.log('Current Step:', step),
         }
       );
+  
+      console.log('Top-up completed successfully.');
       alert('Top-up successful!');
-    } catch (err) {
-      console.error('Error during top-up:', err);
-      setError('Failed to perform top-up.');
+    } catch (err: unknown) {
+      const errorMessage = (err as Error).message;
+  console.error('Error during top-up:', errorMessage);
+  setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleInputChange = (value: string) => {
-    const regex = /^[0-9]*[.]?[0-9]*$/;
-    if (regex.test(value)) {
-      setDepositAmount(value);
-    }
-  };
+  
 
   return (
     <div className="app-container">
@@ -148,7 +372,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="main-content">
-        {/* Holytag Validation Section */}
         <div className="card">
           <label htmlFor="holytag">Enter Holytag</label>
           <input
@@ -161,7 +384,7 @@ const App: React.FC = () => {
           />
           <button onClick={handleValidateHolytag}>Validate Holytag</button>
         </div>
-        {/* Deposit Asset Section */}
+
         <div className="card">
           <label htmlFor="deposit-asset">Select deposit asset</label>
           <select
@@ -190,40 +413,37 @@ const App: React.FC = () => {
           <p className="balance-text">Balance: {balance.toFixed(4)} MAX</p>
         </div>
 
-          {/* Yield Strategy Section */}
         <div className="card">
           <label htmlFor="yield-strategy">Select yield strategy</label>
           {isLoading ? (
             <p>Loading strategies...</p>
           ) : (
             <Select
-  options={formattedStrategies}
-  value={formattedStrategies.find((s) => s.value === selectedStrategy)}
-  onChange={(option) => setSelectedStrategy(option?.value || '')}
-  styles={{
-    control: (base) => ({
-      ...base,
-      backgroundColor: '#000', // Fond noir
-      border: '1px solid #444', // Bordure grise foncée
-      color: '#fff', // Texte blanc
-    }),
-    option: (base, { isFocused }) => ({
-      ...base,
-      backgroundColor: isFocused ? '#333' : '#000', // Gris foncé sur hover, noir sinon
-      color: '#fff', // Texte toujours blanc
-    }),
-    singleValue: (base) => ({
-      ...base,
-      color: '#fff', // Texte de la valeur sélectionnée en blanc
-    }),
-  }}
-/>
-
+              options={formattedStrategies}
+              value={formattedStrategies.find((s) => s.value === selectedStrategy)}
+              onChange={(option) => setSelectedStrategy(option?.value || '')}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  backgroundColor: '#000',
+                  border: '1px solid #444',
+                  color: '#fff',
+                }),
+                option: (base, { isFocused }) => ({
+                  ...base,
+                  backgroundColor: isFocused ? '#333' : '#000',
+                  color: '#fff',
+                }),
+                singleValue: (base) => ({
+                  ...base,
+                  color: '#fff',
+                }),
+              }}
+            />
           )}
           <p className="balance-text">Current Balance: 0.0000</p>
         </div>
 
-        {/* Loan Asset Section */}
         <div className="card">
           <label htmlFor="loan-asset">Select loan asset</label>
           <select
@@ -239,13 +459,13 @@ const App: React.FC = () => {
               </option>
             ))}
           </select>
-          <p className="balance-text">
-            Borrowable Limit: {}
-          </p>
+          <p className="balance-text">Borrowable Limit: {}</p>
         </div>
-         {/* Top-Up Section */}
-         <div className="card">
-          <button onClick={handleTopUp}>Perform Top-Up</button>
+
+        <div className="card">
+          <button onClick={handleTopUp} disabled={isLoading}>
+            {isLoading ? 'Processing...' : 'Perform Top-Up'}
+          </button>
         </div>
       </main>
     </div>

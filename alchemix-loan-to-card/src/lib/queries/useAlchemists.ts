@@ -4,7 +4,6 @@ import { useAccount, usePublicClient } from "wagmi";
 import { Address, zeroAddress } from "viem";
 import { ALCHEMISTS_METADATA, SYNTH_ASSETS } from "../../lib/config/alchemists";
 import { alchemistV2Abi } from "../../abi/alchemistV2";
-import { wagmiConfig } from "../../lib/wagmi/wagmiConfig";
 import { QueryKeys } from "./queriesSchema";
 import { ONE_MINUTE_IN_MS } from "../../lib/constants";
 
@@ -14,79 +13,64 @@ const isSupportedChain = (chainId: number): chainId is SupportedChainId => {
   return chainId in ALCHEMISTS_METADATA;
 };
 
+interface AlchemistData {
+  address: Address;
+  synthType: string;
+  debtToken: Address;
+  transmuter: Address;
+  position: {
+    debt: bigint;
+    depositedTokens: Address[];
+  };
+  totalValue: bigint;
+  yieldTokens: Address[];
+  underlyingTokens: Address[];
+  minimumCollateralization: bigint;
+}
 
 export const useAlchemists = () => {
   const chain = useChain();
   const { address = zeroAddress } = useAccount();
-  const publicClient = usePublicClient<typeof wagmiConfig>({
-    chainId: chain.id,
-  });
-  return useQuery({
+  const publicClient = usePublicClient();
+
+  return useQuery<AlchemistData[]>({
     queryKey: [QueryKeys.Alchemists, chain.id, address],
     queryFn: async () => {
-      if (!isSupportedChain(chain.id)) {
-        throw new Error(`Chain ${chain.id} not supported`);
+      if (!publicClient) {
+        throw new Error("Public client is not available");
       }
+
+      if (!isSupportedChain(chain.id)) {
+        throw new Error(`Chain ${chain.id} is not supported`);
+      }
+
       const alchemistsMetadata = ALCHEMISTS_METADATA[chain.id];
-
-      const alchemistsArr = [
-        alchemistsMetadata.alETH,
-        alchemistsMetadata.alUSD,
-      ];
-
-      const alchemistWithoutZero = alchemistsArr.filter(
-        (al) => al !== zeroAddress,
+      const alchemistAddresses = [alchemistsMetadata.alETH, alchemistsMetadata.alUSD].filter(
+        (addr) => addr !== zeroAddress
       );
 
-      const calls = alchemistWithoutZero.flatMap(
-        (alchemistAddress) =>
-          [
-            {
-              abi: alchemistV2Abi,
-              address: alchemistAddress,
-              functionName: "transmuter",
-            },
-            {
-              abi: alchemistV2Abi,
-              address: alchemistAddress,
-              functionName: "debtToken",
-            },
-            {
-              abi: alchemistV2Abi,
-              address: alchemistAddress,
-              functionName: "minimumCollateralization",
-            },
-            {
-              abi: alchemistV2Abi,
-              address: alchemistAddress,
-              functionName: "accounts",
-              args: [address],
-            },
-            {
-              abi: alchemistV2Abi,
-              address: alchemistAddress,
-              functionName: "totalValue",
-              args: [address],
-            },
-            {
-              abi: alchemistV2Abi,
-              address: alchemistAddress,
-              functionName: "getSupportedYieldTokens",
-            },
-            {
-              abi: alchemistV2Abi,
-              address: alchemistAddress,
-              functionName: "getSupportedUnderlyingTokens",
-            },
-          ] as const,
-      );
+      const calls = alchemistAddresses.flatMap((address) => [
+        { abi: alchemistV2Abi, address, functionName: "transmuter" },
+        { abi: alchemistV2Abi, address, functionName: "debtToken" },
+        { abi: alchemistV2Abi, address, functionName: "minimumCollateralization" },
+        { abi: alchemistV2Abi, address, functionName: "accounts", args: [address] },
+        { abi: alchemistV2Abi, address, functionName: "totalValue", args: [address] },
+        { abi: alchemistV2Abi, address, functionName: "getSupportedYieldTokens" },
+        { abi: alchemistV2Abi, address, functionName: "getSupportedUnderlyingTokens" },
+      ]);
 
-      const results = await publicClient.multicall({
+      // Suppression explicite des types complexes pour le multicall
+      const results = await (publicClient as any).multicall({
         allowFailure: false,
         contracts: calls,
       });
 
-      const alchemists = alchemistWithoutZero.map((alchemist, i) => {
+      // Validation de la longueur des résultats
+      if (results.length !== alchemistAddresses.length * 7) {
+        throw new Error("Unexpected multicall results length");
+      }
+
+      return alchemistAddresses.map((address, index) => {
         const [
           transmuter,
           debtToken,
@@ -95,36 +79,20 @@ export const useAlchemists = () => {
           totalValue,
           yieldTokens,
           underlyingTokens,
-        ] = results.slice(i * 7, i * 7 + 7) as [
-          Address,
-          Address,
-          bigint,
-          [bigint, Address[]],
-          bigint,
-          Address[],
-          Address[],
-        ];
+        ] = results.slice(index * 7, index * 7 + 7);
 
         return {
-          address: alchemist,
-          synthType:
-            alchemist === alchemistsMetadata.alETH
-              ? SYNTH_ASSETS.ALETH
-              : SYNTH_ASSETS.ALUSD,
+          address,
+          synthType: address === alchemistsMetadata.alETH ? SYNTH_ASSETS.ALETH : SYNTH_ASSETS.ALUSD,
           debtToken,
           transmuter,
-          position: {
-            debt,
-            depositedTokens,
-          },
+          position: { debt, depositedTokens },
           totalValue,
           yieldTokens,
           underlyingTokens,
           minimumCollateralization,
-        } as const;
+        };
       });
-
-      return alchemists;
     },
     staleTime: ONE_MINUTE_IN_MS,
   });

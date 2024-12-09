@@ -37,6 +37,7 @@ export interface SynthAssetMetadata {
   [key: string]: {
     label: string;
     icon: string;
+    decimals: number;
   };
 }
 
@@ -70,7 +71,7 @@ export interface VaultMetadata {
     bonus: BonusFn;
   };
   disabledDepositTokens: Address[];
-  disabledWithdrawTokens: string[];
+  
   wethGateway?: Address;
   gateway?: Address;
   migrator?: Address;

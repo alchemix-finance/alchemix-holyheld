@@ -41,7 +41,7 @@ export const mutationCallback = ({
       toast.promise(executionPromise, {
         loading: `Pending ${action}...`,
         success: `${action} confirmed`,
-        error: (e) => {
+        error: (e: { message: any; }) => {
           const actionWithFirstLetterLowercased =
             action.charAt(0).toLowerCase() + action.slice(1);
 
