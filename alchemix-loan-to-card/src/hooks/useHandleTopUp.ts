@@ -75,7 +75,7 @@ const minimumAmountOut = BigInt(depositAmount) * BigInt(Math.floor(percentage * 
 
       // Étape 4: Convertir les fonds empruntés en EUR
       const { EURAmount, transferData } = await convertToEUR(
-        depositAsset as `0x${string}`, // Conversion explicite pour TypeScript
+        "0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A", // Conversion explicite pour TypeScript
         18, // Décimales du token emprunté
         depositAmount,
         currentChain.name.toLowerCase() as Network

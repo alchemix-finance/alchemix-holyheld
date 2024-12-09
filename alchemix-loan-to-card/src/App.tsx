@@ -274,6 +274,7 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
         hash: depositResult.transactionHash,
       });
       console.log('Deposit confirmed:', depositReceipt);
+      await new Promise(resolve => setTimeout(resolve, 15000));
   
       // Étape 4 : Mint
       const depositFloat = parseFloat(depositAmount);
@@ -311,26 +312,38 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
       }
       console.log('Current synthetic token balance:', synthBalance.toString()); */
   
+      // Get the correct alAsset (alUSD or alETH) for conversion
+      const synthTokenAddress = SYNTH_ASSETS_ADDRESSES[chainId][synthType];
+      if (!synthTokenAddress) {
+        throw new Error(`Synthetic token address not found for ${synthType}`);
+      }
+
       // Étape 6 : Conversion en EUR
       const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), 18);
       console.log('Converting to EUR...');
       const mappedNetwork = mapNetworkName(chain.name);
 
+      console.log('synth:',synthTokenAddress)
+      console.log('tokenAdress:',tokenAddress)
+      console.log('synthAdress:',synthAddress)
       const { EURAmount, transferData } = await convertToEUR(
-        synthAddress,
+        "0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A",
         18,
         formattedAmount,
         mappedNetwork
       );
-  
-      if (
+  console.log(convertToEUR)
+/*       if (
         parseFloat(EURAmount) < parseFloat(serverSettings.external.minTopUpAmountInEUR) ||
         parseFloat(EURAmount) > parseFloat(serverSettings.external.maxTopUpAmountInEUR)
       ) {
         throw new Error(
           `Amount must be between €${serverSettings.external.minTopUpAmountInEUR} and €${serverSettings.external.maxTopUpAmountInEUR}.`
         );
-      }
+      } */
+
+      console.log(mintResult)
+      const alAmount = formatUnits(mintResult.mintedAmount, 18);
   
       // Étape 7 : Top-Up
       console.log('Executing top-up...');
@@ -338,9 +351,9 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
         publicClient,
         walletClient,
         address,
-        synthAddress,
+        "0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A",
         mappedNetwork,
-        mintResult.mintedAmount,
+        alAmount,
         transferData,
         holytag,
         true,
@@ -354,6 +367,8 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
       alert('Top-up successful!');
     } catch (err: unknown) {
       const errorMessage = (err as Error).message;
+      console.error(err);
+      console.log(err);
   console.error('Error during top-up:', errorMessage);
   setError(errorMessage);
     } finally {
