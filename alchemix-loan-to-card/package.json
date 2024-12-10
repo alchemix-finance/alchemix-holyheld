@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@holyheld/sdk": "^3.1.0",
+    "@mui/material": "^6.1.10",
     "@rainbow-me/rainbowkit": "^2.2.0",
     "@tanstack/react-query": "^5.62.0",
     "@tanstack/react-query-devtools": "^5.62.0",

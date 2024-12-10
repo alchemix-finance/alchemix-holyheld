@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import * as React from "react";
 import { formatUnits, parseUnits } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import Button from '@mui/material/Button';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { erc20Abi } from 'viem';
 import { useBorrowableLimit } from './hooks/useBorrowableLimit';
@@ -34,6 +35,8 @@ const App: React.FC = () => {
   const { data: walletClient } = useWalletClient();
   const chain = useChain();
   const publicClient = usePublicClient();
+  const [selectKey, setSelectKey] = useState(0);
+
 
   const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
   const { deposit, isLoading: isDepositLoading, error: depositError } = useAlchemixDeposit();
@@ -48,14 +51,24 @@ const App: React.FC = () => {
     if (!vaults) return [];
     
     const assets = [...new Set(Object.values(vaults).map((vault) => vault.underlyingSymbol))];
-
-    // Ajouter ETH si pas déjà présent
-    if (!assets.includes('ETH')) {
-      assets.push('ETH');
-    }
   
     return assets;
   }, [chain.id]);
+
+  const handleDepositAssetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDepositAsset(e.target.value);
+    // Réinitialiser la stratégie
+    setSelectedStrategy('');
+    setSelectKey(prev => prev + 1);
+  };
+
+  const synthMapping: Record<string, string> = {
+    USDC: "alUSD",
+    DAI: "alUSD",
+    WETH: "alETH",
+    ETH: "alETH",
+    USDT: "alUSD",
+  };
 
   const availableStrategies = useMemo(() => {
     if (!chain.id || !depositAsset) return [];
@@ -71,12 +84,6 @@ const App: React.FC = () => {
       }));
   }, [chain.id, depositAsset]);
 
-  const availableLoanAssets = useMemo(() => {
-    return Object.entries(SYNTH_ASSETS_METADATA).map(([key, metadata]) => ({
-      symbol: key,
-      ...metadata,
-    }));
-  }, []);
 
   useEffect(() => {
     if (depositAsset && availableStrategies.length > 0) {
@@ -108,6 +115,15 @@ const App: React.FC = () => {
     }
   };
 
+
+// useEffect pour mettre à jour automatiquement le loanAsset
+useEffect(() => {
+  if (depositAsset) {
+    const mappedAsset = synthMapping[depositAsset.toUpperCase()];
+    setLoanAsset(mappedAsset || '');
+  }
+}, [depositAsset]);  
+
   const getSynthToken = (asset: string): { type: SynthAsset; address: string } => {
     const assetUpper = asset.toUpperCase();
     const chainId = chain?.id;
@@ -119,10 +135,6 @@ const App: React.FC = () => {
     // Cast explicite du chainId
 const typedChainId = chainId as keyof typeof CONTRACTS;
 
-// Typage explicite des clés de TOKENS
-type TokenKey = keyof typeof CONTRACTS[typeof typedChainId]["TOKENS"];
-
-const tokenKey = depositAsset.toUpperCase() as TokenKey;
 
 
     if (assetUpper === 'WETH' || assetUpper === 'ETH') {
@@ -179,12 +191,7 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
       console.log("Deposit asset:", depositAsset.toUpperCase());
       console.log("Synth types in alchemists:", alchemists?.map((al) => al.synthType));
 
-      const synthMapping: Record<string, string> = {
-        USDC: "alUSD",
-        DAI: "alUSD",
-        WETH: "alETH",
-        ETH: "alETH",
-      };
+
 
       const mappedSynthType = synthMapping[depositAsset.toUpperCase()] || depositAsset.toUpperCase();
 
@@ -227,6 +234,8 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
         throw new Error(`Token configuration not found for asset: ${depositAsset}`);
       }
 
+      
+
 
       const tokenAddress = tokenInfo.token;
       const depositDecimals = tokenInfo.decimals;
@@ -251,10 +260,13 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
       });
   
       console.log('Approve transaction sent, waiting for confirmation...');
-      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      const approveReceipt = await publicClient.waitForTransactionReceipt({ 
+        hash: approveHash ,
+        confirmations: 1
+      });
       console.log('Approve confirmed:', approveReceipt);
       
-      if (!approveReceipt || approveReceipt.status !== "success") {
+      if (approveReceipt.status !== "success") {
         throw new Error('Approve transaction failed.');
       }
       
@@ -296,7 +308,7 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
         hash: mintResult.transactionHash,
       });
       console.log('Mint confirmed:', mintReceipt);
-      await new Promise(resolve => setTimeout(resolve, 10000)); // 2 secondes de pause
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 10 secondes de pause
 
 /*       // Étape 5 : Vérification du solde synthétique
       console.log('Verifying synthetic token balance...');
@@ -327,7 +339,7 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
       console.log('tokenAdress:',tokenAddress)
       console.log('synthAdress:',synthAddress)
       const { EURAmount, transferData } = await convertToEUR(
-        "0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A",
+        synthTokenAddress,
         18,
         formattedAmount,
         mappedNetwork
@@ -351,7 +363,7 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
         publicClient,
         walletClient,
         address,
-        "0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A",
+        synthTokenAddress,
         mappedNetwork,
         alAmount,
         transferData,
@@ -397,7 +409,12 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
             placeholder="Enter Holytag"
             className="input-field"
           />
-          <button onClick={handleValidateHolytag}>Validate Holytag</button>
+          <Button
+          variant="contained" 
+          onClick={handleValidateHolytag}
+          sx={{ bgcolor: 'gray' }}
+          >
+            Validate Holytag</Button>
         </div>
 
         <div className="card">
@@ -406,7 +423,7 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
             id="deposit-asset"
             className="dropdown"
             value={depositAsset}
-            onChange={(e) => setDepositAsset(e.target.value)}
+            onChange={handleDepositAssetChange}
           >
             <option value="">Select asset</option>
             {availableDepositAssets.map((asset) => (
@@ -434,6 +451,7 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
             <p>Loading strategies...</p>
           ) : (
             <Select
+              key={selectKey}
               options={formattedStrategies}
               value={formattedStrategies.find((s) => s.value === selectedStrategy)}
               onChange={(option) => setSelectedStrategy(option?.value || '')}
@@ -456,31 +474,32 @@ const tokenKey = depositAsset.toUpperCase() as TokenKey;
               }}
             />
           )}
-          <p className="balance-text">Current Balance: 0.0000</p>
+          {/* <p className="balance-text">Current Balance: 0.0000</p> */}
         </div>
 
         <div className="card">
-          <label htmlFor="loan-asset">Select loan asset</label>
-          <select
+          <label htmlFor="loan-asset">Loan asset</label>
+            <select
             id="loan-asset"
             className="dropdown"
             value={loanAsset}
-            onChange={(e) => setLoanAsset(e.target.value)}
+            disabled  // disabled car il est automatiquement défini
           >
-            <option value="">Select asset</option>
-            {availableLoanAssets.map((asset) => (
-              <option key={asset.symbol} value={asset.symbol}>
-                {asset.label}
-              </option>
-            ))}
+          <option value="">{loanAsset || "Select asset"}</option>
           </select>
-          <p className="balance-text">Borrowable Limit: {}</p>
+          {/* <p className="balance-text">Borrowable Limit: {}</p> */}
         </div>
 
         <div className="card">
-          <button onClick={handleTopUp} disabled={isLoading}>
+        <Button 
+          variant="contained"
+          onClick={handleTopUp}
+          disabled={isLoading}
+          fullWidth
+          sx={{ bgcolor: 'Gray' }}
+        >
             {isLoading ? 'Processing...' : 'Perform Top-Up'}
-          </button>
+          </Button>
         </div>
       </main>
     </div>

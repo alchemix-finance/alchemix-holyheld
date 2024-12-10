@@ -1,77 +1,40 @@
 import { useState } from 'react';
 import { useWriteContract, useAccount, usePublicClient } from 'wagmi';
 import { alchemistV2Abi } from '../abi/alchemistV2';
-import { erc20Abi } from 'viem';
 import { parseEther, parseUnits } from 'viem';
 import { useChain } from '../../src/hooks/useChain';
+import { VAULTS } from '../lib/queries/useVaults';
+import { arbitrum, fantom, mainnet, optimism } from 'viem/chains';
+import { wethGatewayAbi } from '../abi/wethGateway';
 
-const CONTRACTS = {
-    10: { // Optimism
-      ALCHEMIST: {
-        ALETH: '0x10294d57A419C8eb78C648372c5bAA27fD1484af' as `0x${string}`,
-        ALUSD: '0x10294d57A419C8eb78C648372c5bAA27fD1484af' as `0x${string}`,
-        USDC: '0x10294d57A419C8eb78C648372c5bAA27fD1484af' as `0x${string}`
-      },
-      TOKENS: {
-        USDC: {
-          token: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607' as `0x${string}`, // Optimism USDC
-          vault: '0x10294d57A419C8eb78C648372c5bAA27fD1484af' as `0x${string}`, // Optimism USDC vault
-          decimals: 6
-        }
-      }
-    },
-    42161: { // Arbitrum
-      ALCHEMIST: {
-        ALETH: '0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c' as `0x${string}`,
-        ALUSD: '0x10294d57A419C8eb78C648372c5bAA27fD1484af' as `0x${string}`,
-        USDC: '0x10294d57A419C8eb78C648372c5bAA27fD1484af' as `0x${string}`
-      },
-      TOKENS: {
-        USDC: {
-          token: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607' as `0x${string}`,
-          vault: '0x4186Eb285b1efdf372AC5896a08C346c7E373cC4' as `0x${string}`,
-          decimals: 6
-        },
-        WETH: {
-          token: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' as `0x${string}`,
-          vault: '0x5979D7b546E38E414F7E9822514be443A4800529' as `0x${string}`,
-          decimals: 18
-        },
-        ALETH: {
-          token: '0x17573150d67d820542EFb24210371545a4868B03' as `0x${string}`,
-          vault: '0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c' as `0x${string}`,
-          decimals: 18
-        }
-      }
-    }
-  } as const;
+type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum.id | typeof fantom.id;
 
-const MAX_UINT256 = 2n ** 256n - 1n;
+const ALCHEMIST_ADDRESSES = {
+  [mainnet.id]: {
+    alETH: "0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c" as `0x${string}`,
+    alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
+  },
+  [optimism.id]: {
+    alETH: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`,
+    alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
+  },
+  [arbitrum.id]: {
+    alETH: "0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c" as `0x${string}`,
+    alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
+  },
+  [fantom.id]: {
+    alETH: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+    alUSD: "0x0000000000000000000000000000000000000000" as `0x${string}`
+  }
+} as const;
 
-interface UseAlchemixDepositReturn {
-  deposit: (
-    selectedStrategy: `0x${string}`,
-    amount: string,
-    recipient: `0x${string}`,
-    depositAsset: string
-  ) => Promise<{
-    transactionHash: `0x${string}`;
-    sharesIssued: string;
-    depositReceipt: any;
-  } | null>;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export const useAlchemixDeposit = (): UseAlchemixDepositReturn => {
+export const useAlchemixDeposit = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { address: userAddress } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
   const chain = useChain();
-
-
 
   const deposit = async (
     selectedStrategy: `0x${string}`,
@@ -81,79 +44,96 @@ export const useAlchemixDeposit = (): UseAlchemixDepositReturn => {
   ) => {
     setIsLoading(true);
     try {
-      if (!publicClient) throw new Error('Public client not initialized');
-      if (!userAddress) throw new Error('No wallet connected');
-      if (!chain.id) throw new Error('Chain ID not available');
-
-      const amountNum = parseFloat(amount);
-      if (isNaN(amountNum) || amountNum <= 0) {
-        throw new Error('Amount must be a valid positive number');
+      if (!publicClient || !userAddress || !chain.id) {
+        throw new Error('Missing required connection');
       }
 
-      // Get config for this chain and asset
-      const assetUpper = depositAsset.toUpperCase();
-      const config = CONTRACTS[42161].TOKENS[assetUpper as keyof typeof CONTRACTS[42161]['TOKENS']];
-      if (!config) {
-        throw new Error(`Unsupported asset: ${depositAsset}`);
+      const chainId = chain.id as SupportedChainId;
+
+      // Vérifier si la chaîne est supportée
+      if (!ALCHEMIST_ADDRESSES[chainId]) {
+        throw new Error(`Chain ${chainId} is not supported`);
       }
 
-      // Set Alchemist contract address based on asset type
-      let alchemistAddress: `0x${string}`;
-      if (assetUpper === 'USDC') {
-        alchemistAddress = CONTRACTS[42161].ALCHEMIST.USDC;
-      } else if (assetUpper === 'ALETH') {
-        alchemistAddress = CONTRACTS[42161].ALCHEMIST.ALETH;
-      } else {
-        alchemistAddress = CONTRACTS[42161].ALCHEMIST.ALUSD;
+      // Récupérer les infos de la vault pour cette chaîne
+      const vaultInfo = VAULTS[chainId]?.[selectedStrategy];
+      if (!vaultInfo) {
+        throw new Error(`No vault found for strategy ${selectedStrategy} on chain ${chainId}`);
       }
 
-      // Verify if the address is a contract
-      const code = await publicClient.getCode({ address: alchemistAddress });
-      if (code === '0x') {
-        throw new Error('The specified address is not a contract');
+      // Vérifier que le depositAsset correspond bien au underlyingSymbol de la vault
+      if (vaultInfo.underlyingSymbol !== depositAsset) {
+        throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
       }
 
-      // Convert amount to correct decimals
-      const amountInWei = config.decimals === 18 
+      // Obtenir l'adresse de l'alchemist approprié
+      const alchemistAddress = ALCHEMIST_ADDRESSES[chainId][vaultInfo.synthAssetType === 'alETH' ? 'alETH' : 'alUSD'];
+      if (alchemistAddress === "0x0000000000000000000000000000000000000000") {
+        throw new Error(`No alchemist contract available for ${vaultInfo.synthAssetType} on chain ${chainId}`);
+      }
+
+      // Gérer les différents decimals selon l'asset
+      const decimals = depositAsset === 'USDC' ? 6 : 18;
+      const amountInWei = decimals === 18 
         ? parseEther(amount) 
-        : parseUnits(amount, config.decimals);
+        : parseUnits(amount, decimals);
+      const minimumAmountOut = (amountInWei * 90n) / 100n;
 
-      // Vérifier et approuver si nécessaire
+      let hash: `0x${string}`;
 
+      // Si c'est ETH/WETH et qu'il y a un gateway, utiliser le gateway
+      if ((depositAsset === 'WETH' || depositAsset === 'ETH') && vaultInfo.wethGateway) {
+        console.log('Using WETH gateway:', {
+          gateway: vaultInfo.wethGateway,
+          amount: amountInWei.toString()
+        });
 
-      const minimumAmountOut = (amountInWei * 90n) / 100n; // Adjusted slippage tolerance to 90%
+        hash = await writeContractAsync({
+          address: vaultInfo.wethGateway as `0x${string}`,
+          abi: wethGatewayAbi,
+          functionName: 'depositUnderlying',
+          args: [
+            selectedStrategy,
+            recipient, 
+            minimumAmountOut,
+            userAddress,  
+            0n           
+          ],
+          value: amountInWei
+        });
+      } else {
+        console.log('Using standard deposit:', {
+          alchemist: alchemistAddress,
+          strategy: selectedStrategy,
+          amount: amountInWei.toString()
+        });
 
-      console.log('Depositing with parameters:', {
-        alchemist: alchemistAddress,
-        vault: config.vault,
-        amount: amountInWei.toString(),
-        recipient,
-        minimumAmountOut: minimumAmountOut.toString()
-      });
+        hash = await writeContractAsync({
+          address: alchemistAddress,
+          abi: alchemistV2Abi,
+          functionName: 'depositUnderlying',
+          args: [selectedStrategy, amountInWei, recipient, minimumAmountOut],
+        });
+      }
 
-      const hash = await writeContractAsync({
-        address: alchemistAddress,
-        abi: alchemistV2Abi,
-        functionName: 'depositUnderlying',
-        args: [config.vault, amountInWei, recipient, minimumAmountOut],
-      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash
-      });
+      if (receipt.status !== 'success') {
+        throw new Error('Transaction failed');
+      }
 
-      setIsLoading(false);
       return {
         transactionHash: hash,
         sharesIssued: receipt.logs[0]?.data || '0',
         depositReceipt: receipt,
       };
+
     } catch (err: any) {
-      console.error('Error during deposit:', err);
-      const errorMessage = err.message || 'An unexpected error occurred';
-      setError(errorMessage);
+      console.error('Deposit error:', err);
+      setError(err.message);
+      throw err;
+    } finally {
       setIsLoading(false);
-      throw new Error(`Alchemix deposit failed: ${errorMessage}`);
     }
   };
 

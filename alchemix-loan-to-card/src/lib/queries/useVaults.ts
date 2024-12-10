@@ -407,7 +407,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    },/* 
     "0x059Eaa296B18E0d954632c8242dDb4a271175EeD": {
       label: "Yearn yvUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -429,7 +429,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-    },
+    }, */
     "0x0A86aDbF58424EE2e304b395aF0697E850730eCD": {
       label: "Yearn yvDAI",
       synthAssetType: SYNTH_ASSETS.ALUSD,
