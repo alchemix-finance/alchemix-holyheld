@@ -71,7 +71,7 @@ export const useMintAl = (): UseMintAlReturn => {
         abi: alchemistV2Abi,
         functionName: 'mint',
         args: [sharesToMint, recipient],
-        gas: 350000n,
+        gas: 550000n,
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });

@@ -73,11 +73,12 @@ export const useAlchemixDeposit = () => {
       }
 
       // Gérer les différents decimals selon l'asset
-      const decimals = depositAsset === 'USDC' ? 6 : 18;
+      const decimals = depositAsset === 'USDC' || depositAsset === 'USDT' ? 6 : 18;
+
       const amountInWei = decimals === 18 
         ? parseEther(amount) 
         : parseUnits(amount, decimals);
-      const minimumAmountOut = (amountInWei * 90n) / 100n;
+      const minimumAmountOut = (amountInWei * 80n) / 100n;
 
       let hash: `0x${string}`;
 
@@ -99,7 +100,8 @@ export const useAlchemixDeposit = () => {
             userAddress,  
             0n           
           ],
-          value: amountInWei
+          value: amountInWei,
+          gas: 550000n,
         });
       } else {
         console.log('Using standard deposit:', {
@@ -113,6 +115,7 @@ export const useAlchemixDeposit = () => {
           abi: alchemistV2Abi,
           functionName: 'depositUnderlying',
           args: [selectedStrategy, amountInWei, recipient, minimumAmountOut],
+          gas: 550000n,
         });
       }
 

@@ -26,7 +26,9 @@ export const CONTRACTS = {
       WETH: { token: '0x4200000000000000000000000000000000000006', decimals: 18 },
       ALETH: { token: '0x3E29D3A9316dAB217754d13b28646B76607c5f04', decimals: 18 },
       ALUSD: { token: '0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A', decimals: 18 },
-      ETH: { token: 'NATIVE_ETH', decimals: 18 }
+      DAI: { token: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', decimals: 18 },
+      USDT: { token: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', decimals: 6 },
+
     }
   },
   1: {

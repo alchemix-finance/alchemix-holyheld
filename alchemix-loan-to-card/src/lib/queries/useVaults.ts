@@ -67,7 +67,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    },/* 
     "0x7Da96a3891Add058AdA2E826306D812C638D87a7": {
       label: "Yearn yvUSDT",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -82,7 +82,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    }, */
     "0xcE4a49d7ed99C7c8746B713EE2f0C9aA631688d8": {
       label: "AAVE aDAI",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -430,7 +430,7 @@ export const VAULTS: VaultsConfig = {
       },
       disabledDepositTokens: [],
     }, */
-    "0x0A86aDbF58424EE2e304b395aF0697E850730eCD": {
+    /* "0x0A86aDbF58424EE2e304b395aF0697E850730eCD": {
       label: "Yearn yvDAI",
       synthAssetType: SYNTH_ASSETS.ALUSD,
       underlyingSymbol: "DAI",
@@ -451,7 +451,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    }, */
     //alETH
     "0x337B4B933d60F40CB57DD19AE834Af103F049810": {
       label: "AAVE aWETH",
@@ -486,7 +486,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-    },
+    },/* 
     "0xE62DDa84e579e6A37296bCFC74c97349D2C59ce3": {
       label: "Yearn yvWETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -508,7 +508,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-    },
+    }, */
   },
   [arbitrum.id]: {
     //alUSD
