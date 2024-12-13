@@ -12,10 +12,10 @@ type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum
 const ALCHEMIST_ADDRESSES = {
   [mainnet.id]: {
     alETH: "0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c" as `0x${string}`,
-    alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
+    alUSD: "0x5C6374a2ac4EBC38DeA0Fc1F8716e5Ea1AdD94dd" as `0x${string}`
   },
   [optimism.id]: {
-    alETH: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`,
+    alETH: "0xe04Bb5B4de60FA2fBa69a93adE13A8B3B569d5B4" as `0x${string}`,
     alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
   },
   [arbitrum.id]: {
@@ -66,11 +66,21 @@ export const useAlchemixDeposit = () => {
         throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
       }
 
-      // Obtenir l'adresse de l'alchemist approprié
-      const alchemistAddress = ALCHEMIST_ADDRESSES[chainId][vaultInfo.synthAssetType === 'alETH' ? 'alETH' : 'alUSD'];
-      if (alchemistAddress === "0x0000000000000000000000000000000000000000") {
-        throw new Error(`No alchemist contract available for ${vaultInfo.synthAssetType} on chain ${chainId}`);
+      // Récupérer l'adresse appropriée
+      const synthType = vaultInfo.synthAssetType;
+      if (!['alETH', 'alUSD'].includes(synthType)) {
+      throw new Error(`Unsupported synth asset type: ${synthType}`);
       }
+
+      const alchemistAddress = ALCHEMIST_ADDRESSES[chainId]?.[synthType];
+      if (!alchemistAddress || alchemistAddress === "0x0000000000000000000000000000000000000000") {
+      throw new Error(`No valid alchemist address for ${synthType} on chain ${chainId}`);
+      }
+
+      console.log("Chain ID:", chainId);
+console.log("Selected Synth Type:", synthType);
+console.log("Alchemist Address:", alchemistAddress);
+
 
       // Gérer les différents decimals selon l'asset
       const decimals = depositAsset === 'USDC' || depositAsset === 'USDT' ? 6 : 18;
@@ -82,8 +92,8 @@ export const useAlchemixDeposit = () => {
 
       let hash: `0x${string}`;
 
-      // Si c'est ETH/WETH et qu'il y a un gateway, utiliser le gateway
-      if ((depositAsset === 'WETH' || depositAsset === 'ETH') && vaultInfo.wethGateway) {
+      // Si c'est ETH et qu'il y a un gateway, utiliser le gateway
+      if ((depositAsset === 'WETH') && vaultInfo.wethGateway) {
         console.log('Using WETH gateway:', {
           gateway: vaultInfo.wethGateway,
           amount: amountInWei.toString()
@@ -94,11 +104,11 @@ export const useAlchemixDeposit = () => {
           abi: wethGatewayAbi,
           functionName: 'depositUnderlying',
           args: [
-            selectedStrategy,
-            recipient, 
-            minimumAmountOut,
+            alchemistAddress,
+            selectedStrategy, 
+            amountInWei,
             userAddress,  
-            0n           
+            minimumAmountOut           
           ],
           value: amountInWei,
           gas: 550000n,

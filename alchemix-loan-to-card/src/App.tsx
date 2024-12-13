@@ -21,6 +21,7 @@ import { CONTRACTS } from './lib/wagmi/chains';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
 
 
+
 const App: React.FC = () => {
   const [depositAsset, setDepositAsset] = useState<string>('');
   const [depositAmount, setDepositAmount] = useState<string>('');
@@ -251,25 +252,40 @@ const typedChainId = chainId as keyof typeof CONTRACTS;
 
     
       // Étape 2 : Approve
-      console.log(`Approving ${depositAmount} (in Wei: ${depositAmountWei}) for token ${tokenAddress} to ${alchemistAddress}...`);
-      const approveHash = await walletClient.writeContract({
-        address: tokenAddress as `0x${string}`,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [alchemistAddress, depositAmountWei],
-      });
+
+     // Vérifier l'allocation avant d'approuver
+const allowance = await publicClient.readContract({
+  address: tokenAddress,
+  abi: erc20Abi,
+  functionName: 'allowance',
+  args: [address, alchemistAddress],
+}) as bigint;
+
+if (allowance < depositAmountWei) {
+  console.log(`Current allowance: ${allowance.toString()}, required: ${depositAmountWei.toString()}. Approving...`);
+
+  const approveHash = await walletClient.writeContract({
+    address: tokenAddress as `0x${string}`,
+    abi: erc20Abi,
+    functionName: 'approve',
+    args: [alchemistAddress, depositAmountWei],
+  });
+
+  console.log('Approve transaction sent, waiting for confirmation...');
+  const approveReceipt = await publicClient.waitForTransactionReceipt({ 
+    hash: approveHash,
+    confirmations: 1
+  });
+
+  console.log('Approve confirmed:', approveReceipt);
   
-      console.log('Approve transaction sent, waiting for confirmation...');
-      const approveReceipt = await publicClient.waitForTransactionReceipt({ 
-        hash: approveHash ,
-        confirmations: 1
-      });
-      console.log('Approve confirmed:', approveReceipt);
-      
-      if (approveReceipt.status !== "success") {
-        throw new Error('Approve transaction failed.');
-      }
-      
+  if (approveReceipt.status !== "success") {
+    throw new Error('Approve transaction failed.');
+  }
+} else {
+  console.log(`Sufficient allowance: ${allowance.toString()} (no need to approve).`);
+}
+
   
       // Étape 3 : Dépôt
       console.log('Depositing to Alchemix...');
@@ -332,19 +348,38 @@ const typedChainId = chainId as keyof typeof CONTRACTS;
 
       // Étape 6 : Conversion en EUR
       const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), 18);
+      
       console.log('Converting to EUR...');
+      console.log('format out...',formattedAmount);
+
       const mappedNetwork = mapNetworkName(chain.name);
 
       console.log('synth:',synthTokenAddress)
       console.log('tokenAdress:',tokenAddress)
       console.log('synthAdress:',synthAddress)
+
+      const decimals = await publicClient.readContract({
+        address: synthTokenAddress as `0x${string}`, // Adresse du synthToken (ex : alETH)
+        abi: erc20Abi,
+        functionName: 'decimals',
+      }) as number;
+
+      const alAmount = formatUnits(BigInt(mintResult.mintedAmount), decimals);
+      console.log("alAmount with correct decimals:", alAmount);
+
       const { EURAmount, transferData } = await convertToEUR(
         synthTokenAddress,
-        18,
+        decimals,
         formattedAmount,
         mappedNetwork
       );
   console.log(convertToEUR)
+  console.log("Type of transferData:", typeof transferData);
+ console.log('TransferData before top-up:', transferData);
+
+ 
+
+
 /*       if (
         parseFloat(EURAmount) < parseFloat(serverSettings.external.minTopUpAmountInEUR) ||
         parseFloat(EURAmount) > parseFloat(serverSettings.external.maxTopUpAmountInEUR)
@@ -354,8 +389,28 @@ const typedChainId = chainId as keyof typeof CONTRACTS;
         );
       } */
 
+
+        
+        console.log("Decimals for token:", decimals);
+        
+      console.log(EURAmount)
       console.log(mintResult)
-      const alAmount = formatUnits(mintResult.mintedAmount, 18);
+
+
+      const tokenBalance = await publicClient.readContract({
+        address: synthTokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address], // Adresse de l'utilisateur
+      }) as bigint;
+      
+      console.log("Token balance:", tokenBalance.toString());
+      console.log("alAmount in Wei:", parseUnits(alAmount, decimals).toString());
+      
+/*       if (tokenBalance < parseUnits(alAmount, decimals)) {
+        throw new Error("Insufficient token balance for the requested top-up.");
+      } */
+      
   
       // Étape 7 : Top-Up
       console.log('Executing top-up...');
@@ -374,6 +429,7 @@ const typedChainId = chainId as keyof typeof CONTRACTS;
           onStepChange: (step) => console.log('Current Step:', step),
         }
       );
+      console.log(performTopUp)
   
       console.log('Top-up completed successfully.');
       alert('Top-up successful!');
