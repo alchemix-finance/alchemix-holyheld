@@ -31,7 +31,7 @@ import '@rainbow-me/rainbowkit/styles.css';
   testnet: true
 }; */
 
-const projectId = '22c21855cd736c9593d1ef75539c863f';
+const projectId = import.meta.env.VITE_HOLYHELD_SDK_API_KEY;
 const appName = 'Alchemix loan to card';
 const chains = [mainnet,optimism,fantom,arbitrum] as const;
 
