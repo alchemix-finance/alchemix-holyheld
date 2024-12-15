@@ -175,7 +175,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    },/* 
     "0xc14900dFB1Aa54e7674e1eCf9ce02b3b35157ba5": {
       label: "Vesper vaFRAX",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -190,7 +190,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    }, *//* 
     "0x318334A6dD21d16A8442aB0b7204E81Aa3FB416E": {
       label: "Aave aFRAX",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -206,7 +206,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    }, */
     //alETH
     "0xa258C4606Ca8206D8aA700cE2143D7db854D168c": {
       label: "Yearn yvWETH",
@@ -289,7 +289,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    },/* 
     "0xac3E018457B222d93114458476f3E3416Abbe38F": {
       label: "Frax sfrxETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -304,7 +304,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    }, */
   },
   [fantom.id]: {
     //alUSD
@@ -373,7 +373,6 @@ export const VAULTS: VaultsConfig = {
       },
       disabledDepositTokens: [],
     },
-
     "0x4186Eb285b1efdf372AC5896a08C346c7E373cC4": {
       label: "AAVE aUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -470,7 +469,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    },/* 
     "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb": {
       label: "Lido wstETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -486,7 +485,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
-    },/* 
+    }, *//* 
     "0xE62DDa84e579e6A37296bCFC74c97349D2C59ce3": {
       label: "Yearn yvWETH",
       synthAssetType: SYNTH_ASSETS.ALETH,

@@ -438,8 +438,7 @@ if (allowance < depositAmountWei) {
     } catch (err: unknown) {
       const errorMessage = (err as Error).message;
       console.error(err);
-      console.log(err);
-  console.error('Error during top-up:', errorMessage);
+  //console.error('Error during top-up:', errorMessage);
   setError(errorMessage);
     } finally {
       setIsLoading(false);

@@ -33,7 +33,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 const projectId = import.meta.env.VITE_HOLYHELD_SDK_API_KEY;
 const appName = 'Alchemix loan to card';
-const chains = [mainnet,optimism,fantom,arbitrum] as const;
+const chains = [mainnet,optimism,fantom] as const;
 
 // Configuration des wallets
 const { wallets } = getDefaultWallets({
