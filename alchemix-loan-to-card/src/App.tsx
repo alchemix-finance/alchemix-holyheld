@@ -5,6 +5,8 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Button from '@mui/material/Button';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { erc20Abi } from 'viem';
+import { useMaxAmount } from './hooks/useMaxAmount';
+import { useTokenBalance } from './hooks/useTokenBalance';
 import { useBorrowableLimit } from './hooks/useBorrowableLimit';
 import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
@@ -45,6 +47,13 @@ const App: React.FC = () => {
   const { deposit, isLoading: isDepositLoading, error: depositError } = useAlchemixDeposit();
   const { mint, isLoading: isMinting, error: mintError } = useMintAl();
   const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists();
+  const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
+    address,
+    chain?.id,
+    depositAsset
+  );
+  
+  const { calculateMaxAmount, isLoading: maxLoading } = useMaxAmount();
 
   
 
@@ -52,10 +61,18 @@ const App: React.FC = () => {
     if (!chain.id) return [];
     const vaults = VAULTS[chain.id];
     if (!vaults) return [];
+
     
-    const assets = [...new Set(Object.values(vaults).map((vault) => vault.underlyingSymbol))];
+    
+  // Get unique underlying symbols from vaults
+  const vaultAssets = [...new Set(Object.values(vaults).map((vault) => vault.underlyingSymbol))];
   
-    return assets;
+  // Add ETH if there are WETH vaults with wethGateway
+  const hasWethVaults = Object.values(vaults).some(
+    vault => vault.underlyingSymbol === 'WETH' && vault.wethGateway
+  );
+  
+  return hasWethVaults ? [...vaultAssets, 'ETH'] : vaultAssets;
   }, [chain.id]);
 
   const handleDepositAssetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -73,19 +90,41 @@ const App: React.FC = () => {
     USDT: "alUSD",
   };
 
-  const availableStrategies = useMemo(() => {
-    if (!chain.id || !depositAsset) return [];
-    const vaults = VAULTS[chain.id];
-    if (!vaults) return [];
+  const getStrategiesForAsset = (asset: string, vaults: Record<string, any>) => {
+  // Pour ETH, chercher les vaults WETH avec wethGateway
+  if (asset === 'ETH') {
     return Object.entries(vaults)
-      .filter(([_, vault]) => vault.underlyingSymbol === depositAsset)
+      .filter(([_, vault]) => 
+        vault.underlyingSymbol === 'WETH' && vault.wethGateway
+      )
       .map(([address, vault]) => ({
         address,
         label: vault.label,
         image: vault.image,
         yieldSymbol: vault.yieldSymbol,
       }));
+  }
+
+  // Pour les autres assets, filtrage standard
+  return Object.entries(vaults)
+    .filter(([_, vault]) => vault.underlyingSymbol === asset)
+    .map(([address, vault]) => ({
+      address,
+      label: vault.label,
+      image: vault.image,
+      yieldSymbol: vault.yieldSymbol,
+    }));
+};
+
+  const availableStrategies = useMemo(() => {
+    if (!chain.id || !depositAsset) return [];
+    const vaults = VAULTS[chain.id];
+    if (!vaults) return [];
+    
+    return getStrategiesForAsset(depositAsset, vaults);
   }, [chain.id, depositAsset]);
+
+  
 
 
   useEffect(() => {
@@ -224,9 +263,111 @@ const typedChainId = chainId as keyof typeof CONTRACTS;
       }
 
       type SupportedChainId = keyof typeof CONTRACTS;
-      type TokenKey = keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
       
       const chainId = chain.id as SupportedChainId;
+
+// Logique différente pour ETH et ERC20
+if (depositAsset === 'ETH') {
+  console.log('Processing ETH deposit...');
+  
+  // Vérifier la vault et le gateway
+  const vaults = VAULTS[chainId];
+  const vault = Object.entries(vaults).find(([addr]) => addr === selectedStrategy)?.[1];
+  
+  if (!vault?.wethGateway) {
+    throw new Error('Selected strategy does not support ETH deposits');
+  }
+
+  // Préparer le dépôt ETH
+  const depositAmountWei = parseUnits(depositAmount, 18);
+  console.log('Depositing ETH via gateway:', {
+    strategy: selectedStrategy,
+    amount: depositAmount,
+    gateway: vault.wethGateway
+  });
+
+  // Dépôt ETH avec valeur attachée
+  console.log('Depositing ETH to Alchemix...');
+  const depositResult = await deposit(
+    selectedStrategy as `0x${string}`,
+    depositAmount,
+    address as `0x${string}`,
+    depositAsset
+  );
+
+  if (!depositResult) throw new Error('ETH deposit failed');
+  
+  const depositReceipt = await publicClient.waitForTransactionReceipt({
+    hash: depositResult.transactionHash,
+  });
+
+  if (depositReceipt.status !== 'success') {
+    throw new Error('ETH deposit transaction failed');
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 15000));
+
+  // Processus de mint
+  const mintAmount = (parseFloat(depositAmount) / 2).toString();
+  const { type: synthType } = getSynthToken(depositAsset);
+
+  console.log('Minting synthetic token...', { mintingAmount: mintAmount });
+  const mintResult = await mint(
+    mintAmount.toString(),
+    address,
+    synthType
+  );
+
+  if (!mintResult) throw new Error(`${synthType} minting failed`);
+  
+  const mintReceipt = await publicClient.waitForTransactionReceipt({
+    hash: mintResult.transactionHash,
+  });
+
+  if (mintReceipt.status !== 'success') {
+    throw new Error('Minting transaction failed');
+  }
+
+  // La suite du processus (conversion EUR et top-up) reste la même
+  const synthTokenAddress = SYNTH_ASSETS_ADDRESSES[chainId][synthType];
+  const decimals = await publicClient.readContract({
+    address: synthTokenAddress as `0x${string}`,
+    abi: erc20Abi,
+    functionName: 'decimals',
+  }) as number;
+
+  const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), decimals);
+  const mappedNetwork = mapNetworkName(chain.name);
+
+  // Conversion et Top-up
+  const { EURAmount, transferData } = await convertToEUR(
+    synthTokenAddress,
+    decimals,
+    formattedAmount,
+    mappedNetwork
+  );
+
+  await performTopUp(
+    publicClient,
+    walletClient,
+    address,
+    synthTokenAddress,
+    mappedNetwork,
+    formattedAmount,
+    transferData,
+    holytag,
+    true,
+    {
+      onHashGenerate: (hash) => console.log('Transaction Hash:', hash),
+      onStepChange: (step) => console.log('Current Step:', step),
+    }
+  );
+
+  console.log('Top-up completed successfully.');
+  alert('Top-up successful!');
+  
+} else {
+
       const tokenKey = depositAsset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
       const tokenInfo = CONTRACTS[chainId]?.TOKENS[tokenKey];
   
@@ -435,13 +576,24 @@ if (allowance < depositAmountWei) {
   
       console.log('Top-up completed successfully.');
       alert('Top-up successful!');
-    } catch (err: unknown) {
+    }} catch (err: unknown) {
       const errorMessage = (err as Error).message;
       console.error(err);
   //console.error('Error during top-up:', errorMessage);
   setError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMaxAmount = async () => {
+    if (!address || !chain?.id || !depositAsset) return;
+    try {
+      const maxAmount = await calculateMaxAmount(address, chain.id, depositAsset);
+      setDepositAmount(maxAmount);
+    } catch (err) {
+      console.error('Error setting max amount:', err);
+      setError(err instanceof Error ? err.message : 'Failed to set maximum amount');
     }
   };
   
@@ -491,6 +643,7 @@ if (allowance < depositAmountWei) {
           </select>
 
           <label htmlFor="deposit-amount">Enter deposit amount</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             id="deposit-amount"
             type="text"
@@ -498,10 +651,47 @@ if (allowance < depositAmountWei) {
             onChange={(e) => handleInputChange(e.target.value)}
             placeholder="0.00"
             className="input-field"
+            style={{ flex: 1 }}
           />
-          <p className="balance-text">Balance: {balance.toFixed(4)} MAX</p>
-        </div>
-
+ <Button
+      variant="outlined"
+      onClick={handleMaxAmount}
+      size="small"
+      disabled={balanceLoading || maxLoading || !depositAsset || !address}
+      sx={{
+        minWidth: '60px',
+        height: '32px',
+        color: 'gray',
+        borderColor: 'gray',
+        '&:hover': {
+          borderColor: 'white',
+          color: 'white',
+        },
+      }}
+    >
+      MAX
+    </Button>        
+    </div>
+    <div style={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginTop: '4px' 
+  }}>
+    <p className="balance-text">
+      {balanceLoading ? (
+        'Loading...'
+      ) : (
+        `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`
+      )}
+    </p>
+    {balanceError && (
+      <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
+        {balanceError}
+      </p>
+    )}
+  </div>
+  </div>
         <div className="card">
           <label htmlFor="yield-strategy">Select yield strategy</label>
           {isLoading ? (

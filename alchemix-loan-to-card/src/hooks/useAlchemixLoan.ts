@@ -62,9 +62,13 @@ export const useAlchemixDeposit = () => {
       }
 
       // Vérifier que le depositAsset correspond bien au underlyingSymbol de la vault
-      if (vaultInfo.underlyingSymbol !== depositAsset) {
-        throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
-      }
+      const isValidAsset = 
+      vaultInfo.underlyingSymbol === depositAsset ||
+      (depositAsset === 'ETH' && vaultInfo.underlyingSymbol === 'WETH' && vaultInfo.wethGateway);
+
+    if (!isValidAsset) {
+      throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
+    }
 
       // Récupérer l'adresse appropriée
       const synthType = vaultInfo.synthAssetType;
@@ -93,7 +97,7 @@ console.log("Alchemist Address:", alchemistAddress);
       let hash: `0x${string}`;
 
       // Si c'est ETH et qu'il y a un gateway, utiliser le gateway
-      if ((depositAsset === 'WETH') && vaultInfo.wethGateway) {
+      if ((depositAsset === 'ETH') && vaultInfo.wethGateway) {
         console.log('Using WETH gateway:', {
           gateway: vaultInfo.wethGateway,
           amount: amountInWei.toString()

@@ -469,7 +469,8 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },/* 
+    },
+    /* 
     "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb": {
       label: "Lido wstETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
