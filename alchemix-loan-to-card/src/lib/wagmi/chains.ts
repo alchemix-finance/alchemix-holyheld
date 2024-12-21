@@ -66,7 +66,7 @@ const mainnetWithRpcs: Chain = {
   ...mainnet,
   rpcUrls: {
     default: {
-      http: ['https://eth.merkle.io'],
+      http: ['https://mainnet.infura.io/v3/b4476d1d984e4d8cbd5c044bdd6141cd'],
     },
   },
 };

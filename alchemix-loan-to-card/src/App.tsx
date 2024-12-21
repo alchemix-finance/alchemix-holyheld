@@ -60,6 +60,21 @@ const App: React.FC = () => {
   const { calculateMaxAmount, isLoading: maxLoading } = useMaxAmount();
   type SupportedChainId = keyof typeof CONTRACTS;
 
+  const getStrategyImplications = (apr: string | number): string => {
+    const aprValue = typeof apr === 'string' ? parseFloat(apr) : apr;
+
+    if (aprValue <= 5) {
+      return "This strategy offers low returns with minimal risk. Suitable for conservative investors.";
+    } else if (aprValue <= 10) {
+      return "This strategy provides balanced returns and moderate risk. Ideal for steady growth.";
+    } else if (aprValue <= 15) {
+      return "This strategy offers high returns but comes with increased risk. Suitable for bold investors.";
+    } else {
+      return "Invalid APR value.";
+    }
+  };
+
+
 
 
   const availableDepositAssets = useMemo(() => {
@@ -99,7 +114,7 @@ const App: React.FC = () => {
   ) => {
     const supportedChainId = chainId as SupportedChainId;
 
-    const getYield = async (vault: any) => {
+    const getYield = async (vault: any, underlying?: any) => {
       if (vault.api?.apr) {
         try {
           // Pour WETH/ETH
@@ -769,7 +784,18 @@ const App: React.FC = () => {
               }}
             />
           )}
-          {/* <p className="balance-text">Current Balance: 0.0000</p> */}
+
+          {/* Dynamic Implications Section */}
+          {selectedStrategy && (
+            <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
+              <h3>Implications of Selected Strategy:</h3>
+              <p>
+                {getStrategyImplications(
+                  availableStrategies.find((strategy) => strategy.address === selectedStrategy)?.apr || 0
+                )}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="card">
