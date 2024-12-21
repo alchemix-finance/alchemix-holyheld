@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useWriteContract, useAccount, usePublicClient } from 'wagmi';
 import { alchemistV2Abi } from '../abi/alchemistV2';
+
 import { parseEther, parseUnits } from 'viem';
 import { useChain } from '../../src/hooks/useChain';
 import { VAULTS } from '../lib/queries/useVaults';
@@ -61,36 +62,43 @@ export const useAlchemixDeposit = () => {
         throw new Error(`No vault found for strategy ${selectedStrategy} on chain ${chainId}`);
       }
 
-      // Vérifier que le depositAsset correspond bien au underlyingSymbol de la vault
-      const isValidAsset = 
-      vaultInfo.underlyingSymbol === depositAsset ||
-      (depositAsset === 'ETH' && vaultInfo.underlyingSymbol === 'WETH' && vaultInfo.wethGateway);
 
-    if (!isValidAsset) {
-      throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
-    }
+      // Utiliser yieldTokenOverride uniquement sur mainnet
+      const actualStrategy = chainId === mainnet.id
+        ? (vaultInfo.yieldTokenOverride || selectedStrategy)
+        : selectedStrategy;
+
+
+      // Vérifier que le depositAsset correspond bien au underlyingSymbol de la vault
+      const isValidAsset =
+        vaultInfo.underlyingSymbol === depositAsset ||
+        (depositAsset === 'ETH' && vaultInfo.underlyingSymbol === 'WETH' && vaultInfo.wethGateway);
+
+      if (!isValidAsset) {
+        throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
+      }
 
       // Récupérer l'adresse appropriée
       const synthType = vaultInfo.synthAssetType;
       if (!['alETH', 'alUSD'].includes(synthType)) {
-      throw new Error(`Unsupported synth asset type: ${synthType}`);
+        throw new Error(`Unsupported synth asset type: ${synthType}`);
       }
 
       const alchemistAddress = ALCHEMIST_ADDRESSES[chainId]?.[synthType];
       if (!alchemistAddress || alchemistAddress === "0x0000000000000000000000000000000000000000") {
-      throw new Error(`No valid alchemist address for ${synthType} on chain ${chainId}`);
+        throw new Error(`No valid alchemist address for ${synthType} on chain ${chainId}`);
       }
 
       console.log("Chain ID:", chainId);
-console.log("Selected Synth Type:", synthType);
-console.log("Alchemist Address:", alchemistAddress);
+      console.log("Selected Synth Type:", synthType);
+      console.log("Alchemist Address:", alchemistAddress);
 
 
       // Gérer les différents decimals selon l'asset
       const decimals = depositAsset === 'USDC' || depositAsset === 'USDT' ? 6 : 18;
 
-      const amountInWei = decimals === 18 
-        ? parseEther(amount) 
+      const amountInWei = decimals === 18
+        ? parseEther(amount)
         : parseUnits(amount, decimals);
       const minimumAmountOut = (amountInWei * 80n) / 100n;
 
@@ -109,13 +117,13 @@ console.log("Alchemist Address:", alchemistAddress);
           functionName: 'depositUnderlying',
           args: [
             alchemistAddress,
-            selectedStrategy, 
+            actualStrategy,
             amountInWei,
-            userAddress,  
-            minimumAmountOut           
+            userAddress,
+            minimumAmountOut
           ],
           value: amountInWei,
-          gas: 550000n,
+          gas: 950000n,
         });
       } else {
         console.log('Using standard deposit:', {
@@ -129,7 +137,7 @@ console.log("Alchemist Address:", alchemistAddress);
           abi: alchemistV2Abi,
           functionName: 'depositUnderlying',
           args: [selectedStrategy, amountInWei, recipient, minimumAmountOut],
-          gas: 550000n,
+          gas: 950000n,
         });
       }
 

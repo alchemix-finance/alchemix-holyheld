@@ -256,7 +256,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [GAS_ADDRESS, WETH_MAINNET_ADDRESS],
-    },
+    },/* 
     "0x61134511187a9a2DF38D10DBe07Ba2e8E5563967": {
       label: "AAVE aWETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -289,7 +289,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },/* 
+    }, *//* 
     "0xac3E018457B222d93114458476f3E3416Abbe38F": {
       label: "Frax sfrxETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -322,7 +322,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    },/* 
     "0xEF0210eB96c7EB36AF8ed1c20306462764935607": {
       label: "Yearn yUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -352,7 +352,7 @@ export const VAULTS: VaultsConfig = {
         bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
+    }, */
   },
   [optimism.id]: {
     //alUSD

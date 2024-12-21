@@ -36,6 +36,10 @@ const App: React.FC = () => {
   const [balance, setBalance] = useState<number>(0);
   const [eurAmount, setEurAmount] = useState<string>('');
   const [holytag, setHolytag] = useState<string>('');
+  const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
+  const [isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
+
+
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const chain = useChain();
@@ -54,6 +58,7 @@ const App: React.FC = () => {
   );
 
   const { calculateMaxAmount, isLoading: maxLoading } = useMaxAmount();
+  type SupportedChainId = keyof typeof CONTRACTS;
 
 
 
@@ -86,55 +91,95 @@ const App: React.FC = () => {
     USDT: "alUSD",
   };
 
-  const getStrategiesForAsset = (asset: string, vaults: Record<string, any>) => {
-    // Pour ETH, chercher les vaults WETH avec wethGateway
-    if (asset === 'ETH') {
-      return Object.entries(vaults)
-        .filter(([_, vault]) =>
-          vault.underlyingSymbol === 'WETH' && vault.wethGateway
-        )
-        .map(([address, vault]) => ({
+  // Fonction pour récupérer les stratégies disponibles
+  const getStrategiesForAsset = async (
+    asset: string,
+    vaults: Record<string, any>,
+    chainId: number
+  ) => {
+    const supportedChainId = chainId as SupportedChainId;
+
+    const getYield = async (vault: any) => {
+      if (vault.api?.apr) {
+        try {
+          // Pour WETH/ETH
+          if (asset === 'ETH' || asset === 'WETH') {
+            const tokenKey = 'WETH';
+            const tokenAddress = CONTRACTS[supportedChainId]?.TOKENS[tokenKey]?.token; if (!tokenAddress) throw new Error(`No token address found for ${tokenKey}`);
+            const apr = await vault.api.apr({
+              chainId,
+              underlyingToken: tokenAddress
+            });
+            return apr;
+          }
+
+          // Pour les autres tokens (USDC, DAI, etc.)
+          const tokenKey = asset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
+          const tokenAddress = CONTRACTS[chainId]?.TOKENS[tokenKey]?.token;
+          if (!tokenAddress) throw new Error(`No token address found for ${tokenKey}`);
+
+          const apr = await vault.api.apr({
+            chainId,
+            underlyingToken: tokenAddress
+          });
+          return apr;
+        } catch (err) {
+          console.error(`Error fetching APR for asset ${asset}:`, err);
+          return 'N/A';
+        }
+      }
+      return 'N/A';
+    };
+    const filteredVaults = asset === 'ETH'
+      ? Object.entries(vaults).filter(([_, vault]) => vault.underlyingSymbol === 'WETH' && vault.wethGateway)
+      : Object.entries(vaults).filter(([_, vault]) => vault.underlyingSymbol === asset);
+
+
+    const strategies = await Promise.all(
+      filteredVaults.map(async ([address, vault]) => {
+        const apr = await getYield(vault, vault.underlying); // Récupération APR
+        return {
           address,
           label: vault.label,
           image: vault.image,
           yieldSymbol: vault.yieldSymbol,
-        }));
-    }
+          apr: apr !== 'N/A' ? `${apr}` : 'N/A' // Formatez l’APR
 
-    // Pour les autres assets, filtrage standard
-    return Object.entries(vaults)
-      .filter(([_, vault]) => vault.underlyingSymbol === asset)
-      .map(([address, vault]) => ({
-        address,
-        label: vault.label,
-        image: vault.image,
-        yieldSymbol: vault.yieldSymbol,
-      }));
+        };
+      })
+    );
+    return strategies;
   };
 
-  const availableStrategies = useMemo(() => {
-    if (!chain.id || !depositAsset) return [];
-    const vaults = VAULTS[chain.id];
-    if (!vaults) return [];
 
-    return getStrategiesForAsset(depositAsset, vaults);
+  // Charger les stratégies à chaque changement d'actif déposé ou de chaîne
+  useEffect(() => {
+    const fetchStrategies = async () => {
+      if (!chain.id || !depositAsset) {
+        setAvailableStrategies([]);
+        return;
+      }
+
+      const vaults = VAULTS[chain.id];
+      if (!vaults) return;
+
+      setIsLoadingStrategies(true);
+      const strategies = await getStrategiesForAsset(depositAsset, vaults, chain.id);
+      setAvailableStrategies(strategies);
+      setIsLoadingStrategies(false);
+    };
+
+    fetchStrategies();
   }, [chain.id, depositAsset]);
 
+  const formattedStrategies = useMemo(() => {
+    return availableStrategies.map((strategy) => ({
+      value: strategy.address,
+      label: `${strategy.label} (${strategy.apr}%)`,
+    }));
+  }, [availableStrategies]);
 
 
-
-  useEffect(() => {
-    if (depositAsset && availableStrategies.length > 0) {
-      setIsLoading(false);
-    } else {
-      setIsLoading(true);
-    }
-  }, [depositAsset, availableStrategies]);
-
-  const formattedStrategies = availableStrategies.map((strategy) => ({
-    value: strategy.address,
-    label: strategy.label,
-  }));
 
   const handleValidateHolytag = async () => {
     try {

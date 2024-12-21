@@ -21,6 +21,12 @@ export const useTokenBalance = (
   useEffect(() => {
     const getBalance = async () => {
       if (!address || !publicClient || !chainId || !depositAsset) return;
+
+      if (!(chainId in CONTRACTS)) {
+        console.error(`Unsupported chain ID: ${chainId}`);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -32,7 +38,7 @@ export const useTokenBalance = (
         } else {
           const vaults = VAULTS[chainId as SupportedChainId];
           if (!vaults) return;
-          
+
           const vault = Object.values(vaults).find(v => v.underlyingSymbol === depositAsset);
           if (!vault) return;
 

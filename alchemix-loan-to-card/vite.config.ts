@@ -9,4 +9,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/yearn-api': {
+        target: 'https://api.yearn.finance/v1/chains',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/yearn-api/, '')
+      }
+    }
+  }
 });
