@@ -46,6 +46,12 @@ const App: React.FC = () => {
   const publicClient = usePublicClient();
   const [selectKey, setSelectKey] = useState(0);
 
+  const [collateralAmount, setCollateralAmount] = useState<string>('0.00');
+  const [estimatedEarnings, setEstimatedEarnings] = useState<string>('0.00');
+  const [expectedDebt, setExpectedDebt] = useState<string>('0.00');
+  const [apr, setApr] = useState<number>(0);
+
+
 
   const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
   const { deposit, isLoading: isDepositLoading, error: depositError } = useAlchemixDeposit();
@@ -60,6 +66,22 @@ const App: React.FC = () => {
   const { calculateMaxAmount, isLoading: maxLoading } = useMaxAmount();
   type SupportedChainId = keyof typeof CONTRACTS;
 
+  const calculateEstimatedEarnings = (deposit: number, apr: number, periodInDays: number = 365): number => {
+    // Convert annual APR to daily rate
+    const dailyRate = apr / 36500; // Dividing by 365 * 100 to get daily percentage
+
+    // Calculate earnings using compound interest formula
+    // A = P(1 + r)^t where:
+    // A = Final amount
+    // P = Principal (deposit)
+    // r = Daily interest rate
+    // t = Number of days
+    const finalAmount = deposit * Math.pow(1 + dailyRate, periodInDays);
+    const earnings = finalAmount - deposit;
+
+    return earnings;
+  };
+
   const getStrategyImplications = (apr: string | number): string => {
     const aprValue = typeof apr === 'string' ? parseFloat(apr) : apr;
 
@@ -73,6 +95,42 @@ const App: React.FC = () => {
       return "Invalid APR value.";
     }
   };
+
+  useEffect(() => {
+    if (!selectedStrategy) {
+      setCollateralAmount('0.00');
+      setEstimatedEarnings('0.00');
+      setExpectedDebt('0.00');
+      setApr(0);
+      return;
+    }
+
+
+
+    const selectedStrategyData = availableStrategies.find(
+      strategy => strategy.address === selectedStrategy
+    );
+
+    if (selectedStrategyData) {
+      const aprValue = parseFloat(selectedStrategyData.apr) || 0;
+      setApr(aprValue);
+
+      const deposit = parseFloat(depositAmount) || 0;
+      setCollateralAmount(deposit.toFixed(4));
+
+      // Calculate estimated earnings for different time periods
+      const dailyEarnings = calculateEstimatedEarnings(deposit, aprValue, 1);
+      const weeklyEarnings = calculateEstimatedEarnings(deposit, aprValue, 7);
+      const monthlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 30);
+      const yearlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 365);
+
+      // Set earnings to yearly by default
+      setEstimatedEarnings(yearlyEarnings.toFixed(2));
+
+      const debt = deposit / 2;
+      setExpectedDebt(debt.toFixed(4));
+    }
+  }, [depositAmount, selectedStrategy, availableStrategies]);
 
 
 
@@ -822,8 +880,46 @@ const App: React.FC = () => {
             {isLoading ? 'Processing...' : 'Perform Top-Up'}
           </Button>
         </div>
+        {/* Summary Section */}
+        <div className="card summary-section">
+          <h2>Summary</h2>
+          {selectedStrategy ? (
+            <>
+              <p>
+                <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
+              </p>
+              <div className="earnings-breakdown">
+                <p>
+                  <strong>Estimated Earnings (APR: {apr}%):</strong>
+                </p>
+                <p>
+                  Daily: {parseFloat(depositAmount || '0') > 0 ?
+                    calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
+                </p>
+                <p>
+                  Weekly: {parseFloat(depositAmount || '0') > 0 ?
+                    calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
+                </p>
+                <p>
+                  Monthly: {parseFloat(depositAmount || '0') > 0 ?
+                    calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
+                </p>
+                <p>
+                  Yearly: {estimatedEarnings} {depositAsset}
+                </p>
+              </div>
+              <p>
+                <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
+              </p>
+            </>
+          ) : (
+            <p>Please select a strategy to see the summary.</p>
+          )}
+        </div>
+
       </main>
     </div>
+
   );
 };
 
