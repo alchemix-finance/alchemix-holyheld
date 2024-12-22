@@ -5,10 +5,10 @@ import { alchemistV2Abi } from '../abi/alchemistV2';
 import { parseEther, parseUnits } from 'viem';
 import { useChain } from '../../src/hooks/useChain';
 import { VAULTS } from '../lib/queries/useVaults';
-import { arbitrum, fantom, mainnet, optimism } from 'viem/chains';
+import { arbitrum, mainnet, optimism } from 'viem/chains';
 import { wethGatewayAbi } from '../abi/wethGateway';
 
-type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum.id | typeof fantom.id;
+type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum.id;
 
 const ALCHEMIST_ADDRESSES = {
   [mainnet.id]: {
@@ -23,10 +23,6 @@ const ALCHEMIST_ADDRESSES = {
     alETH: "0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c" as `0x${string}`,
     alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
   },
-  [fantom.id]: {
-    alETH: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-    alUSD: "0x0000000000000000000000000000000000000000" as `0x${string}`
-  }
 } as const;
 
 export const useAlchemixDeposit = () => {

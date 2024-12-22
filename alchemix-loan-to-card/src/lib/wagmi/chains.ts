@@ -1,4 +1,4 @@
-import { arbitrum, mainnet, optimism, fantom } from "viem/chains";
+import { arbitrum, mainnet, optimism } from "viem/chains";
 import type { Chain } from "@rainbow-me/rainbowkit";
 
 export const CONTRACTS = {
@@ -66,7 +66,7 @@ const mainnetWithRpcs: Chain = {
   ...mainnet,
   rpcUrls: {
     default: {
-      http: ['https://mainnet.infura.io/v3/b4476d1d984e4d8cbd5c044bdd6141cd'],
+      http: ['https://ethereum-rpc.publicnode.com'],
     },
   },
 };
@@ -89,22 +89,11 @@ const arbitrumWithRpcs: Chain = {
   },
 };
 
-const fantomWithRpcsAndIcon: Chain = {
-  ...fantom,
-  rpcUrls: {
-    default: {
-      http: ['https://fantom-rpc.publicnode.com'],
-    },
-  },
-  iconUrl: "/images/icons/fantom_blue.svg", // Ajout d'une icône personnalisée
-};
-
 // Tableau des chaînes disponibles
 export const chains = [
   mainnetWithRpcs,
   optimismWithRpcs,
   arbitrumWithRpcs,
-  fantomWithRpcsAndIcon,
 ];
 
 // Objet des chaînes supportées pour un accès rapide par ID

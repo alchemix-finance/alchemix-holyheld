@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useWriteContract, useAccount, usePublicClient } from 'wagmi';
 import { parseUnits } from 'viem';
 import { alchemistV2Abi } from '../abi/alchemistV2';
-import { arbitrum, fantom, mainnet, optimism } from 'wagmi/chains';
+import { arbitrum, mainnet, optimism } from 'wagmi/chains';
 
 const ALCHEMIST_CONTRACTS = {
   [mainnet.id]: {
@@ -17,10 +17,6 @@ const ALCHEMIST_CONTRACTS = {
     alETH: "0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c" as `0x${string}`,
     alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
   },
-  [fantom.id]: {
-    alETH: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-    alUSD: "0x0000000000000000000000000000000000000000" as `0x${string}`
-  }
 } as const;
 
 interface UseMintAlReturn {
@@ -53,22 +49,22 @@ export const useMintAl = (): UseMintAlReturn => {
       if (!publicClient || !userAddress) {
         throw new Error('Client not initialized');
       }
-  
+
       setIsLoading(true);
-  
+
       const chainId = await publicClient.getChainId();
       console.log('Active Chain ID:', chainId);
-  
+
       const chainAddresses = ALCHEMIST_CONTRACTS[chainId as keyof typeof ALCHEMIST_CONTRACTS];
       if (!chainAddresses) {
         throw new Error(`Unsupported chain ID: ${chainId}`);
       }
-  
+
       const alchemistAddress = chainAddresses[synthType];
       if (!alchemistAddress || alchemistAddress === "0x0000000000000000000000000000000000000000") {
         throw new Error(`No contract address found for synth type: ${synthType} on chain ID: ${chainId}`);
       }
-  
+
       let sharesToMint: bigint;
       try {
         sharesToMint = parseUnits(shares, 18);
@@ -80,14 +76,14 @@ export const useMintAl = (): UseMintAlReturn => {
         console.error('Error formatting amount:', error);
         throw new Error('Invalid amount format');
       }
-  
+
       console.log('Mint parameters:', {
         amount: sharesToMint.toString(),
         recipient,
         alchemistAddress,
         synthType
       });
-  
+
       const hash = await writeContractAsync({
         address: alchemistAddress,
         abi: alchemistV2Abi,
@@ -95,27 +91,27 @@ export const useMintAl = (): UseMintAlReturn => {
         args: [sharesToMint, recipient],
         gas: 550000n,
       });
-  
+
       console.log(`Transaction sent. Hash: ${hash}`);
-  
+
       // Attendre la confirmation de la transaction
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  
+
       console.log('Transaction receipt:', receipt);
-  
+
       // Vérifier si le status est "success"
       if (receipt.status !== 'success') {
         throw new Error('Transaction failed or reverted');
       }
-  
+
       console.log(`Transaction successful. Minted ${sharesToMint.toString()} of ${synthType}`);
-  
+
       return {
         transactionHash: hash,
         mintedAmount: sharesToMint.toString(),
         type: synthType
       };
-  
+
     } catch (err: any) {
       console.error(`Error minting ${synthType}:`, err);
       setError(err.message || `Failed to mint ${synthType}`);
@@ -124,7 +120,7 @@ export const useMintAl = (): UseMintAlReturn => {
       setIsLoading(false);
     }
   };
-  
+
 
   return {
     mint,

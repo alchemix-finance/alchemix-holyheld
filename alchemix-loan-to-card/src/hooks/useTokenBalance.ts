@@ -1,12 +1,9 @@
-// hooks/useTokenBalance.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { formatUnits } from 'ethers';
-import { usePublicClient } from 'wagmi';
-import { erc20Abi } from 'viem';
-import { CONTRACTS } from '../lib/wagmi/chains';
-import { VAULTS } from '../lib/queries/useVaults';
+import { erc20Abi, createPublicClient, http } from 'viem';
+import { supportedChains, CONTRACTS } from '../lib/wagmi/chains';
 
-type SupportedChainId = keyof typeof CONTRACTS;
+const balanceCache = new Map<string, number>();
 
 export const useTokenBalance = (
   address: `0x${string}` | undefined,
@@ -16,14 +13,32 @@ export const useTokenBalance = (
   const [Tbalance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const publicClient = usePublicClient();
+
+  const publicClient = useMemo(
+    () =>
+      chainId
+        ? createPublicClient({
+          chain: supportedChains[chainId as keyof typeof supportedChains],
+          transport: http(supportedChains[chainId as keyof typeof supportedChains].rpcUrls.default.http[0]),
+        })
+        : null,
+    [chainId]
+  );
 
   useEffect(() => {
     const getBalance = async () => {
-      if (!address || !publicClient || !chainId || !depositAsset) return;
+      if (!address || !chainId || !depositAsset || !publicClient) return;
 
-      if (!(chainId in CONTRACTS)) {
+      const cacheKey = `${chainId}-${depositAsset}-${address}`;
+      if (balanceCache.has(cacheKey)) {
+        setBalance(balanceCache.get(cacheKey) as number);
+        return;
+      }
+
+      const chainConfig = CONTRACTS[chainId as keyof typeof CONTRACTS];
+      if (!chainConfig) {
         console.error(`Unsupported chain ID: ${chainId}`);
+        setError(`Unsupported chain ID: ${chainId}`);
         return;
       }
 
@@ -31,31 +46,32 @@ export const useTokenBalance = (
       setError(null);
 
       try {
-        let bal;
+        let balance;
+
         if (depositAsset === 'ETH') {
-          bal = await publicClient.getBalance({ address });
-          setBalance(Number(formatUnits(bal, 18)));
+          balance = await publicClient.getBalance({ address });
+          setBalance(Number(formatUnits(balance, 18)));
         } else {
-          const vaults = VAULTS[chainId as SupportedChainId];
-          if (!vaults) return;
+          const tokenKey = depositAsset.toUpperCase();
+          const tokens = chainConfig.TOKENS;
 
-          const vault = Object.values(vaults).find(v => v.underlyingSymbol === depositAsset);
-          if (!vault) return;
+          if (!tokens || !(tokenKey in tokens)) {
+            setError(`Token ${depositAsset} is not available on chain ID ${chainId}`);
+            return;
+          }
 
-          const tokenKey = depositAsset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
-          const tokenInfo = CONTRACTS[chainId as SupportedChainId]?.TOKENS[tokenKey];
-          if (!tokenInfo?.token) return;
-
-          bal = await publicClient.readContract({
+          const tokenInfo = tokens[tokenKey as keyof typeof tokens];
+          balance = await publicClient.readContract({
             address: tokenInfo.token,
             abi: erc20Abi,
             functionName: 'balanceOf',
             args: [address],
           });
-          setBalance(Number(formatUnits(bal, tokenInfo.decimals)));
+          setBalance(Number(formatUnits(balance, tokenInfo.decimals)));
         }
+
+        balanceCache.set(cacheKey, Tbalance);
       } catch (err) {
-        console.error('Error fetching balance:', err);
         setError(err instanceof Error ? err.message : 'Error fetching balance');
         setBalance(0);
       } finally {
@@ -64,7 +80,7 @@ export const useTokenBalance = (
     };
 
     getBalance();
-  }, [address, publicClient, depositAsset, chainId]);
+  }, [address, chainId, depositAsset, publicClient]);
 
   return { Tbalance, isLoading, error };
 };
