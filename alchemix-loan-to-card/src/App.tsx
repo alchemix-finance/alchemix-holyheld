@@ -11,6 +11,7 @@ import { useBorrowableLimit } from './hooks/useBorrowableLimit';
 import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
 import { useHolyheldSDK } from './hooks/useHolyheld';
+import { useBorrow } from './hooks/useBorrow';
 import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
 import Select from 'react-select';
@@ -38,6 +39,8 @@ const App: React.FC = () => {
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
   const [isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
+  const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
+  const { borrow, isLoading: isBorrowing, error: borrowError } = useBorrow();
 
 
   const { address } = useAccount();
@@ -80,6 +83,14 @@ const App: React.FC = () => {
     const earnings = finalAmount - deposit;
 
     return earnings;
+  };
+  const handleBorrowOnly = async () => {
+    try {
+      const result = await borrow(depositAsset, depositAmount, selectedStrategy);
+      alert('Borrow successful!');
+    } catch (err) {
+      console.error('Error during borrow:', err);
+    }
   };
 
   const getStrategyImplications = (apr: string | number): string => {
@@ -715,6 +726,7 @@ const App: React.FC = () => {
 
   return (
     <div className="app-container">
+      {/* Header */}
       <header className="header">
         <div className="logo-section">
           <img src={logo} alt="Alchemix Logo" className="logo" />
@@ -723,24 +735,66 @@ const App: React.FC = () => {
       </header>
 
       <main className="main-content">
+        {/* Mode Selection */}
         <div className="card">
-          <label htmlFor="holytag">Enter Holytag</label>
-          <input
-            id="holytag"
-            type="text"
-            value={holytag}
-            onChange={(e) => setHolytag(e.target.value)}
-            placeholder="Enter Holytag"
-            className="input-field"
-          />
-          <Button
-            variant="contained"
-            onClick={handleValidateHolytag}
-            sx={{ bgcolor: 'gray' }}
-          >
-            Validate Holytag</Button>
+          <div className="mode-selection" style={{
+            display: 'flex',
+            gap: '10px',
+            marginBottom: '20px',
+            justifyContent: 'center'
+          }}>
+            <Button
+              variant={mode === 'topup' ? 'contained' : 'outlined'}
+              onClick={() => setMode('topup')}
+              sx={{
+                bgcolor: mode === 'topup' ? 'gray' : 'transparent',
+                flex: 1,
+                '&:hover': {
+                  bgcolor: mode === 'topup' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                },
+              }}
+            >
+              Top-Up
+            </Button>
+            <Button
+              variant={mode === 'borrowOnly' ? 'contained' : 'outlined'}
+              onClick={() => setMode('borrowOnly')}
+              sx={{
+                bgcolor: mode === 'borrowOnly' ? 'gray' : 'transparent',
+                flex: 1,
+                '&:hover': {
+                  bgcolor: mode === 'borrowOnly' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                },
+              }}
+            >
+              Borrow Only
+            </Button>
+          </div>
         </div>
 
+        {/* Holytag Section - Visible only in Top-Up mode */}
+        {mode === 'topup' && (
+          <div className="card">
+            <label htmlFor="holytag">Enter Holytag</label>
+            <input
+              id="holytag"
+              type="text"
+              value={holytag}
+              onChange={(e) => setHolytag(e.target.value)}
+              placeholder="Enter Holytag"
+              className="input-field"
+            />
+            <Button
+              variant="contained"
+              onClick={handleValidateHolytag}
+              sx={{ bgcolor: 'gray' }}
+            >
+              Validate Holytag
+            </Button>
+          </div>
+        )}
+
+        {/* Deposit Asset Selection */}
         <div className="card">
           <label htmlFor="deposit-asset">Select deposit asset</label>
           <select
@@ -757,6 +811,7 @@ const App: React.FC = () => {
             ))}
           </select>
 
+          {/* Deposit Amount Input */}
           <label htmlFor="deposit-amount">Enter deposit amount</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
@@ -787,6 +842,8 @@ const App: React.FC = () => {
               MAX
             </Button>
           </div>
+
+          {/* Balance Display */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -794,11 +851,7 @@ const App: React.FC = () => {
             marginTop: '4px'
           }}>
             <p className="balance-text">
-              {balanceLoading ? (
-                'Loading...'
-              ) : (
-                `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`
-              )}
+              {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
             </p>
             {balanceError && (
               <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
@@ -807,6 +860,8 @@ const App: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Yield Strategy Selection */}
         <div className="card">
           <label htmlFor="yield-strategy">
             Select yield strategy
@@ -843,7 +898,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {/* Dynamic Implications Section */}
+          {/* Strategy Implications */}
           {selectedStrategy && (
             <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
               <h3>Implications of Selected Strategy:</h3>
@@ -856,30 +911,37 @@ const App: React.FC = () => {
           )}
         </div>
 
+        {/* Loan Asset Display */}
         <div className="card">
           <label htmlFor="loan-asset">Loan asset</label>
           <select
             id="loan-asset"
             className="dropdown"
             value={loanAsset}
-            disabled  // disabled car il est automatiquement défini
+            disabled
           >
             <option value="">{loanAsset || "Select asset"}</option>
           </select>
-          {/* <p className="balance-text">Borrowable Limit: {}</p> */}
         </div>
 
+        {/* Action Button */}
         <div className="card">
           <Button
             variant="contained"
-            onClick={handleTopUp}
-            disabled={isLoading}
+            onClick={mode === 'topup' ? handleTopUp : handleBorrowOnly}
+            disabled={isBorrowing}
             fullWidth
             sx={{ bgcolor: 'Gray' }}
           >
-            {isLoading ? 'Processing...' : 'Perform Top-Up'}
+            {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
           </Button>
+          {error && (
+            <div className="error-message" style={{ color: 'red', marginTop: '10px' }}>
+              {error}
+            </div>
+          )}
         </div>
+
         {/* Summary Section */}
         <div className="card summary-section">
           <h2>Summary</h2>
@@ -916,10 +978,8 @@ const App: React.FC = () => {
             <p>Please select a strategy to see the summary.</p>
           )}
         </div>
-
       </main>
     </div>
-
   );
 };
 
