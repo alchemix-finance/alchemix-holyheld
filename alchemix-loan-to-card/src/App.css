@@ -1,0 +1,231 @@
+/* General Reset */
+body {
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(to bottom, #0d0d0d, #1c1c1c); /* Alchemix background */
+  color: rgba(255, 255, 255, 0.9); /* Light beige text */
+  min-height: 100vh;
+}
+
+/* App Container */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(to bottom, #161616, #0d0d0d); /* Header gradient */
+  border-bottom: 1px solid #333333;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  height: 64px;
+}
+
+/* Main Content */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2rem;
+  padding: 1rem;
+}
+
+/* Card Style */
+.card {
+  background-color: #1c1c1c; /* Matches the dark theme */
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.card label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9); /* Alchemix beige */
+}
+
+.dropdown {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #0d0d0d; /* Dropdown background */
+  color: rgba(255, 255, 255, 0.9); /* Text color */
+  border: 1px solid #333333;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.dropdown:focus {
+  outline: none;
+  border-color: #e7c089; /* Highlight on focus */
+}
+
+.balance-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7); /* Subtle gray for balance */
+}
+
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .main-content {
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .dropdown {
+    font-size: 0.9rem;
+  }
+}
+
+/* Dropdown Styling */
+.dropdown {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  background-color: #0d0d0d; /* Matches Alchemix theme */
+  color: rgba(255, 255, 255, 0.9); /* Light text */
+  border: 1px solid #333333;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.dropdown:focus {
+  outline: none;
+  border-color: #e7c089; /* Highlight border on focus */
+}
+
+/* Input Field Styling */
+.input-field {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  background-color: #0d0d0d; /* Matches Alchemix theme */
+  color: rgba(255, 255, 255, 0.9); /* Light text */
+  border: 1px solid #333333;
+  border-radius: 5px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.6); /* Subtle placeholder color */
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #e7c089; /* Highlight border on focus */
+}
+
+/* Margin Utility */
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+/* Balance Text */
+.balance-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7); /* Subtle gray for balance */
+}
+
+/* Dans App.css */
+.black-button {
+  background-color: black;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.black-button:hover {
+  background-color: #333;
+}
+
+.black-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.dark-select {
+  background-color: #000;
+  border: 1px solid #444;
+  color: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.dark-select option {
+  background-color: #000;
+  color: #fff;
+  padding: 8px;
+}
+
+.dark-select:focus {
+  outline: none;
+  border-color: #666;
+}
+
+.tooltip-icon {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 0.8rem;
+  color: #888;
+  cursor: pointer;
+  position: relative;
+}
+
+.tooltip-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.tooltip-icon:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
