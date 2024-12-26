@@ -47,10 +47,11 @@ export const useTokenBalance = (
 
       try {
         let balance;
+        let formattedBalance;
 
         if (depositAsset === 'ETH') {
           balance = await publicClient.getBalance({ address });
-          setBalance(Number(formatUnits(balance, 18)));
+          formattedBalance = Number(formatUnits(balance, 18));
         } else {
           const tokenKey = depositAsset.toUpperCase();
           const tokens = chainConfig.TOKENS;
@@ -61,16 +62,22 @@ export const useTokenBalance = (
           }
 
           const tokenInfo = tokens[tokenKey as keyof typeof tokens];
+          if (!tokenInfo) {
+            setError(`Token ${depositAsset} configuration not found`);
+            return;
+          }
+
           balance = await publicClient.readContract({
             address: tokenInfo.token,
             abi: erc20Abi,
             functionName: 'balanceOf',
             args: [address],
           });
-          setBalance(Number(formatUnits(balance, tokenInfo.decimals)));
+          formattedBalance = Number(formatUnits(balance, tokenInfo.decimals));
         }
 
-        balanceCache.set(cacheKey, Tbalance);
+        setBalance(formattedBalance);
+        balanceCache.set(cacheKey, formattedBalance);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error fetching balance');
         setBalance(0);

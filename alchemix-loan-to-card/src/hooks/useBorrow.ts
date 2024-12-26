@@ -61,6 +61,8 @@ export const useBorrow = () => {
             args: [userAddress],
         }) as bigint;
 
+        console.log('Balance:', balance);
+
         if (balance < amount) {
             throw new Error(`Insufficient ${asset} balance`);
         }
@@ -84,7 +86,7 @@ export const useBorrow = () => {
             args: [userAddress, spenderAddress],
         }) as bigint;
 
-        if (allowance < amount) {
+        /* if (allowance < amount) {
             const hash = await walletClient?.writeContract({
                 address: tokenAddress as `0x${string}`,
                 abi: erc20Abi,
@@ -98,7 +100,7 @@ export const useBorrow = () => {
                     confirmations: 1,
                 });
             }
-        }
+        } */
     };
 
     const getSynthToken = useCallback((asset: string): { type: SynthAsset; address: string } => {

@@ -7,7 +7,6 @@ import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { erc20Abi } from 'viem';
 import { useMaxAmount } from './hooks/useMaxAmount';
 import { useTokenBalance } from './hooks/useTokenBalance';
-import { useBorrowableLimit } from './hooks/useBorrowableLimit';
 import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
 import { useHolyheldSDK } from './hooks/useHolyheld';
@@ -22,6 +21,7 @@ import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES, SYNTH_ASSETS_METADATA } from "@/l
 import type { SynthAsset } from "@/lib/config/synths";
 import { CONTRACTS } from './lib/wagmi/chains';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
+import { TransactionConfirmation } from './components/TransactionConfirmation';
 
 
 
@@ -41,6 +41,24 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
   const { borrow, isLoading: isBorrowing, error: borrowError } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | ''>('');
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txDetails, setTxDetails] = useState({
+    type: '',
+    amount: '',
+    token: '',
+    collateralAmount: '',
+    depositAsset: '',
+    apr: 0,
+    estimatedEarnings: {
+      daily: '0.00',
+      weekly: '0.00',
+      monthly: '0.00',
+      yearly: '0.00',
+    },
+    expectedDebt: '',
+    loanAsset: ''
+  });
 
 
   const { address } = useAccount();
@@ -91,6 +109,7 @@ const App: React.FC = () => {
       console.error('Error during borrow:', err);
     }
   };
+
 
   const getStrategyImplications = (apr: string | number): string => {
     const aprValue = typeof apr === 'string' ? parseFloat(apr) : apr;
@@ -425,11 +444,10 @@ const App: React.FC = () => {
         const vault = Object.entries(vaults).find(([addr]) => addr === selectedStrategy)?.[1];
 
         if (!vault?.wethGateway) {
-          throw new Error('Selected strategy does not support ETH deposits');
+          throw new Error('Selected strategy does not support ETH deposits')
         }
 
         // Préparer le dépôt ETH
-        const depositAmountWei = parseUnits(depositAmount, 18);
         console.log('Depositing ETH via gateway:', {
           strategy: selectedStrategy,
           amount: depositAmount,
@@ -745,8 +763,49 @@ const App: React.FC = () => {
       setDepositAmount(maxAmount);
     } catch (err) {
       console.error('Error setting max amount:', err);
-      setError(err instanceof Error ? err.message : 'Failed to set maximum amount');
+      setError(err instanceof Error ? err.message : 'Failed to set maximum amount')
     }
+  };
+
+  const openConfirmationModal = () => {
+    // Construire l’objet de détails à afficher dans le pop-up
+    // (vous pouvez ajuster selon vos besoins)
+    const deposit = parseFloat(depositAmount || '0');
+    const dailyEarnings = calculateEstimatedEarnings(deposit, apr, 1).toFixed(8);
+    const weeklyEarnings = calculateEstimatedEarnings(deposit, apr, 7).toFixed(8);
+    const monthlyEarnings = calculateEstimatedEarnings(deposit, apr, 30).toFixed(8);
+    const yearlyEarnings = calculateEstimatedEarnings(deposit, apr, 365).toFixed(8);
+
+    setTxDetails({
+      type: mode === 'topup' ? 'Top-up' : 'Borrow',
+      amount: depositAmount,
+      token: depositAsset || '',
+      collateralAmount: depositAmount,
+      depositAsset: depositAsset || '',
+      apr,
+      estimatedEarnings: {
+        daily: dailyEarnings,
+        weekly: weeklyEarnings,
+        monthly: monthlyEarnings,
+        yearly: yearlyEarnings
+      },
+      expectedDebt,
+      loanAsset: loanAsset
+    });
+    setIsModalOpen(true);
+  };
+
+  // -------------------------------------
+  // Confirmation depuis le pop-up
+  // -------------------------------------
+  const handleConfirmTransaction = async () => {
+    // Selon le mode sélectionné, on appelle la bonne fonction
+    if (mode === 'topup') {
+      await handleTopUp();
+    } else {
+      await handleBorrowOnly();
+    }
+    setIsModalOpen(false);
   };
 
 
@@ -954,7 +1013,7 @@ const App: React.FC = () => {
         <div className="card">
           <Button
             variant="contained"
-            onClick={mode === 'topup' ? handleTopUp : handleBorrowOnly}
+            onClick={openConfirmationModal}
             disabled={isBorrowing}
             fullWidth
             sx={{ bgcolor: 'Gray' }}
@@ -1004,6 +1063,12 @@ const App: React.FC = () => {
             <p>Please select a strategy to see the summary.</p>
           )}
         </div>
+        <TransactionConfirmation
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleConfirmTransaction}
+          transactionDetails={txDetails}
+        />
       </main>
     </div>
   );

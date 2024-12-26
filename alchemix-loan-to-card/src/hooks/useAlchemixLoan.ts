@@ -69,10 +69,6 @@ export const useAlchemixDeposit = () => {
         throw new Error(`No vault found for strategy ${selectedStrategy} on chain ${chainId}`);
       }
 
-      // Vérifier que le depositAsset correspond bien au underlyingSymbol de la vault
-      if (vaultInfo.underlyingSymbol !== depositAsset) {
-        throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
-      }
 
       // Récupérer l'adresse appropriée
       const synthType = vaultInfo.synthAssetType;
@@ -101,7 +97,7 @@ export const useAlchemixDeposit = () => {
       let hash: `0x${string}`;
 
       // Si c'est ETH et qu'il y a un gateway, utiliser le gateway
-      if ((depositAsset === 'WETH') && vaultInfo.wethGateway) {
+      if ((depositAsset === 'ETH') && vaultInfo.wethGateway) {
         console.log('Using WETH gateway:', {
           gateway: vaultInfo.wethGateway,
           amount: amountInWei.toString()
@@ -119,7 +115,7 @@ export const useAlchemixDeposit = () => {
             minimumAmountOut
           ],
           value: amountInWei,
-          gas: 550000n,
+          gas: 850000n,
         });
       } else {
         console.log('Using standard deposit:', {
@@ -133,7 +129,7 @@ export const useAlchemixDeposit = () => {
           abi: alchemistV2Abi,
           functionName: 'depositUnderlying',
           args: [selectedStrategy, amountInWei, recipient, minimumAmountOut],
-          gas: 550000n,
+          gas: 850000n,
         });
       }
 
