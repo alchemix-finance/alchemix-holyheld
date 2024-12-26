@@ -10,18 +10,26 @@ body {
 /* App Container */
 .app-container {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center; /* Center items vertically within the container */
+  padding: 20px;
   min-height: 100vh;
 }
 
 /* Header */
 .header {
+  position: fixed; /* Keep the header fixed */
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
   background: linear-gradient(to bottom, #161616, #0d0d0d); /* Header gradient */
   border-bottom: 1px solid #333333;
+  z-index: 1000; /* Ensure it stays above other content */
+  background-color: #1c1c1c; /* Match your theme */
 }
 
 .logo-section {
@@ -35,12 +43,14 @@ body {
 
 /* Main Content */
 .main-content {
+  flex: 1; /* Allow main content to take available space */
+  margin-right: 20px; /* Add margin to the right of the main content */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  margin-top: 2rem;
   padding: 1rem;
+  padding-top: 60px; /* Add padding to avoid overlap with fixed header */
 }
 
 /* Card Style */
@@ -82,6 +92,21 @@ body {
   color: rgba(255, 255, 255, 0.7); /* Subtle gray for balance */
 }
 
+/* Summary Section */
+.summary-section {
+  width: 300px; /* Fixed width for the summary section */
+  border: none; /* Remove double border */
+  border-radius: 8px; /* Round corners */
+  padding: 15px; /* Add padding */
+  background-color: #2a2a2a; /* Background color */
+  color: white; /* Text color */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center content vertically */
+  align-items: center; /* Center content horizontally */
+  margin: 0 auto; /* Center the summary section horizontally */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Add shadow for better visibility */
+}
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
@@ -101,6 +126,16 @@ body {
 
   .dropdown {
     font-size: 0.9rem;
+  }
+
+  .app-container {
+    flex-direction: column; /* Stack on mobile */
+  }
+
+  .summary-section {
+    width: 100%; /* Full width on mobile */
+    margin-left: 0; /* Remove left margin */
+    margin-top: 20px; /* Add some top margin */
   }
 }
 
@@ -228,4 +263,3 @@ body {
   opacity: 1;
   visibility: visible;
 }
-

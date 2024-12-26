@@ -810,225 +810,228 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="header">
-        <div className="logo-section">
-          <img src={logo} alt="Alchemix Logo" className="logo" />
-        </div>
-        <ConnectButton />
-      </header>
-
-      <main className="main-content">
-        {/* Mode Selection */}
-        <div className="card">
-          <div className="mode-selection" style={{
-            display: 'flex',
-            gap: '10px',
-            marginBottom: '20px',
-            justifyContent: 'center'
-          }}>
-            <Button
-              variant={mode === 'topup' ? 'contained' : 'outlined'}
-              onClick={() => setMode('topup')}
-              sx={{
-                bgcolor: mode === 'topup' ? 'gray' : 'transparent',
-                flex: 1,
-                '&:hover': {
-                  bgcolor: mode === 'topup' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
-                },
-              }}
-            >
-              Top-Up
-            </Button>
-            <Button
-              variant={mode === 'borrowOnly' ? 'contained' : 'outlined'}
-              onClick={() => setMode('borrowOnly')}
-              sx={{
-                bgcolor: mode === 'borrowOnly' ? 'gray' : 'transparent',
-                flex: 1,
-                '&:hover': {
-                  bgcolor: mode === 'borrowOnly' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
-                },
-              }}
-            >
-              Borrow Only
-            </Button>
+    <div className="app-container" style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div className="main-content">
+        {/* Header */}
+        <header className="header">
+          <div className="logo-section">
+            <img src={logo} alt="Alchemix Logo" className="logo" />
           </div>
-        </div>
+          <ConnectButton />
+        </header>
 
-        {/* Holytag Section - Visible only in Top-Up mode */}
-        {mode === 'topup' && (
+        <main className="main-content">
+          {/* Mode Selection */}
           <div className="card">
-            <label htmlFor="holytag">Enter Holytag</label>
-            <input
-              id="holytag"
-              type="text"
-              value={holytag}
-              onChange={(e) => setHolytag(e.target.value)}
-              placeholder="Enter Holytag"
-              className="input-field"
-            />
-            <Button
-              variant="contained"
-              onClick={handleValidateHolytag}
-              sx={{ bgcolor: 'gray' }}
-            >
-              Validate Holytag
-            </Button>
-          </div>
-        )}
-
-        {/* Deposit Asset Selection */}
-        <div className="card">
-          <label htmlFor="deposit-asset">Select deposit asset</label>
-          <select
-            id="deposit-asset"
-            className="dropdown"
-            value={depositAsset}
-            onChange={handleDepositAssetChange}
-          >
-            <option value="">Select asset</option>
-            {availableDepositAssets.map((asset) => (
-              <option key={asset} value={asset}>
-                {asset}
-              </option>
-            ))}
-          </select>
-
-          {/* Deposit Amount Input */}
-          <label htmlFor="deposit-amount">Enter deposit amount</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              id="deposit-amount"
-              type="text"
-              value={depositAmount}
-              onChange={(e) => handleInputChange(e.target.value)}
-              placeholder="0.00"
-              className="input-field"
-              style={{ flex: 1 }}
-            />
-            <Button
-              variant="outlined"
-              onClick={handleMaxAmount}
-              size="small"
-              disabled={balanceLoading || maxLoading || !depositAsset || !address}
-              sx={{
-                minWidth: '60px',
-                height: '32px',
-                color: 'gray',
-                borderColor: 'gray',
-                '&:hover': {
-                  borderColor: 'white',
-                  color: 'white',
-                },
-              }}
-            >
-              MAX
-            </Button>
+            <div className="mode-selection" style={{
+              display: 'flex',
+              gap: '10px',
+              marginBottom: '20px',
+              justifyContent: 'center'
+            }}>
+              <Button
+                variant={mode === 'topup' ? 'contained' : 'outlined'}
+                onClick={() => setMode('topup')}
+                sx={{
+                  bgcolor: mode === 'topup' ? 'gray' : 'transparent',
+                  flex: 1,
+                  '&:hover': {
+                    bgcolor: mode === 'topup' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                  },
+                }}
+              >
+                Top-Up
+              </Button>
+              <Button
+                variant={mode === 'borrowOnly' ? 'contained' : 'outlined'}
+                onClick={() => setMode('borrowOnly')}
+                sx={{
+                  bgcolor: mode === 'borrowOnly' ? 'gray' : 'transparent',
+                  flex: 1,
+                  '&:hover': {
+                    bgcolor: mode === 'borrowOnly' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                  },
+                }}
+              >
+                Borrow Only
+              </Button>
+            </div>
           </div>
 
-          {/* Balance Display */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '4px'
-          }}>
-            <p className="balance-text">
-              {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
-            </p>
-            {balanceError && (
-              <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
-                {balanceError}
+          {/* Holytag Section - Visible only in Top-Up mode */}
+          {mode === 'topup' && (
+            <div className="card">
+              <label htmlFor="holytag">Enter Holytag</label>
+              <input
+                id="holytag"
+                type="text"
+                value={holytag}
+                onChange={(e) => setHolytag(e.target.value)}
+                placeholder="Enter Holytag"
+                className="input-field"
+              />
+              <Button
+                variant="contained"
+                onClick={handleValidateHolytag}
+                sx={{ bgcolor: 'gray' }}
+              >
+                Validate Holytag
+              </Button>
+            </div>
+          )}
+
+          {/* Deposit Asset Selection */}
+          <div className="card">
+            <label htmlFor="deposit-asset">Select deposit asset</label>
+            <select
+              id="deposit-asset"
+              className="dropdown"
+              value={depositAsset}
+              onChange={handleDepositAssetChange}
+            >
+              <option value="">Select asset</option>
+              {availableDepositAssets.map((asset) => (
+                <option key={asset} value={asset}>
+                  {asset}
+                </option>
+              ))}
+            </select>
+
+            {/* Deposit Amount Input */}
+            <label htmlFor="deposit-amount">Enter deposit amount</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                id="deposit-amount"
+                type="text"
+                value={depositAmount}
+                onChange={(e) => handleInputChange(e.target.value)}
+                placeholder="0.00"
+                className="input-field"
+                style={{ flex: 1 }}
+              />
+              <Button
+                variant="outlined"
+                onClick={handleMaxAmount}
+                size="small"
+                disabled={balanceLoading || maxLoading || !depositAsset || !address}
+                sx={{
+                  minWidth: '60px',
+                  height: '32px',
+                  color: 'gray',
+                  borderColor: 'gray',
+                  '&:hover': {
+                    borderColor: 'white',
+                    color: 'white',
+                  },
+                }}
+              >
+                MAX
+              </Button>
+            </div>
+
+            {/* Balance Display */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: '4px'
+            }}>
+              <p className="balance-text">
+                {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
               </p>
+              {balanceError && (
+                <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
+                  {balanceError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Yield Strategy Selection */}
+          <div className="card">
+            <label htmlFor="yield-strategy">
+              Select yield strategy
+              <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
+                ⓘ
+              </span>
+            </label>
+
+            {isLoading ? (
+              <p>Waiting for Strategies...</p>
+            ) : (
+              <Select
+                key={selectKey}
+                options={formattedStrategies}
+                value={formattedStrategies.find((s) => s.value === selectedStrategy)}
+                onChange={(option) => setSelectedStrategy(option?.value || '')}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    backgroundColor: '#000',
+                    border: '1px solid #444',
+                    color: '#fff',
+                  }),
+                  option: (base, { isFocused }) => ({
+                    ...base,
+                    backgroundColor: isFocused ? '#333' : '#000',
+                    color: '#fff',
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    color: '#fff',
+                  }),
+                }}
+              />
+            )}
+
+            {/* Strategy Implications */}
+            {selectedStrategy && (
+              <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
+                <h3>Implications of Selected Strategy:</h3>
+                <p>
+                  {getStrategyImplications(
+                    availableStrategies.find((strategy) => strategy.address === selectedStrategy)?.apr || 0
+                  )}
+                </p>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Yield Strategy Selection */}
-        <div className="card">
-          <label htmlFor="yield-strategy">
-            Select yield strategy
-            <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
-              ⓘ
-            </span>
-          </label>
+          {/* Loan Asset Display */}
+          <div className="card">
+            <label htmlFor="loan-asset">Loan asset</label>
+            <select
+              id="loan-asset"
+              className="dropdown"
+              value={loanAsset}
+              disabled
+            >
+              <option value="">{loanAsset || "Select asset"}</option>
+            </select>
+          </div>
 
-          {isLoading ? (
-            <p>Waiting for Strategies...</p>
-          ) : (
-            <Select
-              key={selectKey}
-              options={formattedStrategies}
-              value={formattedStrategies.find((s) => s.value === selectedStrategy)}
-              onChange={(option) => setSelectedStrategy(option?.value || '')}
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  backgroundColor: '#000',
-                  border: '1px solid #444',
-                  color: '#fff',
-                }),
-                option: (base, { isFocused }) => ({
-                  ...base,
-                  backgroundColor: isFocused ? '#333' : '#000',
-                  color: '#fff',
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  color: '#fff',
-                }),
-              }}
-            />
-          )}
-
-          {/* Strategy Implications */}
-          {selectedStrategy && (
-            <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
-              <h3>Implications of Selected Strategy:</h3>
-              <p>
-                {getStrategyImplications(
-                  availableStrategies.find((strategy) => strategy.address === selectedStrategy)?.apr || 0
-                )}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Loan Asset Display */}
-        <div className="card">
-          <label htmlFor="loan-asset">Loan asset</label>
-          <select
-            id="loan-asset"
-            className="dropdown"
-            value={loanAsset}
-            disabled
-          >
-            <option value="">{loanAsset || "Select asset"}</option>
-          </select>
-        </div>
-
-        {/* Action Button */}
-        <div className="card">
-          <Button
-            variant="contained"
-            onClick={openConfirmationModal}
-            disabled={isBorrowing}
-            fullWidth
-            sx={{ bgcolor: 'Gray' }}
-          >
-            {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
-          </Button>
-          {error && (
-            <div className="error-message" style={{ color: 'red', marginTop: '10px' }}>
-              {error}
-            </div>
-          )}
-        </div>
-
+          {/* Action Button */}
+          <div className="card">
+            <Button
+              variant="contained"
+              onClick={openConfirmationModal}
+              disabled={isBorrowing}
+              fullWidth
+              sx={{ bgcolor: 'Gray' }}
+            >
+              {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
+            </Button>
+            {error && (
+              <div className="error-message" style={{ color: 'red', marginTop: '10px' }}>
+                {error}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+      <div className="summary-section" style={{ width: '300px' }}>
         {/* Summary Section */}
-        <div className="card summary-section">
+        <div className="card-summary-section">
           <h2>Summary</h2>
           {selectedStrategy ? (
             <>
@@ -1063,13 +1066,13 @@ const App: React.FC = () => {
             <p>Please select a strategy to see the summary.</p>
           )}
         </div>
-        <TransactionConfirmation
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onConfirm={handleConfirmTransaction}
-          transactionDetails={txDetails}
-        />
-      </main>
+      </div>
+      <TransactionConfirmation
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleConfirmTransaction}
+        transactionDetails={txDetails}
+      />
     </div>
   );
 };
