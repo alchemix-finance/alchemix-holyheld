@@ -89,7 +89,7 @@ export const useMintAl = (): UseMintAlReturn => {
         abi: alchemistV2Abi,
         functionName: 'mint',
         args: [sharesToMint, recipient],
-        gas: 550000n,
+        gas: 950000n,
       });
 
       console.log(`Transaction sent. Hash: ${hash}`);

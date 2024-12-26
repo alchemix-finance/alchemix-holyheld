@@ -16,7 +16,7 @@ import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
 import Select from 'react-select';
 import { Network } from '@holyheld/sdk';
-import { useAlchemixDeposit } from './hooks/useAlchemixLoan';
+import { useAlchemixDeposit, DepositAsset, DEPOSIT_ASSETS } from './hooks/useAlchemixLoan';
 import { useMintAl } from './hooks/UseMintAlETH';
 import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES, SYNTH_ASSETS_METADATA } from "@/lib/config/synths";
 import type { SynthAsset } from "@/lib/config/synths";
@@ -28,7 +28,6 @@ import { useAlchemists } from "@/lib/queries/useAlchemists";
 
 
 const App: React.FC = () => {
-  const [depositAsset, setDepositAsset] = useState<string>('');
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [loanAsset, setLoanAsset] = useState<string>('');
@@ -41,6 +40,7 @@ const App: React.FC = () => {
   const [isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
   const { borrow, isLoading: isBorrowing, error: borrowError } = useBorrow();
+  const [depositAsset, setDepositAsset] = useState<DepositAsset | ''>('');
 
 
   const { address } = useAccount();
@@ -59,8 +59,7 @@ const App: React.FC = () => {
   const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
   const { deposit, isLoading: isDepositLoading, error: depositError } = useAlchemixDeposit();
   const { mint, isLoading: isMinting, error: mintError } = useMintAl();
-  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists();
-  const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
+  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists(); const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
     address,
     chain?.id,
     depositAsset
@@ -161,7 +160,10 @@ const App: React.FC = () => {
   }, [chain.id]);
 
   const handleDepositAssetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setDepositAsset(e.target.value);
+    const value = e.target.value;
+    if (value === '' || DEPOSIT_ASSETS.includes(value as DepositAsset)) {
+      setDepositAsset(value as DepositAsset | '');
+    }
     // Réinitialiser la stratégie
     setSelectedStrategy('');
     setSelectKey(prev => prev + 1);
@@ -199,7 +201,7 @@ const App: React.FC = () => {
 
           // Pour les autres tokens (USDC, DAI, etc.)
           const tokenKey = asset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
-          const tokenAddress = CONTRACTS[chainId]?.TOKENS[tokenKey]?.token;
+          const tokenAddress = CONTRACTS[supportedChainId]?.TOKENS[tokenKey]?.token;
           if (!tokenAddress) throw new Error(`No token address found for ${tokenKey}`);
 
           const apr = await vault.api.apr({
@@ -351,25 +353,48 @@ const App: React.FC = () => {
         throw new Error('Please select a deposit asset.');
       }
 
+      if (alchemistsLoading) {
+        throw new Error('Loading alchemists data...');
+      }
+      if (!DEPOSIT_ASSETS.includes(depositAsset as DepositAsset)) {
+        throw new Error(`Invalid deposit asset: ${depositAsset}`);
+      }
+
       if (alchemistsError) {
+        console.error("alchemists:", alchemists)
+
+        console.error("synth:", synthMapping)
+        console.log(alchemistsError)
         throw new Error('Failed to fetch alchemists data.');
       }
       console.log("Available alchemists:", alchemists);
       console.log("Deposit asset:", depositAsset.toUpperCase());
-      console.log("Synth types in alchemists:", alchemists?.map((al) => al.synthType));
 
 
 
       const mappedSynthType = synthMapping[depositAsset.toUpperCase()] || depositAsset.toUpperCase();
+      if (!mappedSynthType) {
+        throw new Error(`No synth mapping found for asset: ${depositAsset}`);
+      }
 
 
+      // Attendre que alchemists soit chargé et défini
+      if (!alchemists || alchemists.length === 0) {
+        throw new Error('No alchemists data available');
+      }
 
-      // Récupération de l'alchimiste pour l'actif sélectionné
-      const alchemist = alchemists?.find((al) => al.synthType === mappedSynthType);
-
+      // Trouver l'alchemist correspondant
+      const alchemist = alchemists.find((al: { synthType: string; }) => {
+        console.log("Checking alchemist:", al.synthType, "against", mappedSynthType);
+        return al.synthType === mappedSynthType;
+      });
 
       if (!alchemist) {
-        throw new Error(`No alchemist found for asset: ${depositAsset}`);
+        console.error("Available alchemists:", alchemists.map((a: { synthType: any; address: any; }) => ({
+          type: a.synthType,
+          address: a.address
+        })));
+        throw new Error(`No alchemist found for asset: ${depositAsset} (${mappedSynthType})`);
       }
 
       const alchemistAddress = alchemist.address;
@@ -537,6 +562,7 @@ const App: React.FC = () => {
             abi: erc20Abi,
             functionName: 'approve',
             args: [alchemistAddress, depositAmountWei],
+            gas: 100000n,
           });
 
           console.log('Approve transaction sent, waiting for confirmation...');
@@ -561,7 +587,7 @@ const App: React.FC = () => {
           selectedStrategy as `0x${string}`,
           depositAmount,
           address as `0x${string}`,
-          depositAsset
+          depositAsset as DepositAsset
         );
 
         if (!depositResult) throw new Error('Deposit failed.');

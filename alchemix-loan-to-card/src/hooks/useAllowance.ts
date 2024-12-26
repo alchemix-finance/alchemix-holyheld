@@ -76,6 +76,7 @@ export const useAllowance = ({
           tokenAddress !== GAS_ADDRESS &&
           tokenAddress?.toLowerCase() !== USDT_MAINNET_ADDRESS.toLowerCase(),
       },
+
     });
 
   /** USDT on Ethereum doesn't follow ERC20 standard.
@@ -107,6 +108,7 @@ export const useAllowance = ({
     mutation: mutationCallback({
       action: "Approve",
     }),
+
   });
 
   const { data: approvalReceipt } = useWaitForTransactionReceipt({

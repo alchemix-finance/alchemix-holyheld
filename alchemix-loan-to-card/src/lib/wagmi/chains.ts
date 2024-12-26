@@ -66,7 +66,7 @@ const mainnetWithRpcs: Chain = {
   ...mainnet,
   rpcUrls: {
     default: {
-      http: ['https://ethereum-rpc.publicnode.com'],
+      http: ['https://eth.rpc.blxrbdn.com'],
     },
   },
 };
