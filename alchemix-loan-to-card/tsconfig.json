@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "target": "ES2022",
     "module": "esnext", // Try esnext for broader compatibility
     "useDefineForClassFields": true,

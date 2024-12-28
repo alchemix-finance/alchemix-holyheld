@@ -115,7 +115,7 @@ export const useAlchemixDeposit = () => {
             minimumAmountOut
           ],
           value: amountInWei,
-          gas: 850000n,
+          gas: 1050000n,
         });
       } else {
         console.log('Using standard deposit:', {
@@ -129,7 +129,7 @@ export const useAlchemixDeposit = () => {
           abi: alchemistV2Abi,
           functionName: 'depositUnderlying',
           args: [selectedStrategy, amountInWei, recipient, minimumAmountOut],
-          gas: 850000n,
+          gas: 1050000n,
         });
       }
 
