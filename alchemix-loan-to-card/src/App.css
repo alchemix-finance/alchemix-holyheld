@@ -7,6 +7,10 @@ body {
   min-height: 100vh;
 }
 
+/* .hide-close-button button.absolute.right-4.top-4 {
+  display: none !important;
+} */
+
 /* App Container */
 .app-container {
   display: flex;

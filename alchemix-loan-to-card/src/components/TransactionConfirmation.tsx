@@ -40,9 +40,9 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
   transactionDetails
 }) => {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-
+    <Dialog open={isOpen} onOpenChange={onClose} >
       <DialogContent
+        className="hide-close-button"
         style={{
           position: "fixed",
           top: "50%",
@@ -60,6 +60,8 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           fontFamily: "'Arial', sans-serif"
         }}
       >
+        <div style={{ position: "absolute", right: "1rem", top: "1rem", display: "none" }}>
+        </div>
         <DialogHeader>
           <DialogTitle style={{ fontSize: "1.25rem", fontWeight: "bold", marginBottom: "0.25rem" }}>
             Confirm Transaction
