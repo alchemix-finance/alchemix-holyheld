@@ -11,11 +11,7 @@ import { getAaveApr } from "../../lib/middleware/aave";
 import { getVesperApr } from "../../lib/middleware/vesper";
 import { getRocketApr } from "../../lib/middleware/rocketPool";
 import { getLidoApy } from "../../lib/middleware/lido";
-import { getFraxApy } from "../../lib/middleware/frax";
-import {
-  getMeltedRewardsBonusData,
-  getNoBonus,
-} from "../../lib/middleware/bonuses";
+
 
 // @dev some vaults are broken so we need to ignore them from processing
 export const IGNORED_VAULTS: `0x${string}`[] = [
@@ -49,7 +45,6 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "yearn",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -64,7 +59,6 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "yearn",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },/* 
@@ -95,7 +89,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -111,7 +104,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -127,7 +119,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -142,7 +133,6 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "yearn",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -157,7 +147,6 @@ export const VAULTS: VaultsConfig = {
         apr: getVesperApr,
         yieldType: "APR",
         provider: "vesper",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -172,7 +161,6 @@ export const VAULTS: VaultsConfig = {
         apr: getVesperApr,
         yieldType: "APR",
         provider: "vesper",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },/* 
@@ -187,7 +175,6 @@ export const VAULTS: VaultsConfig = {
         apr: getVesperApr,
         yieldType: "APR",
         provider: "vesper",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     }, *//* 
@@ -203,7 +190,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     }, */
@@ -220,7 +206,6 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "yearn",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -237,7 +222,6 @@ export const VAULTS: VaultsConfig = {
         apr: getLidoApy,
         yieldType: "APR",
         provider: "lido",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -253,10 +237,9 @@ export const VAULTS: VaultsConfig = {
         apr: getRocketApr,
         yieldType: "APR",
         provider: "rocket",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [GAS_ADDRESS, WETH_MAINNET_ADDRESS],
-    },/* 
+    },
     "0x61134511187a9a2DF38D10DBe07Ba2e8E5563967": {
       label: "AAVE aWETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -270,7 +253,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -286,10 +268,9 @@ export const VAULTS: VaultsConfig = {
         apr: getVesperApr,
         yieldType: "APR",
         provider: "vesper",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    }, *//* 
+    },/* 
     "0xac3E018457B222d93114458476f3E3416Abbe38F": {
       label: "Frax sfrxETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -301,7 +282,6 @@ export const VAULTS: VaultsConfig = {
         apr: getFraxApy,
         yieldType: "APR",
         provider: "frax",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     }, */
@@ -319,10 +299,9 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "yearn",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },/* 
+    },
     "0xEF0210eB96c7EB36AF8ed1c20306462764935607": {
       label: "Yearn yUSDC",
       synthAssetType: SYNTH_ASSETS.ALUSD,
@@ -334,7 +313,6 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "yearn",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -349,10 +327,9 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "yearn",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    }, */
+    },
   },
   [optimism.id]: {
     //alUSD
@@ -369,7 +346,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },
@@ -386,7 +362,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
     },
@@ -403,7 +378,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
     },/* 
@@ -425,7 +399,6 @@ export const VAULTS: VaultsConfig = {
         apr: getYearnApy,
         yieldType: "APY",
         provider: "meltedRewards",
-        bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
     }, */
@@ -466,11 +439,9 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getNoBonus,
       },
       disabledDepositTokens: [],
-    },
-    /* 
+    },/* 
     "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb": {
       label: "Lido wstETH",
       synthAssetType: SYNTH_ASSETS.ALETH,
@@ -483,7 +454,6 @@ export const VAULTS: VaultsConfig = {
         apr: getLidoApy,
         yieldType: "APR",
         provider: "meltedRewards",
-        bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
     }, *//* 
@@ -525,7 +495,6 @@ export const VAULTS: VaultsConfig = {
         apr: getAaveApr,
         yieldType: "APR",
         provider: "aave",
-        bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
     },
@@ -542,7 +511,6 @@ export const VAULTS: VaultsConfig = {
         apr: getLidoApy,
         yieldType: "APR",
         provider: "lido",
-        bonus: getMeltedRewardsBonusData,
       },
       disabledDepositTokens: [],
     },

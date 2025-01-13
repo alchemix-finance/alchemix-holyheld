@@ -14,20 +14,6 @@ export interface ReserveData {
   lastUpdateTimestamp: number;
 }
 
-interface AaveReserveResponse {
-  configuration: { data: bigint };
-  liquidityIndex: bigint;
-  variableBorrowIndex: bigint;
-  currentLiquidityRate: bigint;
-  currentVariableBorrowRate: bigint;
-  currentStableBorrowRate: bigint;
-  lastUpdateTimestamp: number;
-  aTokenAddress: string;
-  stableDebtTokenAddress: string;
-  variableDebtTokenAddress: string;
-  interestRateStrategyAddress: string;
-  id: number;
-}
 
 // Lending Pool ABI
 const LENDING_POOL_ABI = [
@@ -110,8 +96,13 @@ export const getAaveReserves = async ({
     const currentVariableBorrowRate = result[4]; // index 4 pour variableBorrowRate
     const lastUpdateTimestamp = Number(result[6]); // index 6 pour timestamp
 
-    if (currentLiquidityRate === undefined || currentVariableBorrowRate === undefined) {
-      throw new Error("Rate data is undefined from Aave");
+    if (
+      currentLiquidityRate === null ||
+      currentLiquidityRate === undefined ||
+      currentVariableBorrowRate === null ||
+      currentVariableBorrowRate === undefined
+    ) {
+      throw new Error("Rate data is null/undefined from Aave");
     }
 
     const liquidityRate = BigInt(currentLiquidityRate.toString());
@@ -181,10 +172,9 @@ export const getAaveApr = async ({
 
     // Utiliser l'index approprié selon le réseau
     const rateIndex = chainId === 10 ? 2 : 3;
-    const liquidityRate = BigInt(result[rateIndex].toString());
+    const liquidityRate = BigInt((result as string[])[rateIndex].toString());
     // console.log(liquidityRate)
 
-    const divisor = chainId === 10 ? 1000 : 1;
 
     // Calculer l'APR
     const rateAsDecimal = (Number(liquidityRate) / Number(RAY) * 100);
@@ -197,9 +187,5 @@ export const getAaveApr = async ({
 };
 
 
-type AprFn = (params: {
-  chainId: SupportedChainId;
-  underlyingToken: `0x${string}`;
-  additionalData?: Record<string, unknown>;
-}) => Promise<number>;
+
 

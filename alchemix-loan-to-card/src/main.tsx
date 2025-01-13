@@ -2,7 +2,7 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { WagmiConfig, createConfig, http } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { mainnet, optimism, arbitrum } from 'wagmi/chains';
+import { optimism, arbitrum } from 'wagmi/chains';
 import {
   RainbowKitProvider,
   getDefaultWallets,
@@ -33,7 +33,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 const projectId = import.meta.env.VITE_HOLYHELD_SDK_API_KEY;
 const appName = 'Alchemix loan to card';
-const chains = [mainnet, optimism] as const;
+const chains = [optimism] as const;
 
 // Configuration des wallets
 const { wallets } = getDefaultWallets({
@@ -51,7 +51,7 @@ const config = createConfig({
   connectors,
   chains,
   transports: {
-    [mainnet.id]: http(),
+    //[mainnet.id]: http(),
     [arbitrum.id]: http(),
     [optimism.id]: http(),
     //[ganacheChain.id]: http(),

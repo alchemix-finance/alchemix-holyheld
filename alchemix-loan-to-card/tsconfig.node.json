@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
     "jsx": "react",
-    "composite": true, // Required for referenced projects
-    "target": "ES2022", // Ensures modern features
-    "module": "esnext", // Supports import.meta
-    "moduleResolution": "node", // Ensures compatibility with Node.js resolution
+    "composite": true,
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "allowSyntheticDefaultImports": true,
     "strict": true,
+    "skipLibCheck": true,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"]
     },
-    "outDir": "./dist" // Specifies the output directory
+    "outDir": "./dist"
   },
-  "include": ["src/**/*"]
+  "include": ["vite.config.ts"] 
 }

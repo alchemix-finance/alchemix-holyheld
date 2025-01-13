@@ -4,7 +4,7 @@ import { useAlchemixDeposit } from './useAlchemixLoan'; // Hook pour gérer le d
 import { useChain } from './useChain';
 import { useAccount } from 'wagmi'; // Pour récupérer l'adresse du wallet connecté
 import { isSupported } from '../lib/wagmi/chains';
-import type { Network, TransferData, TopUpCallbackConfig } from '@holyheld/sdk';
+import type { Network, TopUpCallbackConfig } from '@holyheld/sdk';
 
 interface UseHandleTopUpReturn {
   handleTopUp: (
@@ -58,7 +58,7 @@ export const useHandleTopUp = (): UseHandleTopUpReturn => {
       }
 
       const percentage = 0.90; // Tolérance de 5% de perte
-const minimumAmountOut = BigInt(depositAmount) * BigInt(Math.floor(percentage * 100)) / BigInt(100);
+      const minimumAmountOut = BigInt(depositAmount) * BigInt(Math.floor(percentage * 100)) / BigInt(100);
 
 
       // Étape 3: Effectuer le dépôt via Alchemix
@@ -66,8 +66,8 @@ const minimumAmountOut = BigInt(depositAmount) * BigInt(Math.floor(percentage * 
         depositAsset as `0x${string}`, // Conversion explicite pour TypeScript
         depositAmount,
         walletAddress as `0x${string}`, // Conversion explicite pour TypeScript
-        minimumAmountOut.toString() 
-        
+        minimumAmountOut.toString()
+
       );
       if (!depositResult) {
         throw new Error('Deposit transaction failed.');

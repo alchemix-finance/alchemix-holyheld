@@ -7,7 +7,6 @@ import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { erc20Abi } from 'viem';
 import { useMaxAmount } from './hooks/useMaxAmount';
 import { useTokenBalance } from './hooks/useTokenBalance';
-import { useBorrowableLimit } from './hooks/useBorrowableLimit';
 import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
 import { useHolyheldSDK } from './hooks/useHolyheld';
@@ -16,32 +15,50 @@ import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
 import Select from 'react-select';
 import { Network } from '@holyheld/sdk';
-import { useAlchemixDeposit } from './hooks/useAlchemixLoan';
+import { useAlchemixDeposit, DepositAsset, DEPOSIT_ASSETS } from './hooks/useAlchemixLoan';
 import { useMintAl } from './hooks/UseMintAlETH';
-import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES, SYNTH_ASSETS_METADATA } from "@/lib/config/synths";
+import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES } from "@/lib/config/synths";
 import type { SynthAsset } from "@/lib/config/synths";
 import { CONTRACTS } from './lib/wagmi/chains';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
-
-
-
-
+import { TransactionConfirmation } from './components/TransactionConfirmation';
+import { MessageProvider } from './context/MessageContext';
+import MessageDisplay from './components/MessageDisplay';
+import { useMessages } from './context/MessageContext';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { toastConfig, warn, withToast } from './utils/toast';
 
 const App: React.FC = () => {
-  const [depositAsset, setDepositAsset] = useState<string>('');
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [loanAsset, setLoanAsset] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [balance, setBalance] = useState<number>(0);
-  const [eurAmount, setEurAmount] = useState<string>('');
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
-  const [isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
+  const [_isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
-  const { borrow, isLoading: isBorrowing, error: borrowError } = useBorrow();
+  const { borrow, isLoading: isBorrowing } = useBorrow();
+  const [depositAsset, setDepositAsset] = useState<DepositAsset | ''>('');
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txDetails, setTxDetails] = useState({
+    type: '',
+    amount: '',
+    token: '',
+    collateralAmount: '',
+    depositAsset: '',
+    apr: 0,
+    estimatedEarnings: {
+      daily: '0.00',
+      weekly: '0.00',
+      monthly: '0.00',
+      yearly: '0.00',
+    },
+    expectedDebt: '',
+    loanAsset: ''
+  });
 
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -54,13 +71,10 @@ const App: React.FC = () => {
   const [expectedDebt, setExpectedDebt] = useState<string>('0.00');
   const [apr, setApr] = useState<number>(0);
 
-
-
   const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
-  const { deposit, isLoading: isDepositLoading, error: depositError } = useAlchemixDeposit();
-  const { mint, isLoading: isMinting, error: mintError } = useMintAl();
-  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists();
-  const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
+  const { deposit } = useAlchemixDeposit();
+  const { mint } = useMintAl();
+  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists(); const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
     address,
     chain?.id,
     depositAsset
@@ -86,12 +100,67 @@ const App: React.FC = () => {
   };
   const handleBorrowOnly = async () => {
     try {
-      const result = await borrow(depositAsset, depositAmount, selectedStrategy);
-      alert('Borrow successful!');
+      setIsModalOpen(false);
+      // Vérifiez si publicClient est défini
+      if (!publicClient) {
+        throw new Error('Public client is not initialized. Please connect your wallet and ensure the network is configured correctly.');
+      }
+
+      // Soumettez la transaction
+      const txResponse = await borrow(depositAsset, depositAmount, selectedStrategy);
+
+      // Vérifiez que la réponse contient un hash de transaction
+      if (!txResponse || !txResponse.transactionHash) {
+        throw new Error('Transaction submission failed: No transaction hash returned.');
+      }
+
+      // Affichez un message indiquant que la transaction est en attente
+      const toastId = toast.info('Transaction pending...', {
+        ...toastConfig,
+        icon: < span aria-label="error" >⏳</span>,
+        autoClose: false, // Garde le toast ouvert jusqu'à mise à jour
+      });
+
+      // Attendez la confirmation de la transaction
+      const txReceipt = await publicClient.waitForTransactionReceipt({
+        hash: txResponse.transactionHash as `0x${string}`,
+      });
+
+      // Vérifiez le statut de la transaction
+      if (txReceipt.status !== 'success') {
+        // Mettez à jour le toast pour indiquer l'échec
+        toast.update(toastId, {
+          render: 'Borrow transaction failed on-chain.',
+          type: 'error',
+          autoClose: 5000,
+          icon: <span aria-label="error">❌</span>,
+        });
+        throw new Error('Borrow transaction failed on-chain.');
+      }
+
+      // Succès : Mettez à jour le toast pour indiquer le succès
+      ;
     } catch (err) {
+      // Gérer les erreurs
+      let errorMessage = 'Unknown error';
+
+      if (err instanceof Error) {
+        errorMessage = err.message.split(':')[0]; // Prendre la première partie avant les détails.
+        if (errorMessage.length > 100) {
+          errorMessage = `${errorMessage.slice(0, 100)}...`; // Tronquer si le message est trop long.
+        }
+      }
+
       console.error('Error during borrow:', err);
+
+      // Afficher un message d'erreur simplifié
+      toast.error(errorMessage, {
+        ...warn,
+        icon: <span aria-label="error">❌</span>,
+      });
     }
   };
+
 
   const getStrategyImplications = (apr: string | number): string => {
     const aprValue = typeof apr === 'string' ? parseFloat(apr) : apr;
@@ -116,8 +185,6 @@ const App: React.FC = () => {
       return;
     }
 
-
-
     const selectedStrategyData = availableStrategies.find(
       strategy => strategy.address === selectedStrategy
     );
@@ -130,9 +197,9 @@ const App: React.FC = () => {
       setCollateralAmount(deposit.toFixed(4));
 
       // Calculate estimated earnings for different time periods
-      const dailyEarnings = calculateEstimatedEarnings(deposit, aprValue, 1);
-      const weeklyEarnings = calculateEstimatedEarnings(deposit, aprValue, 7);
-      const monthlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 30);
+      /*       const dailyEarnings = calculateEstimatedEarnings(deposit, aprValue, 1);
+            const weeklyEarnings = calculateEstimatedEarnings(deposit, aprValue, 7);
+            const monthlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 30); */
       const yearlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 365);
 
       // Set earnings to yearly by default
@@ -142,9 +209,6 @@ const App: React.FC = () => {
       setExpectedDebt(debt.toFixed(4));
     }
   }, [depositAmount, selectedStrategy, availableStrategies]);
-
-
-
 
   const availableDepositAssets = useMemo(() => {
     if (!chain.id) return [];
@@ -161,10 +225,15 @@ const App: React.FC = () => {
   }, [chain.id]);
 
   const handleDepositAssetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setDepositAsset(e.target.value);
+    const value = e.target.value;
+    if (value === '' || DEPOSIT_ASSETS.includes(value as DepositAsset)) {
+      setDepositAsset(value as DepositAsset | '');
+    }
     // Réinitialiser la stratégie
     setSelectedStrategy('');
     setSelectKey(prev => prev + 1);
+    const { addMessage } = useMessages();
+    addMessage(`Selected deposit asset: ${value}`, 'info');
   };
 
   const synthMapping: Record<string, string> = {
@@ -183,7 +252,7 @@ const App: React.FC = () => {
   ) => {
     const supportedChainId = chainId as SupportedChainId;
 
-    const getYield = async (vault: any, underlying?: any) => {
+    const getYield = async (vault: any, _underlying?: any) => {
       if (vault.api?.apr) {
         try {
           // Pour WETH/ETH
@@ -199,8 +268,11 @@ const App: React.FC = () => {
 
           // Pour les autres tokens (USDC, DAI, etc.)
           const tokenKey = asset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
-          const tokenAddress = CONTRACTS[chainId]?.TOKENS[tokenKey]?.token;
-          if (!tokenAddress) throw new Error(`No token address found for ${tokenKey}`);
+          const tokenAddress = CONTRACTS[supportedChainId]?.TOKENS[tokenKey]?.token;
+          if (!tokenAddress) toast.error(`No token address found for ${tokenKey}`, {
+            ...warn,
+            icon: <span aria-label="error">❌</span>,
+          });
 
           const apr = await vault.api.apr({
             chainId,
@@ -208,7 +280,10 @@ const App: React.FC = () => {
           });
           return apr;
         } catch (err) {
-          console.error(`Error fetching APR for asset ${asset}:`, err);
+          toast.error(`Error fetching APR for asset ${asset}:`, {
+            ...warn,
+            icon: <span aria-label="error">❌</span>,
+          });
           return 'N/A';
         }
       }
@@ -234,7 +309,6 @@ const App: React.FC = () => {
     );
     return strategies;
   };
-
 
   // Charger les stratégies à chaque changement d'actif déposé ou de chaîne
   useEffect(() => {
@@ -263,14 +337,16 @@ const App: React.FC = () => {
     }));
   }, [availableStrategies]);
 
-
-
   const handleValidateHolytag = async () => {
     try {
       const isValid = await validateHolytag(holytag);
       alert(isValid ? 'Holytag is valid!' : 'Holytag is not valid!');
     } catch (err) {
-      console.error('Error validating holytag:', err);
+      toast.error('Please connect your wallet and select a valid chain.', {
+        ...warn,
+        icon: <span aria-label="link">🔗</span>,
+      });
+
       setError('Failed to validate holytag.');
     }
   };
@@ -280,8 +356,11 @@ const App: React.FC = () => {
     if (regex.test(value)) {
       setDepositAmount(value);
     }
+    const { addMessage } = useMessages();
+    if (value && parseFloat(value) > 0) {
+      addMessage(`Set deposit amount to ${value}`, 'info');
+    }
   };
-
 
   // useEffect pour mettre à jour automatiquement le loanAsset
   useEffect(() => {
@@ -296,12 +375,8 @@ const App: React.FC = () => {
     const chainId = chain?.id;
 
     if (!chainId || !(chainId in CONTRACTS)) {
-      throw new Error(`Unsupported chain ID: ${chainId}`);
+      toast.error(`Unsupported chain ID: ${chainId}`);
     }
-
-    // Cast explicite du chainId
-    const typedChainId = chainId as keyof typeof CONTRACTS;
-
 
 
     if (assetUpper === 'WETH' || assetUpper === 'ETH') {
@@ -338,10 +413,28 @@ const App: React.FC = () => {
   const handleTopUp = async () => {
     console.log('Handle Top-Up initiated.');
 
+    const transactionId = toast.info('Top-up process started...', {
+      ...toastConfig,
+      icon: <span aria-label="tools">🛠️</span>,
+      autoClose: false, // Keep the toast visible until updated
+    });
+
     try {
+      setIsModalOpen(false);
+
       if (!address || !walletClient || !chain || !publicClient) {
-        throw new Error('Please connect your wallet and select a chain.');
+        toast.error('Please connect your wallet and select a valid chain.', {
+          ...warn,
+          icon: <span aria-label="link">🔗</span>,
+        });
+        return;
       }
+
+      toast.update(transactionId, {
+        render: 'Validating input data...',
+        type: 'info',
+        icon: <span aria-label="search">🔍</span>,
+      });
 
       if (!depositAmount || parseFloat(depositAmount) <= 0) {
         throw new Error('Please enter a valid deposit amount.');
@@ -351,41 +444,85 @@ const App: React.FC = () => {
         throw new Error('Please select a deposit asset.');
       }
 
+      // Simulate step-by-step progress
+      toast.update(transactionId, {
+        render: 'Fetching server settings...',
+        type: 'info',
+        icon: <span aria-label="antenna">📡</span>,
+      });
+
+      if (alchemistsLoading) {
+        throw new Error('Loading alchemists data...');
+      }
+      if (!DEPOSIT_ASSETS.includes(depositAsset as DepositAsset)) {
+        throw new Error(`Invalid deposit asset: ${depositAsset}`);
+      }
+
       if (alchemistsError) {
+        console.error("alchemists:", alchemists)
+
+        console.error("synth:", synthMapping)
+        console.log(alchemistsError)
         throw new Error('Failed to fetch alchemists data.');
       }
-      console.log("Available alchemists:", alchemists);
-      console.log("Deposit asset:", depositAsset.toUpperCase());
-      console.log("Synth types in alchemists:", alchemists?.map((al) => al.synthType));
-
-
+      //console.log("Available alchemists:", alchemists);
+      //console.log("Deposit asset:", depositAsset.toUpperCase());
 
       const mappedSynthType = synthMapping[depositAsset.toUpperCase()] || depositAsset.toUpperCase();
+      if (!mappedSynthType) {
+        throw new Error(`No synth mapping found for asset: ${depositAsset}`);
+      }
 
+      // Attendre que alchemists soit chargé et défini
+      if (!alchemists || alchemists.length === 0) {
+        throw new Error('No alchemists data available');
+      }
 
-
-      // Récupération de l'alchimiste pour l'actif sélectionné
-      const alchemist = alchemists?.find((al) => al.synthType === mappedSynthType);
-
+      // Trouver l'alchemist correspondant
+      const alchemist = alchemists.find((al: { synthType: string; }) => {
+        //console.log("Checking alchemist:", al.synthType, "against", mappedSynthType);
+        return al.synthType === mappedSynthType;
+      });
 
       if (!alchemist) {
-        throw new Error(`No alchemist found for asset: ${depositAsset}`);
+        console.error("Available alchemists:", alchemists.map((a: { synthType: any; address: any; }) => ({
+          type: a.synthType,
+          address: a.address
+        })));
+        throw new Error(`No alchemist found for asset: ${depositAsset} (${mappedSynthType})`);
       }
 
       const alchemistAddress = alchemist.address;
 
       // Étape 1 : Vérification des paramètres
-      console.log('Fetching server settings...');
+      //console.log('Fetching server settings...');
       const serverSettings = await sdk.getServerSettings();
       if (!serverSettings.external.isTopupEnabled) {
         throw new Error('Top-up is currently disabled.');
       }
 
-      console.log('Validating holytag...');
+      toast.update(transactionId, {
+        render: 'Validating holytag...',
+        ...toastConfig,
+        icon: <span aria-label="success">✅</span>,
+      });
+
+      // console.log('Validating holytag...');
       const isValidTag = await validateHolytag(holytag);
       if (!isValidTag) {
-        throw new Error('Invalid Holytag.');
+        toast.error('The Holytag Is not valid', {
+          ...warn,
+          icon: <span aria-label="error">❌</span>,
+        });
+        return;
       }
+
+      // Proceed with the top-up process
+      toast.update(transactionId, {
+        render: 'Processing transaction...',
+        type: 'info',
+        icon: <span aria-label="money">💸</span>,
+      });
 
       type SupportedChainId = keyof typeof CONTRACTS;
 
@@ -400,16 +537,15 @@ const App: React.FC = () => {
         const vault = Object.entries(vaults).find(([addr]) => addr === selectedStrategy)?.[1];
 
         if (!vault?.wethGateway) {
-          throw new Error('Selected strategy does not support ETH deposits');
+          throw new Error('Selected strategy does not support ETH deposits')
         }
 
         // Préparer le dépôt ETH
-        const depositAmountWei = parseUnits(depositAmount, 18);
-        console.log('Depositing ETH via gateway:', {
-          strategy: selectedStrategy,
-          amount: depositAmount,
-          gateway: vault.wethGateway
-        });
+        /*         console.log('Depositing ETH via gateway:', {
+                  strategy: selectedStrategy,
+                  amount: depositAmount,
+                  gateway: vault.wethGateway
+                }); */
 
         // Dépôt ETH avec valeur attachée
         console.log('Depositing ETH to Alchemix...');
@@ -465,7 +601,7 @@ const App: React.FC = () => {
         const mappedNetwork = mapNetworkName(chain.name);
 
         // Conversion et Top-up
-        const { EURAmount, transferData } = await convertToEUR(
+        const { transferData } = await convertToEUR(
           synthTokenAddress,
           decimals,
           formattedAmount,
@@ -489,22 +625,21 @@ const App: React.FC = () => {
         );
 
         console.log('Top-up completed successfully.');
-        alert('Top-up successful!');
+        //alert('Top-up successful!');
 
       } else {
+        setIsModalOpen(false);
+
 
         const tokenKey = depositAsset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
         const tokenInfo = CONTRACTS[chainId]?.TOKENS[tokenKey];
 
-        console.log("Token Key:", tokenKey);
-        console.log("Token Info:", tokenInfo);
+        // console.log("Token Key:", tokenKey);
+        //console.log("Token Info:", tokenInfo);
 
         if (!tokenInfo) {
           throw new Error(`Token configuration not found for asset: ${depositAsset}`);
         }
-
-
-
 
         const tokenAddress = tokenInfo.token;
         const depositDecimals = tokenInfo.decimals;
@@ -515,9 +650,8 @@ const App: React.FC = () => {
           throw new Error(`Invalid token configuration for ${depositAsset} on chain ID ${chainId}.`);
         }
 
-        console.log("Token Address:", tokenAddress);
-        console.log("Deposit Amount (Wei):", depositAmountWei.toString());
-
+        //  console.log("Token Address:", tokenAddress);
+        // console.log("Deposit Amount (Wei):", depositAmountWei.toString());
 
         // Étape 2 : Approve
 
@@ -537,6 +671,7 @@ const App: React.FC = () => {
             abi: erc20Abi,
             functionName: 'approve',
             args: [alchemistAddress, depositAmountWei],
+            gas: 100000n,
           });
 
           console.log('Approve transaction sent, waiting for confirmation...');
@@ -554,14 +689,13 @@ const App: React.FC = () => {
           console.log(`Sufficient allowance: ${allowance.toString()} (no need to approve).`);
         }
 
-
         // Étape 3 : Dépôt
         console.log('Depositing to Alchemix...');
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
           depositAmount,
           address as `0x${string}`,
-          depositAsset
+          depositAsset as DepositAsset
         );
 
         if (!depositResult) throw new Error('Deposit failed.');
@@ -577,7 +711,7 @@ const App: React.FC = () => {
         const mintAmountFloat = depositFloat / 2;
         const mintAmount = mintAmountFloat.toString();
 
-        const { type: synthType, address: synthAddress } = getSynthToken(depositAsset);
+        const { type: synthType } = getSynthToken(depositAsset);
 
         console.log('Minting synthetic token...', { mintingAmount: mintAmount });
         const mintResult = await mint(
@@ -622,9 +756,9 @@ const App: React.FC = () => {
 
         const mappedNetwork = mapNetworkName(chain.name);
 
-        console.log('synth:', synthTokenAddress)
-        console.log('tokenAdress:', tokenAddress)
-        console.log('synthAdress:', synthAddress)
+        //  console.log('synth:', synthTokenAddress)
+        // console.log('tokenAdress:', tokenAddress)
+        // console.log('synthAdress:', synthAddress)
 
         const decimals = await publicClient.readContract({
           address: synthTokenAddress as `0x${string}`, // Adresse du synthToken (ex : alETH)
@@ -633,20 +767,17 @@ const App: React.FC = () => {
         }) as number;
 
         const alAmount = formatUnits(BigInt(mintResult.mintedAmount), decimals);
-        console.log("alAmount with correct decimals:", alAmount);
+        //  console.log("alAmount with correct decimals:", alAmount);
 
-        const { EURAmount, transferData } = await convertToEUR(
+        const { transferData } = await convertToEUR(
           synthTokenAddress,
           decimals,
           formattedAmount,
           mappedNetwork
         );
-        console.log(convertToEUR)
-        console.log("Type of transferData:", typeof transferData);
-        console.log('TransferData before top-up:', transferData);
-
-
-
+        //  console.log(convertToEUR)
+        //  console.log("Type of transferData:", typeof transferData);
+        //  console.log('TransferData before top-up:', transferData);
 
         /*       if (
                 parseFloat(EURAmount) < parseFloat(serverSettings.external.minTopUpAmountInEUR) ||
@@ -658,27 +789,12 @@ const App: React.FC = () => {
               } */
 
 
-
-        console.log("Decimals for token:", decimals);
-
-        console.log(EURAmount)
-        console.log(mintResult)
-
-
-        const tokenBalance = await publicClient.readContract({
-          address: synthTokenAddress as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [address], // Adresse de l'utilisateur
-        }) as bigint;
-
-        console.log("Token balance:", tokenBalance.toString());
-        console.log("alAmount in Wei:", parseUnits(alAmount, decimals).toString());
+        //  console.log("Token balance:", tokenBalance.toString());
+        //  console.log("alAmount in Wei:", parseUnits(alAmount, decimals).toString());
 
         /*       if (tokenBalance < parseUnits(alAmount, decimals)) {
                 throw new Error("Insufficient token balance for the requested top-up.");
               } */
-
 
         // Étape 7 : Top-Up
         console.log('Executing top-up...');
@@ -697,10 +813,10 @@ const App: React.FC = () => {
             onStepChange: (step) => console.log('Current Step:', step),
           }
         );
-        console.log(performTopUp)
+        //  console.log(performTopUp)
 
         console.log('Top-up completed successfully.');
-        alert('Top-up successful!');
+        // alert('Top-up successful!');
       }
     } catch (err: unknown) {
       const errorMessage = (err as Error).message;
@@ -719,267 +835,340 @@ const App: React.FC = () => {
       setDepositAmount(maxAmount);
     } catch (err) {
       console.error('Error setting max amount:', err);
-      setError(err instanceof Error ? err.message : 'Failed to set maximum amount');
+      setError(err instanceof Error ? err.message : 'Failed to set maximum amount')
+    }
+  };
+
+  const openConfirmationModal = () => {
+    // Construire l’objet de détails à afficher dans le pop-up
+    // (vous pouvez ajuster selon vos besoins)
+    const deposit = parseFloat(depositAmount || '0');
+    const dailyEarnings = calculateEstimatedEarnings(deposit, apr, 1).toFixed(8);
+    const weeklyEarnings = calculateEstimatedEarnings(deposit, apr, 7).toFixed(8);
+    const monthlyEarnings = calculateEstimatedEarnings(deposit, apr, 30).toFixed(8);
+    const yearlyEarnings = calculateEstimatedEarnings(deposit, apr, 365).toFixed(8);
+
+    setTxDetails({
+      type: mode === 'topup' ? 'Top-up' : 'Borrow',
+      amount: depositAmount,
+      token: depositAsset || '',
+      collateralAmount: depositAmount,
+      depositAsset: depositAsset || '',
+      apr,
+      estimatedEarnings: {
+        daily: dailyEarnings,
+        weekly: weeklyEarnings,
+        monthly: monthlyEarnings,
+        yearly: yearlyEarnings
+      },
+      expectedDebt,
+      loanAsset: loanAsset
+    });
+    setIsModalOpen(true);
+  };
+
+  // -------------------------------------
+  // Confirmation depuis le pop-up
+  // -------------------------------------
+  const handleConfirmTransaction = async () => {
+    try {
+      await withToast(
+        (async () => {
+          if (mode === 'topup') {
+            await handleTopUp();
+          } else {
+            await handleBorrowOnly();
+          }
+
+          setIsModalOpen(false);
+        })(),
+        {
+          pending: `${mode === 'topup' ? 'Top-up' : 'Borrow'} transaction in progress...`,
+          success: `${mode === 'topup' ? 'Top-up' : 'Borrow'} completed successfully!`,
+          error: `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`,
+        }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Transaction failed';
+      console.error('Error during transaction:', errorMessage);
+      setError(errorMessage);
+    } finally {
     }
   };
 
 
+
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="header">
-        <div className="logo-section">
-          <img src={logo} alt="Alchemix Logo" className="logo" />
-        </div>
-        <ConnectButton />
-      </header>
-
-      <main className="main-content">
-        {/* Mode Selection */}
-        <div className="card">
-          <div className="mode-selection" style={{
-            display: 'flex',
-            gap: '10px',
-            marginBottom: '20px',
-            justifyContent: 'center'
-          }}>
-            <Button
-              variant={mode === 'topup' ? 'contained' : 'outlined'}
-              onClick={() => setMode('topup')}
-              sx={{
-                bgcolor: mode === 'topup' ? 'gray' : 'transparent',
-                flex: 1,
-                '&:hover': {
-                  bgcolor: mode === 'topup' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
-                },
-              }}
-            >
-              Top-Up
-            </Button>
-            <Button
-              variant={mode === 'borrowOnly' ? 'contained' : 'outlined'}
-              onClick={() => setMode('borrowOnly')}
-              sx={{
-                bgcolor: mode === 'borrowOnly' ? 'gray' : 'transparent',
-                flex: 1,
-                '&:hover': {
-                  bgcolor: mode === 'borrowOnly' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
-                },
-              }}
-            >
-              Borrow Only
-            </Button>
-          </div>
-        </div>
-
-        {/* Holytag Section - Visible only in Top-Up mode */}
-        {mode === 'topup' && (
-          <div className="card">
-            <label htmlFor="holytag">Enter Holytag</label>
-            <input
-              id="holytag"
-              type="text"
-              value={holytag}
-              onChange={(e) => setHolytag(e.target.value)}
-              placeholder="Enter Holytag"
-              className="input-field"
-            />
-            <Button
-              variant="contained"
-              onClick={handleValidateHolytag}
-              sx={{ bgcolor: 'gray' }}
-            >
-              Validate Holytag
-            </Button>
-          </div>
-        )}
-
-        {/* Deposit Asset Selection */}
-        <div className="card">
-          <label htmlFor="deposit-asset">Select deposit asset</label>
-          <select
-            id="deposit-asset"
-            className="dropdown"
-            value={depositAsset}
-            onChange={handleDepositAssetChange}
-          >
-            <option value="">Select asset</option>
-            {availableDepositAssets.map((asset) => (
-              <option key={asset} value={asset}>
-                {asset}
-              </option>
-            ))}
-          </select>
-
-          {/* Deposit Amount Input */}
-          <label htmlFor="deposit-amount">Enter deposit amount</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              id="deposit-amount"
-              type="text"
-              value={depositAmount}
-              onChange={(e) => handleInputChange(e.target.value)}
-              placeholder="0.00"
-              className="input-field"
-              style={{ flex: 1 }}
-            />
-            <Button
-              variant="outlined"
-              onClick={handleMaxAmount}
-              size="small"
-              disabled={balanceLoading || maxLoading || !depositAsset || !address}
-              sx={{
-                minWidth: '60px',
-                height: '32px',
-                color: 'gray',
-                borderColor: 'gray',
-                '&:hover': {
-                  borderColor: 'white',
-                  color: 'white',
-                },
-              }}
-            >
-              MAX
-            </Button>
-          </div>
-
-          {/* Balance Display */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '4px'
-          }}>
-            <p className="balance-text">
-              {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
-            </p>
-            {balanceError && (
-              <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
-                {balanceError}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Yield Strategy Selection */}
-        <div className="card">
-          <label htmlFor="yield-strategy">
-            Select yield strategy
-            <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
-              ⓘ
-            </span>
-          </label>
-
-          {isLoading ? (
-            <p>Waiting for Strategies...</p>
-          ) : (
-            <Select
-              key={selectKey}
-              options={formattedStrategies}
-              value={formattedStrategies.find((s) => s.value === selectedStrategy)}
-              onChange={(option) => setSelectedStrategy(option?.value || '')}
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  backgroundColor: '#000',
-                  border: '1px solid #444',
-                  color: '#fff',
-                }),
-                option: (base, { isFocused }) => ({
-                  ...base,
-                  backgroundColor: isFocused ? '#333' : '#000',
-                  color: '#fff',
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  color: '#fff',
-                }),
-              }}
-            />
-          )}
-
-          {/* Strategy Implications */}
-          {selectedStrategy && (
-            <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
-              <h3>Implications of Selected Strategy:</h3>
-              <p>
-                {getStrategyImplications(
-                  availableStrategies.find((strategy) => strategy.address === selectedStrategy)?.apr || 0
-                )}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Loan Asset Display */}
-        <div className="card">
-          <label htmlFor="loan-asset">Loan asset</label>
-          <select
-            id="loan-asset"
-            className="dropdown"
-            value={loanAsset}
-            disabled
-          >
-            <option value="">{loanAsset || "Select asset"}</option>
-          </select>
-        </div>
-
-        {/* Action Button */}
-        <div className="card">
-          <Button
-            variant="contained"
-            onClick={mode === 'topup' ? handleTopUp : handleBorrowOnly}
-            disabled={isBorrowing}
-            fullWidth
-            sx={{ bgcolor: 'Gray' }}
-          >
-            {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
-          </Button>
-          {error && (
-            <div className="error-message" style={{ color: 'red', marginTop: '10px' }}>
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* Summary Section */}
-        <div className="card summary-section">
-          <h2>Summary</h2>
-          {selectedStrategy ? (
-            <>
-              <p>
-                <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
-              </p>
-              <div className="earnings-breakdown">
-                <p>
-                  <strong>Estimated Earnings (APR: {apr}%):</strong>
-                </p>
-                <p>
-                  Daily: {parseFloat(depositAmount || '0') > 0 ?
-                    calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
-                </p>
-                <p>
-                  Weekly: {parseFloat(depositAmount || '0') > 0 ?
-                    calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
-                </p>
-                <p>
-                  Monthly: {parseFloat(depositAmount || '0') > 0 ?
-                    calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
-                </p>
-                <p>
-                  Yearly: {estimatedEarnings} {depositAsset}
-                </p>
+    <>
+      <ToastContainer />
+      <MessageProvider>
+        <div className="app-container" style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <MessageDisplay />
+          <div className="main-content">
+            {/* Header */}
+            <header className="header">
+              <div className="logo-section">
+                <img src={logo} alt="Alchemix Logo" className="logo" />
               </div>
-              <p>
-                <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
-              </p>
-            </>
-          ) : (
-            <p>Please select a strategy to see the summary.</p>
-          )}
+              <ConnectButton />
+            </header>
+
+            <main className="main-content">
+              {/* Mode Selection */}
+              <div className="card">
+                <div className="mode-selection" style={{
+                  display: 'flex',
+                  gap: '10px',
+                  marginBottom: '20px',
+                  justifyContent: 'center'
+                }}>
+                  <Button
+                    variant={mode === 'topup' ? 'contained' : 'outlined'}
+                    onClick={() => setMode('topup')}
+                    sx={{
+                      bgcolor: mode === 'topup' ? 'gray' : 'transparent',
+                      flex: 1,
+                      '&:hover': {
+                        bgcolor: mode === 'topup' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                      },
+                    }}
+                  >
+                    Top-Up
+                  </Button>
+                  <Button
+                    variant={mode === 'borrowOnly' ? 'contained' : 'outlined'}
+                    onClick={() => setMode('borrowOnly')}
+                    sx={{
+                      bgcolor: mode === 'borrowOnly' ? 'gray' : 'transparent',
+                      flex: 1,
+                      '&:hover': {
+                        bgcolor: mode === 'borrowOnly' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                      },
+                    }}
+                  >
+                    Borrow Only
+                  </Button>
+                </div>
+              </div>
+
+              {/* Holytag Section - Visible only in Top-Up mode */}
+              {mode === 'topup' && (
+                <div className="card">
+                  <label htmlFor="holytag">Enter Holytag</label>
+                  <input
+                    id="holytag"
+                    type="text"
+                    value={holytag}
+                    onChange={(e) => setHolytag(e.target.value)}
+                    placeholder="Enter Holytag"
+                    className="input-field"
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleValidateHolytag}
+                    sx={{ bgcolor: 'gray' }}
+                  >
+                    Validate Holytag
+                  </Button>
+                </div>
+              )}
+
+              {/* Deposit Asset Selection */}
+              <div className="card">
+                <label htmlFor="deposit-asset">Select deposit asset</label>
+                <select
+                  id="deposit-asset"
+                  className="dropdown"
+                  value={depositAsset}
+                  onChange={handleDepositAssetChange}
+                >
+                  <option value="">Select asset</option>
+                  {availableDepositAssets.map((asset) => (
+                    <option key={asset} value={asset}>
+                      {asset}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Deposit Amount Input */}
+                <label htmlFor="deposit-amount">Enter deposit amount</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    id="deposit-amount"
+                    type="text"
+                    value={depositAmount}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    placeholder="0.00"
+                    className="input-field"
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleMaxAmount}
+                    size="small"
+                    disabled={balanceLoading || maxLoading || !depositAsset || !address}
+                    sx={{
+                      minWidth: '60px',
+                      height: '32px',
+                      color: 'gray',
+                      borderColor: 'gray',
+                      '&:hover': {
+                        borderColor: 'white',
+                        color: 'white',
+                      },
+                    }}
+                  >
+                    MAX
+                  </Button>
+                </div>
+
+                {/* Balance Display */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '4px'
+                }}>
+                  <p className="balance-text">
+                    {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
+                  </p>
+                  {balanceError && (
+                    <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
+                      {balanceError}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Yield Strategy Selection */}
+              <div className="card">
+                <label htmlFor="yield-strategy">
+                  Select yield strategy
+                  <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
+                    ⓘ
+                  </span>
+                </label>
+
+                {isLoading ? (
+                  <p>Waiting for Strategies...</p>
+                ) : (
+                  <Select
+                    key={selectKey}
+                    options={formattedStrategies}
+                    value={formattedStrategies.find((s) => s.value === selectedStrategy)}
+                    onChange={(option) => setSelectedStrategy(option?.value || '')}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        backgroundColor: '#000',
+                        border: '1px solid #444',
+                        color: '#fff',
+                      }),
+                      option: (base, { isFocused }) => ({
+                        ...base,
+                        backgroundColor: isFocused ? '#333' : '#000',
+                        color: '#fff',
+                      }),
+                      singleValue: (base) => ({
+                        ...base,
+                        color: '#fff',
+                      }),
+                    }}
+                  />
+                )}
+
+                {/* Strategy Implications */}
+                {selectedStrategy && (
+                  <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
+                    <h3>Implications of Selected Strategy:</h3>
+                    <p>
+                      {getStrategyImplications(
+                        availableStrategies.find((strategy) => strategy.address === selectedStrategy)?.apr || 0
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Loan Asset Display */}
+              <div className="card">
+                <label htmlFor="loan-asset">Loan asset</label>
+                <select
+                  id="loan-asset"
+                  className="dropdown"
+                  value={loanAsset}
+                  disabled
+                >
+                  <option value="">{loanAsset || "Select asset"}</option>
+                </select>
+              </div>
+
+              {/* Action Button */}
+              <div className="card">
+                <Button
+                  variant="contained"
+                  onClick={openConfirmationModal}
+                  disabled={isBorrowing}
+                  fullWidth
+                  sx={{ bgcolor: 'Gray' }}
+                >
+                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
+                </Button>
+                {error && (
+                  <div className="error-message" style={{ color: 'red', marginTop: '10px' }}>
+                    {error}
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+          <div className="summary-section" style={{ width: '300px' }}>
+            {/* Summary Section */}
+            <div className="card-summary-section">
+              <h2>Summary</h2>
+              {selectedStrategy ? (
+                <>
+                  <p>
+                    <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
+                  </p>
+                  <div className="earnings-breakdown">
+                    <p>
+                      <strong>Estimated Earnings (APR: {apr}%):</strong>
+                    </p>
+                    <p>
+                      Daily: {parseFloat(depositAmount || '0') > 0 ?
+                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
+                    </p>
+                    <p>
+                      Weekly: {parseFloat(depositAmount || '0') > 0 ?
+                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
+                    </p>
+                    <p>
+                      Monthly: {parseFloat(depositAmount || '0') > 0 ?
+                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
+                    </p>
+                    <p>
+                      Yearly: {estimatedEarnings} {depositAsset}
+                    </p>
+                  </div>
+                  <p>
+                    <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
+                  </p>
+                </>
+              ) : (
+                <p>Please select a strategy to see the summary.</p>
+              )}
+            </div>
+          </div>
+          <TransactionConfirmation
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onConfirm={handleConfirmTransaction}
+            transactionDetails={txDetails}
+          />
         </div>
-      </main>
-    </div>
+      </MessageProvider>
+    </>
   );
 };
 

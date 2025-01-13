@@ -17,13 +17,13 @@ const chain = chains.find((chain) => chain.id === TENDERLY_FORK_CHAIN_ID);
 export const tenderlyForkChain =
   TENDERLY_FORK_CHAIN_ID && TENDERLY_FORK_RPC && chain
     ? ({
-        ...chain,
-        rpcUrls: {
-          default: {
-            http: [TENDERLY_FORK_RPC],
-          },
+      ...chain,
+      rpcUrls: {
+        default: {
+          http: [TENDERLY_FORK_RPC],
         },
-      } as const)
+      },
+    } as const)
     : undefined;
 
 export const IS_TENDERLY_FORK = !!tenderlyForkChain;
@@ -40,7 +40,7 @@ export async function tenderlySetBalance({
   client: UsePublicClientReturnType<typeof wagmiConfig>;
   params: TSetBalanceParams;
 }) {
-  return client.request<{
+  return client!.request<{
     method: "tenderly_setBalance";
     Parameters: TSetBalanceParams;
     ReturnType: Hex;
@@ -57,7 +57,7 @@ export async function tenderlySetErc20Balance({
   client: UsePublicClientReturnType<typeof wagmiConfig>;
   params: TSetErc20BalanceParams;
 }) {
-  return client.request<{
+  return client!.request<{
     method: "tenderly_setErc20Balance";
     Parameters: TSetErc20BalanceParams;
     ReturnType: Hex;

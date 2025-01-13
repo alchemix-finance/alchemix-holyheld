@@ -1,5 +1,5 @@
 import { createConfig, http } from "wagmi";
-import { createClient, fallback } from "viem";
+import { Chain, createClient, fallback } from "viem";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import {
   injectedWallet,
@@ -39,20 +39,24 @@ const connectors = connectorsForWallets(
   },
 );
 
+const typedChains = chains as [Chain, ...Chain[]];
+
+
 export const wagmiConfig = createConfig({
   connectors,
-  chains: tenderlyForkChain ? [tenderlyForkChain] : chains,
-  client({ chain }) {
-    return createClient({
-      chain,
-      transport: fallback(
-        chain.rpcUrls.default.http.map((rpcUrl) => http(rpcUrl)),
-      ),
-      batch: {
-        multicall: true,
-      },
-    });
-  },
+  chains: tenderlyForkChain
+    ? ([tenderlyForkChain] as [Chain, ...Chain[]])
+    : typedChains, client({ chain }) {
+      return createClient({
+        chain,
+        transport: fallback(
+          chain.rpcUrls.default.http.map((rpcUrl) => http(rpcUrl)),
+        ),
+        batch: {
+          multicall: true,
+        },
+      });
+    },
 });
 
 // Type des chaînes supportées

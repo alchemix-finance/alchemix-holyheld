@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
-import { formatUnits, parseUnits } from 'ethers';
+import { parseUnits } from 'ethers';
 import { erc20Abi } from 'viem';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { useChain } from './useChain';
 import { useAlchemixDeposit } from './useAlchemixLoan';
 import { useMintAl } from './UseMintAlETH';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
-import { useMaxAmount } from './useMaxAmount';
 import { VAULTS } from '@/lib/queries/useVaults';
 import { CONTRACTS } from '@/lib/wagmi/chains';
 import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES } from "@/lib/config/synths";
@@ -15,6 +14,7 @@ import type { SynthAsset } from "@/lib/config/synths";
 type SupportedChainId = keyof typeof CONTRACTS;
 
 interface BorrowResult {
+    status: string;
     mintedAmount: string;
     synthType: SynthAsset;
     transactionHash: string;
@@ -31,9 +31,7 @@ export const useBorrow = () => {
 
     const { deposit } = useAlchemixDeposit();
     const { mint } = useMintAl();
-    const { data: alchemists, error: alchemistsError } = useAlchemists();
-    const { calculateMaxAmount } = useMaxAmount();
-
+    const { data: alchemists } = useAlchemists();
     // Mapping des assets
     const synthMapping: Record<string, string> = {
         USDC: "alUSD",
@@ -61,6 +59,8 @@ export const useBorrow = () => {
             args: [userAddress],
         }) as bigint;
 
+        console.log('Balance:', balance);
+
         if (balance < amount) {
             throw new Error(`Insufficient ${asset} balance`);
         }
@@ -73,6 +73,10 @@ export const useBorrow = () => {
         amount: bigint,
         userAddress: `0x${string}`
     ) => {
+        if (!publicClient || !walletClient) {
+            throw new Error('Clients not initialized');
+        }
+
         const allowance = await publicClient.readContract({
             address: tokenAddress as `0x${string}`,
             abi: erc20Abi,
@@ -105,7 +109,6 @@ export const useBorrow = () => {
             throw new Error(`Unsupported chain ID: ${chainId}`);
         }
 
-        const typedChainId = chainId as keyof typeof CONTRACTS;
 
         if (assetUpper === 'WETH' || assetUpper === 'ETH') {
             const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
@@ -147,18 +150,43 @@ export const useBorrow = () => {
         setError(null);
 
         try {
-            // Validation de base
             if (!address || !walletClient || !chain || !publicClient) {
-                throw new Error('Please connect your wallet and select a chain.');
+                throw new Error('Please connect your wallet and ensure all clients are initialized.');
             }
 
             validateInputs(depositAsset, depositAmount, selectedStrategy);
 
+            // Log détaillé des données avant la recherche
+            console.log('Current state:', {
+                depositAsset,
+                uppercaseAsset: depositAsset.toUpperCase(),
+                expectedSynthType: synthMapping[depositAsset.toUpperCase()],
+                alchemists: alchemists?.map(al => ({
+                    synthType: al.synthType,
+                    address: al.address
+                })),
+                chainId: chain.id
+            });
+
             const mappedSynthType = synthMapping[depositAsset.toUpperCase()] || depositAsset.toUpperCase();
-            const alchemist = alchemists?.find((al) => al.synthType === mappedSynthType);
+            console.log('Looking for alchemist with synthType:', mappedSynthType);
+            const alchemist = alchemists?.find((al) => {
+                console.log('Comparing:', {
+                    alchemistType: al.synthType,
+                    mappedType: mappedSynthType,
+                    matches: al.synthType === mappedSynthType
+                });
+                return al.synthType === mappedSynthType;
+            });
+
 
             if (!alchemist) {
-                throw new Error(`No alchemist found for asset: ${depositAsset}`);
+                console.error('Alchemist not found:', {
+                    depositAsset,
+                    mappedSynthType,
+                    availableSynthTypes: alchemists?.map(al => al.synthType)
+                });
+                throw new Error(`No alchemist found for asset: ${depositAsset} (mapped to ${mappedSynthType})`);
             }
 
             const chainId = chain.id as SupportedChainId;
@@ -203,6 +231,7 @@ export const useBorrow = () => {
                 if (!mintResult) throw new Error(`${synthType} minting failed`);
 
                 return {
+                    status,
                     mintedAmount: mintResult.mintedAmount,
                     synthType,
                     transactionHash: mintResult.transactionHash
@@ -261,6 +290,7 @@ export const useBorrow = () => {
                 if (!mintResult) throw new Error(`${synthType} minting failed.`);
 
                 return {
+                    status,
                     mintedAmount: mintResult.mintedAmount,
                     synthType,
                     transactionHash: mintResult.transactionHash

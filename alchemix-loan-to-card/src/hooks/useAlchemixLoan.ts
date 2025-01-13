@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { useWriteContract, useAccount, usePublicClient } from 'wagmi';
 import { alchemistV2Abi } from '../abi/alchemistV2';
-
 import { parseEther, parseUnits } from 'viem';
 import { useChain } from '../../src/hooks/useChain';
 import { VAULTS } from '../lib/queries/useVaults';
-import { arbitrum, mainnet, optimism } from 'viem/chains';
+import { arbitrum, fantom, mainnet, optimism } from 'viem/chains';
 import { wethGatewayAbi } from '../abi/wethGateway';
 
-type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum.id;
+export const DEPOSIT_ASSETS = ['ETH', 'WETH', 'USDC', 'USDT', 'DAI'] as const;
+export type DepositAsset = typeof DEPOSIT_ASSETS[number];
+
+
+type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum.id | typeof fantom.id;
 
 const ALCHEMIST_ADDRESSES = {
   [mainnet.id]: {
@@ -23,6 +26,10 @@ const ALCHEMIST_ADDRESSES = {
     alETH: "0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c" as `0x${string}`,
     alUSD: "0x10294d57A419C8eb78C648372c5bAA27fD1484af" as `0x${string}`
   },
+  [fantom.id]: {
+    alETH: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+    alUSD: "0x0000000000000000000000000000000000000000" as `0x${string}`
+  }
 } as const;
 
 export const useAlchemixDeposit = () => {
@@ -58,21 +65,6 @@ export const useAlchemixDeposit = () => {
         throw new Error(`No vault found for strategy ${selectedStrategy} on chain ${chainId}`);
       }
 
-
-      // Utiliser yieldTokenOverride uniquement sur mainnet
-      const actualStrategy = chainId === mainnet.id
-        ? (vaultInfo.yieldTokenOverride || selectedStrategy)
-        : selectedStrategy;
-
-
-      // Vérifier que le depositAsset correspond bien au underlyingSymbol de la vault
-      const isValidAsset =
-        vaultInfo.underlyingSymbol === depositAsset ||
-        (depositAsset === 'ETH' && vaultInfo.underlyingSymbol === 'WETH' && vaultInfo.wethGateway);
-
-      if (!isValidAsset) {
-        throw new Error(`Invalid deposit asset. Expected ${vaultInfo.underlyingSymbol}, got ${depositAsset}`);
-      }
 
       // Récupérer l'adresse appropriée
       const synthType = vaultInfo.synthAssetType;
@@ -113,13 +105,13 @@ export const useAlchemixDeposit = () => {
           functionName: 'depositUnderlying',
           args: [
             alchemistAddress,
-            actualStrategy,
+            selectedStrategy,
             amountInWei,
             userAddress,
             minimumAmountOut
           ],
           value: amountInWei,
-          gas: 950000n,
+          gas: 1050000n,
         });
       } else {
         console.log('Using standard deposit:', {
@@ -133,7 +125,7 @@ export const useAlchemixDeposit = () => {
           abi: alchemistV2Abi,
           functionName: 'depositUnderlying',
           args: [selectedStrategy, amountInWei, recipient, minimumAmountOut],
-          gas: 950000n,
+          gas: 1050000n,
         });
       }
 

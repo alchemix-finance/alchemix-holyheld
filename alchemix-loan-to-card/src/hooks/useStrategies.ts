@@ -2,12 +2,6 @@
 import { useMemo } from 'react';
 import { VAULTS } from '../lib/queries/useVaults';
 
-type Strategy = {
-  address: string;
-  label: string;
-  image: string;
-  yieldSymbol: string;
-};
 
 export const useStrategies = (chainId: number | undefined, depositAsset: string) => {
   const availableStrategies = useMemo(() => {
@@ -17,7 +11,7 @@ export const useStrategies = (chainId: number | undefined, depositAsset: string)
 
     if (depositAsset === 'ETH') {
       return Object.entries(vaults)
-        .filter(([_, vault]) => 
+        .filter(([_, vault]) =>
           vault.underlyingSymbol === 'WETH' && vault.wethGateway
         )
         .map(([address, vault]) => ({
