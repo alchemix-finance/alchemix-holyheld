@@ -4,9 +4,9 @@ import { WagmiConfig, createConfig, http } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { optimism, arbitrum } from 'wagmi/chains';
 import {
+  darkTheme,
   RainbowKitProvider,
-  getDefaultWallets,
-  connectorsForWallets,
+
 } from '@rainbow-me/rainbowkit';
 import App from './App';
 import '@rainbow-me/rainbowkit/styles.css';
@@ -31,24 +31,36 @@ import '@rainbow-me/rainbowkit/styles.css';
   testnet: true
 }; */
 
-const projectId = import.meta.env.VITE_HOLYHELD_SDK_API_KEY;
-const appName = 'Alchemix loan to card';
+const projectId = import.meta.env.VITE_WC_PROJECT_ID;
+if (!projectId) {
+  throw new Error('Missing VITE_WC_PROJECT_ID environment variable');
+}
+
 const chains = [optimism] as const;
 
 // Configuration des wallets
-const { wallets } = getDefaultWallets({
+/* const { wallets } = getDefaultWallets({
   appName,
   projectId,
+  chains,
 });
 
-const connectors = connectorsForWallets(wallets, {
+const connectors = connectorsForWallets([
+  ...wallets
+], {
   projectId,
   appName,
-});
+  initialChain: chains[0],
+  metadata: {
+    name: appName,
+    description: 'Alchemix loan to card application',
+    url: window.location.origin,
+    icons: []
+  }
+}); */
 
 // Configuration Wagmi
 const config = createConfig({
-  connectors,
   chains,
   transports: {
     //[mainnet.id]: http(),
@@ -66,7 +78,9 @@ createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <WagmiConfig config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        <RainbowKitProvider
+          theme={darkTheme()}
+          showRecentTransactions={true}>
           <App />
         </RainbowKitProvider>
       </QueryClientProvider>

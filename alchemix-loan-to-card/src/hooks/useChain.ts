@@ -12,8 +12,8 @@ const defaultChain = tenderlyForkChain ?? mainnet;
  * If the connected chain is unsupported, returns the default chain.
  * @returns The currently connected chain or the default chain if unsupported.
  */
-export const useChain = (): Chain => {
-  const { chain } = useAccount<typeof wagmiConfig>(); // Retrieve the connected chain
+export const useChain = () => {
+  const { chain } = useAccount(); // Retrieve the connected chain
   const isUnsupported = useChainUnsupported();
 
   return useMemo(() => {
@@ -27,7 +27,7 @@ export const useChain = (): Chain => {
  * @returns `true` if the connected chain is unsupported, otherwise `false`.
  */
 export const useChainUnsupported = () => {
-  const { chain } = useAccount<typeof wagmiConfig>(); // Retrieve the connected chain
+  const { chain } = useAccount(); // Retrieve the connected chain
 
   return useMemo(() => {
     // Check if the connected chain is in the supported chains list

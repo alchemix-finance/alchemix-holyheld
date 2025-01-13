@@ -11,6 +11,7 @@ import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
 import { useHolyheldSDK } from './hooks/useHolyheld';
 import { useBorrow } from './hooks/useBorrow';
+import { useAlchemistPosition } from './hooks/useAlchemistPosition';
 import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
 import Select from 'react-select';
@@ -40,7 +41,8 @@ const App: React.FC = () => {
   const [_isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
   const { borrow, isLoading: isBorrowing } = useBorrow();
-  const [depositAsset, setDepositAsset] = useState<DepositAsset | ''>('');
+  const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
+  const position = useAlchemistPosition(depositAsset);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [txDetails, setTxDetails] = useState({
@@ -842,23 +844,26 @@ const App: React.FC = () => {
   const openConfirmationModal = () => {
     // Construire l'objet de détails à afficher dans le pop-up
     const deposit = parseFloat(depositAmount || '0');
-    
-    // Only calculate earnings for topup mode
     const txDetails = {
       type: mode === 'topup' ? 'Top-up' : 'Borrow',
       amount: depositAmount,
       token: depositAsset || '',
-      ...(mode === 'topup' && {
-        collateralAmount: depositAmount,
-        depositAsset: depositAsset || '',
-        apr,
-        estimatedEarnings: {
+      collateralAmount: mode === 'topup' ? depositAmount : '',
+      depositAsset: depositAsset || '',
+      apr: mode === 'topup' ? apr : 0,
+      estimatedEarnings: mode === 'topup'
+        ? {
           daily: calculateEstimatedEarnings(deposit, apr, 1).toFixed(8),
           weekly: calculateEstimatedEarnings(deposit, apr, 7).toFixed(8),
           monthly: calculateEstimatedEarnings(deposit, apr, 30).toFixed(8),
           yearly: calculateEstimatedEarnings(deposit, apr, 365).toFixed(8)
         }
-      }),
+        : {
+          daily: '0.00',
+          weekly: '0.00',
+          monthly: '0.00',
+          yearly: '0.00'
+        },
       expectedDebt,
       loanAsset
     };
@@ -914,6 +919,17 @@ const App: React.FC = () => {
             </header>
 
             <main className="main-content">
+              {/* Current Position */}
+              {position && !position.isLoading && (
+                <div className="card">
+                  <h3>Your Position</h3>
+                  <div className="position-details">
+                    {/* <p>Collateral: {position.collateral.amount} {position.collateral.symbol}</p> */}
+                    <p>Debt: {parseFloat(position.debt.amount).toFixed(5)} {position.debt.symbol}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Mode Selection */}
               <div className="card">
                 <div className="mode-selection" style={{
