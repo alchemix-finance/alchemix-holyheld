@@ -17,7 +17,7 @@ import Select from 'react-select';
 import { Network } from '@holyheld/sdk';
 import { useAlchemixDeposit, DepositAsset, DEPOSIT_ASSETS } from './hooks/useAlchemixLoan';
 import { useMintAl } from './hooks/UseMintAlETH';
-import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES, SYNTH_ASSETS_METADATA } from "@/lib/config/synths";
+import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES } from "@/lib/config/synths";
 import type { SynthAsset } from "@/lib/config/synths";
 import { CONTRACTS } from './lib/wagmi/chains';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
@@ -27,7 +27,7 @@ import MessageDisplay from './components/MessageDisplay';
 import { useMessages } from './context/MessageContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { showTransactionToast, toastConfig, warn, withToast } from './utils/toast';
+import { toastConfig, warn, withToast } from './utils/toast';
 
 const App: React.FC = () => {
   const [depositAmount, setDepositAmount] = useState<string>('');
@@ -35,13 +35,11 @@ const App: React.FC = () => {
   const [loanAsset, setLoanAsset] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [balance, setBalance] = useState<number>(0);
-  const [eurAmount, setEurAmount] = useState<string>('');
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
-  const [isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
+  const [_isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
-  const { borrow, isLoading: isBorrowing, error: borrowError } = useBorrow();
+  const { borrow, isLoading: isBorrowing } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | ''>('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,8 +72,8 @@ const App: React.FC = () => {
   const [apr, setApr] = useState<number>(0);
 
   const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
-  const { deposit, isLoading: isDepositLoading, error: depositError } = useAlchemixDeposit();
-  const { mint, isLoading: isMinting, error: mintError } = useMintAl();
+  const { deposit } = useAlchemixDeposit();
+  const { mint } = useMintAl();
   const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists(); const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
     address,
     chain?.id,
@@ -119,7 +117,7 @@ const App: React.FC = () => {
       // Affichez un message indiquant que la transaction est en attente
       const toastId = toast.info('Transaction pending...', {
         ...toastConfig,
-        icon: '⏳',
+        icon: < span aria-label="error" >⏳</span>,
         autoClose: false, // Garde le toast ouvert jusqu'à mise à jour
       });
 
@@ -135,7 +133,7 @@ const App: React.FC = () => {
           render: 'Borrow transaction failed on-chain.',
           type: 'error',
           autoClose: 5000,
-          icon: '❌',
+          icon: <span aria-label="error">❌</span>,
         });
         throw new Error('Borrow transaction failed on-chain.');
       }
@@ -158,7 +156,7 @@ const App: React.FC = () => {
       // Afficher un message d'erreur simplifié
       toast.error(errorMessage, {
         ...warn,
-        icon: '❌',
+        icon: <span aria-label="error">❌</span>,
       });
     }
   };
@@ -199,9 +197,9 @@ const App: React.FC = () => {
       setCollateralAmount(deposit.toFixed(4));
 
       // Calculate estimated earnings for different time periods
-      const dailyEarnings = calculateEstimatedEarnings(deposit, aprValue, 1);
-      const weeklyEarnings = calculateEstimatedEarnings(deposit, aprValue, 7);
-      const monthlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 30);
+      /*       const dailyEarnings = calculateEstimatedEarnings(deposit, aprValue, 1);
+            const weeklyEarnings = calculateEstimatedEarnings(deposit, aprValue, 7);
+            const monthlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 30); */
       const yearlyEarnings = calculateEstimatedEarnings(deposit, aprValue, 365);
 
       // Set earnings to yearly by default
@@ -254,7 +252,7 @@ const App: React.FC = () => {
   ) => {
     const supportedChainId = chainId as SupportedChainId;
 
-    const getYield = async (vault: any, underlying?: any) => {
+    const getYield = async (vault: any, _underlying?: any) => {
       if (vault.api?.apr) {
         try {
           // Pour WETH/ETH
@@ -273,7 +271,7 @@ const App: React.FC = () => {
           const tokenAddress = CONTRACTS[supportedChainId]?.TOKENS[tokenKey]?.token;
           if (!tokenAddress) toast.error(`No token address found for ${tokenKey}`, {
             ...warn,
-            icon: '❌',
+            icon: <span aria-label="error">❌</span>,
           });
 
           const apr = await vault.api.apr({
@@ -284,7 +282,7 @@ const App: React.FC = () => {
         } catch (err) {
           toast.error(`Error fetching APR for asset ${asset}:`, {
             ...warn,
-            icon: '❌',
+            icon: <span aria-label="error">❌</span>,
           });
           return 'N/A';
         }
@@ -346,7 +344,7 @@ const App: React.FC = () => {
     } catch (err) {
       toast.error('Please connect your wallet and select a valid chain.', {
         ...warn,
-        icon: '🔗',
+        icon: <span aria-label="link">🔗</span>,
       });
 
       setError('Failed to validate holytag.');
@@ -380,8 +378,6 @@ const App: React.FC = () => {
       toast.error(`Unsupported chain ID: ${chainId}`);
     }
 
-    // Cast explicite du chainId
-    const typedChainId = chainId as keyof typeof CONTRACTS;
 
     if (assetUpper === 'WETH' || assetUpper === 'ETH') {
       const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
@@ -419,7 +415,7 @@ const App: React.FC = () => {
 
     const transactionId = toast.info('Top-up process started...', {
       ...toastConfig,
-      icon: '🛠️',
+      icon: <span aria-label="tools">🛠️</span>,
       autoClose: false, // Keep the toast visible until updated
     });
 
@@ -429,7 +425,7 @@ const App: React.FC = () => {
       if (!address || !walletClient || !chain || !publicClient) {
         toast.error('Please connect your wallet and select a valid chain.', {
           ...warn,
-          icon: '🔗',
+          icon: <span aria-label="link">🔗</span>,
         });
         return;
       }
@@ -437,7 +433,7 @@ const App: React.FC = () => {
       toast.update(transactionId, {
         render: 'Validating input data...',
         type: 'info',
-        icon: '🔍',
+        icon: <span aria-label="search">🔍</span>,
       });
 
       if (!depositAmount || parseFloat(depositAmount) <= 0) {
@@ -452,7 +448,7 @@ const App: React.FC = () => {
       toast.update(transactionId, {
         render: 'Fetching server settings...',
         type: 'info',
-        icon: '📡',
+        icon: <span aria-label="antenna">📡</span>,
       });
 
       if (alchemistsLoading) {
@@ -508,7 +504,7 @@ const App: React.FC = () => {
       toast.update(transactionId, {
         render: 'Validating holytag...',
         ...toastConfig,
-        icon: '✅',
+        icon: <span aria-label="success">✅</span>,
       });
 
       // console.log('Validating holytag...');
@@ -516,7 +512,7 @@ const App: React.FC = () => {
       if (!isValidTag) {
         toast.error('The Holytag Is not valid', {
           ...warn,
-          icon: '❌',
+          icon: <span aria-label="error">❌</span>,
         });
         return;
       }
@@ -525,7 +521,7 @@ const App: React.FC = () => {
       toast.update(transactionId, {
         render: 'Processing transaction...',
         type: 'info',
-        icon: '💸',
+        icon: <span aria-label="money">💸</span>,
       });
 
       type SupportedChainId = keyof typeof CONTRACTS;
@@ -605,7 +601,7 @@ const App: React.FC = () => {
         const mappedNetwork = mapNetworkName(chain.name);
 
         // Conversion et Top-up
-        const { EURAmount, transferData } = await convertToEUR(
+        const { transferData } = await convertToEUR(
           synthTokenAddress,
           decimals,
           formattedAmount,
@@ -715,7 +711,7 @@ const App: React.FC = () => {
         const mintAmountFloat = depositFloat / 2;
         const mintAmount = mintAmountFloat.toString();
 
-        const { type: synthType, address: synthAddress } = getSynthToken(depositAsset);
+        const { type: synthType } = getSynthToken(depositAsset);
 
         console.log('Minting synthetic token...', { mintingAmount: mintAmount });
         const mintResult = await mint(
@@ -773,7 +769,7 @@ const App: React.FC = () => {
         const alAmount = formatUnits(BigInt(mintResult.mintedAmount), decimals);
         //  console.log("alAmount with correct decimals:", alAmount);
 
-        const { EURAmount, transferData } = await convertToEUR(
+        const { transferData } = await convertToEUR(
           synthTokenAddress,
           decimals,
           formattedAmount,
@@ -792,16 +788,6 @@ const App: React.FC = () => {
                 );
               } */
 
-
-
-
-
-        const tokenBalance = await publicClient.readContract({
-          address: synthTokenAddress as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [address], // Adresse de l'utilisateur
-        }) as bigint;
 
         //  console.log("Token balance:", tokenBalance.toString());
         //  console.log("alAmount in Wei:", parseUnits(alAmount, decimals).toString());

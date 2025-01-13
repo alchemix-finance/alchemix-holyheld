@@ -9,11 +9,7 @@ import { wethGatewayAbi } from '../abi/wethGateway';
 
 export const DEPOSIT_ASSETS = ['ETH', 'WETH', 'USDC', 'USDT', 'DAI'] as const;
 export type DepositAsset = typeof DEPOSIT_ASSETS[number];
-interface TransactionResult {
-  transactionHash: `0x${string}`;
-  sharesIssued: string;
-  depositReceipt: any;
-}
+
 
 type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum.id | typeof fantom.id;
 

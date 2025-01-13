@@ -1,23 +1,43 @@
 {
   "compilerOptions": {
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    // Environment and Module Settings
     "target": "ES2022",
-    "module": "esnext", // Try esnext for broader compatibility
-    "useDefineForClassFields": true,
+    "module": "ESNext",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "moduleResolution": "node", // Ensure resolution aligns with module system
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "strict": true,
+
+    // Module Resolution
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"]
-    }
+    },
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+
+    // Emit Configuration
+    "noEmit": true,
+    "useDefineForClassFields": true,
+
+    // Strict Type Checking
+    "strict": true,
+    "skipLibCheck": true,
+
+    // Import/Export Behavior
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // Additional Type Checking
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
   },
+  "exclude": [
+    "**/node_modules/react-native/*",
+    "**/node_modules/@types/react-native/*"
+  ],
   "include": ["src", "src/global.d.ts"],
   "references": [
     { "path": "./tsconfig.node.json" }

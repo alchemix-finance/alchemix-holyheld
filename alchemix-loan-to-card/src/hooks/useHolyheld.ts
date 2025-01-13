@@ -31,7 +31,7 @@ interface UseHolyheldSDKReturn {
 export const useHolyheldSDK = (): UseHolyheldSDKReturn => {
   const [sdk, setSDK] = useState<HolyheldSDK | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

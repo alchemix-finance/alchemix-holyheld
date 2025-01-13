@@ -35,5 +35,5 @@ export const createMockProvider = () => ({
 
 export const createMockSigner = () => ({
   getAddress: async () => mockWalletAddress,
-  signMessage: async (message: string) => '0x123...',
+  signMessage: async () => '0x123...',
 });

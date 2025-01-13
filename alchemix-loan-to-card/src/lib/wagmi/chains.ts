@@ -50,7 +50,6 @@ export const CONTRACTS = {
 
 
 
-type SupportedChains = keyof typeof CONTRACTS;
 
 // Définir les IDs des chaînes supportées
 type SupportedChainId = 1 | 10 | 42161;

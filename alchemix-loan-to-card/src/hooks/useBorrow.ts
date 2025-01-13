@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
-import { formatUnits, parseUnits } from 'ethers';
+import { parseUnits } from 'ethers';
 import { erc20Abi } from 'viem';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { useChain } from './useChain';
 import { useAlchemixDeposit } from './useAlchemixLoan';
 import { useMintAl } from './UseMintAlETH';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
-import { useMaxAmount } from './useMaxAmount';
 import { VAULTS } from '@/lib/queries/useVaults';
 import { CONTRACTS } from '@/lib/wagmi/chains';
 import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES } from "@/lib/config/synths";
@@ -32,9 +31,7 @@ export const useBorrow = () => {
 
     const { deposit } = useAlchemixDeposit();
     const { mint } = useMintAl();
-    const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists();
-    const { calculateMaxAmount } = useMaxAmount();
-
+    const { data: alchemists } = useAlchemists();
     // Mapping des assets
     const synthMapping: Record<string, string> = {
         USDC: "alUSD",
@@ -112,7 +109,6 @@ export const useBorrow = () => {
             throw new Error(`Unsupported chain ID: ${chainId}`);
         }
 
-        const typedChainId = chainId as keyof typeof CONTRACTS;
 
         if (assetUpper === 'WETH' || assetUpper === 'ETH') {
             const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];

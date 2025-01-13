@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useAccount, useWalletClient, usePublicClient, WagmiConfig } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { useHolyheldSDK } from '../hooks/useHolyheld';
 import { useBorrow } from '../hooks/useBorrow';
 import { useAlchemixDeposit } from '../hooks/useAlchemixLoan';
 import { useTokenBalance } from '../hooks/useTokenBalance';
 import { CONTRACTS } from '../lib/wagmi/chains';
-import { Network } from '@holyheld/sdk'; // Import the Network enum
-import { ReactNode } from 'react';
 
 // Mock external dependencies
 vi.mock('wagmi', () => ({

@@ -55,23 +55,28 @@ type ApiProvider =
   | "frax"
   | "rocket"
   | "vesper"
-  | "lido";
+  | "lido"
+  | "ganache";
 
 export interface VaultMetadata {
+  tokenAdapter?: any;
+  alchemist?: any;
+  underlyingToken?: any;
+  yieldTokenParams?: any;
   label: string;
   synthAssetType: SynthAsset;
   underlyingSymbol: string;
   yieldSymbol: string;
-  image: string; 
+  image?: string;
   messages: VaultMessage[];
   api: {
     apr: AprFn;
     yieldType: string;
     provider: ApiProvider;
-    bonus: BonusFn;
+    bonus?: BonusFn;
   };
   disabledDepositTokens: Address[];
-  
+
   wethGateway?: Address;
   gateway?: Address;
   migrator?: Address;

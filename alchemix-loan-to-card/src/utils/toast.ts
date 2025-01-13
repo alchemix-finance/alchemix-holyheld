@@ -43,20 +43,17 @@ export const showTransactionToast = {
     toast.info(message, {
       ...toastConfig,
       autoClose: false, // Keep the toast visible until updated
-      icon: '🔄',
     }),
 
   success: (message: string = 'Transaction successful!') =>
     toast.success(message, {
       ...toastConfig,
-      icon: '✅',
     }),
 
   error: (error: Error | string) => {
     const message = error instanceof Error ? error.message : error;
     return toast.error(`Transaction failed: ${message}`, {
       ...toastConfig,
-      icon: '❌',
     });
   },
 };
@@ -84,7 +81,6 @@ export const withToast = async <T,>(
       render: success,
       type: 'success',
       autoClose: 5000,
-      icon: '✅',
     });
 
     return result;
@@ -96,7 +92,6 @@ export const withToast = async <T,>(
       render: `${error}: ${message}`,
       type: 'error',
       autoClose: 5000,
-      icon: '❌',
     });
 
     throw err; // Re-throw the error for further handling

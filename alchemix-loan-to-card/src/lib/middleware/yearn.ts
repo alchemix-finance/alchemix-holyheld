@@ -1,15 +1,8 @@
 import { AprFn } from "@/lib/config/metadataTypes";
-import { optimism, mainnet } from "viem/chains";
 
-import { SocksProxyAgent } from 'socks-proxy-agent';
 
 // Configuration du proxy depuis les variables d'environnement Vite
-const PROXY_CONFIG = {
-  host: import.meta.env.VITE_PROXY_HOST,
-  port: import.meta.env.VITE_PROXY_PORT,
-  username: import.meta.env.VITE_PROXY_USERNAME,
-  password: import.meta.env.VITE_PROXY_PASSWORD,
-};
+
 
 export const getYearnApy: AprFn = async ({
   chainId,
