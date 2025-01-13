@@ -840,30 +840,30 @@ const App: React.FC = () => {
   };
 
   const openConfirmationModal = () => {
-    // Construire l’objet de détails à afficher dans le pop-up
-    // (vous pouvez ajuster selon vos besoins)
+    // Construire l'objet de détails à afficher dans le pop-up
     const deposit = parseFloat(depositAmount || '0');
-    const dailyEarnings = calculateEstimatedEarnings(deposit, apr, 1).toFixed(8);
-    const weeklyEarnings = calculateEstimatedEarnings(deposit, apr, 7).toFixed(8);
-    const monthlyEarnings = calculateEstimatedEarnings(deposit, apr, 30).toFixed(8);
-    const yearlyEarnings = calculateEstimatedEarnings(deposit, apr, 365).toFixed(8);
-
-    setTxDetails({
+    
+    // Only calculate earnings for topup mode
+    const txDetails = {
       type: mode === 'topup' ? 'Top-up' : 'Borrow',
       amount: depositAmount,
       token: depositAsset || '',
-      collateralAmount: depositAmount,
-      depositAsset: depositAsset || '',
-      apr,
-      estimatedEarnings: {
-        daily: dailyEarnings,
-        weekly: weeklyEarnings,
-        monthly: monthlyEarnings,
-        yearly: yearlyEarnings
-      },
+      ...(mode === 'topup' && {
+        collateralAmount: depositAmount,
+        depositAsset: depositAsset || '',
+        apr,
+        estimatedEarnings: {
+          daily: calculateEstimatedEarnings(deposit, apr, 1).toFixed(8),
+          weekly: calculateEstimatedEarnings(deposit, apr, 7).toFixed(8),
+          monthly: calculateEstimatedEarnings(deposit, apr, 30).toFixed(8),
+          yearly: calculateEstimatedEarnings(deposit, apr, 365).toFixed(8)
+        }
+      }),
       expectedDebt,
-      loanAsset: loanAsset
-    });
+      loanAsset
+    };
+
+    setTxDetails(txDetails);
     setIsModalOpen(true);
   };
 
@@ -1124,41 +1124,60 @@ const App: React.FC = () => {
           </div>
           <div className="summary-section" style={{ width: '300px' }}>
             {/* Summary Section */}
-            <div className="card-summary-section">
-              <h2>Summary</h2>
-              {selectedStrategy ? (
-                <>
-                  <p>
-                    <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
-                  </p>
-                  <div className="earnings-breakdown">
+            {mode === 'topup' && (
+              <div className="card-summary-section">
+                <h2>Summary</h2>
+                {selectedStrategy ? (
+                  <>
                     <p>
-                      <strong>Estimated Earnings (APR: {apr}%):</strong>
+                      <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
+                    </p>
+                    <div className="earnings-breakdown">
+                      <p>
+                        <strong>Estimated Earnings (APR: {apr}%):</strong>
+                      </p>
+                      <p>
+                        Daily: {parseFloat(depositAmount || '0') > 0 ?
+                          calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
+                      </p>
+                      <p>
+                        Weekly: {parseFloat(depositAmount || '0') > 0 ?
+                          calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
+                      </p>
+                      <p>
+                        Monthly: {parseFloat(depositAmount || '0') > 0 ?
+                          calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
+                      </p>
+                      <p>
+                        Yearly: {estimatedEarnings} {depositAsset}
+                      </p>
+                    </div>
+                    <p>
+                      <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
+                    </p>
+                  </>
+                ) : (
+                  <p>Please select a strategy to see the summary.</p>
+                )}
+              </div>
+            )}
+            {mode === 'borrowOnly' && (
+              <div className="card-summary-section">
+                <h2>Summary</h2>
+                {selectedStrategy ? (
+                  <>
+                    <p>
+                      <strong>Borrow Amount:</strong> {depositAmount} {depositAsset}
                     </p>
                     <p>
-                      Daily: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
+                      <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
                     </p>
-                    <p>
-                      Weekly: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Monthly: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Yearly: {estimatedEarnings} {depositAsset}
-                    </p>
-                  </div>
-                  <p>
-                    <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
-                  </p>
-                </>
-              ) : (
-                <p>Please select a strategy to see the summary.</p>
-              )}
-            </div>
+                  </>
+                ) : (
+                  <p>Please select a strategy to see the summary.</p>
+                )}
+              </div>
+            )}
           </div>
           <TransactionConfirmation
             isOpen={isModalOpen}
