@@ -11,6 +11,7 @@ import { useChain } from './hooks/useChain';
 import { VAULTS } from './lib/queries/useVaults';
 import { useHolyheldSDK } from './hooks/useHolyheld';
 import { useBorrow } from './hooks/useBorrow';
+import { useAlchemistPosition } from './hooks/useAlchemistPosition';
 import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
 import Select from 'react-select';
@@ -29,6 +30,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { toastConfig, warn, withToast } from './utils/toast';
 
+interface ErrorData { message: string; }
+
 const App: React.FC = () => {
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
@@ -40,7 +43,8 @@ const App: React.FC = () => {
   const [_isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
   const { borrow, isLoading: isBorrowing } = useBorrow();
-  const [depositAsset, setDepositAsset] = useState<DepositAsset | ''>('');
+  const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
+  const position = useAlchemistPosition(depositAsset);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [txDetails, setTxDetails] = useState({
@@ -114,13 +118,6 @@ const App: React.FC = () => {
         throw new Error('Transaction submission failed: No transaction hash returned.');
       }
 
-      // Affichez un message indiquant que la transaction est en attente
-      const toastId = toast.info('Transaction pending...', {
-        ...toastConfig,
-        icon: < span aria-label="error" >⏳</span>,
-        autoClose: false, // Garde le toast ouvert jusqu'à mise à jour
-      });
-
       // Attendez la confirmation de la transaction
       const txReceipt = await publicClient.waitForTransactionReceipt({
         hash: txResponse.transactionHash as `0x${string}`,
@@ -128,36 +125,16 @@ const App: React.FC = () => {
 
       // Vérifiez le statut de la transaction
       if (txReceipt.status !== 'success') {
-        // Mettez à jour le toast pour indiquer l'échec
-        toast.update(toastId, {
-          render: 'Borrow transaction failed on-chain.',
-          type: 'error',
-          autoClose: 5000,
-          icon: <span aria-label="error">❌</span>,
-        });
         throw new Error('Borrow transaction failed on-chain.');
       }
 
-      // Succès : Mettez à jour le toast pour indiquer le succès
-      ;
-    } catch (err) {
-      // Gérer les erreurs
-      let errorMessage = 'Unknown error';
-
+    } catch (err: unknown) {
       if (err instanceof Error) {
-        errorMessage = err.message.split(':')[0]; // Prendre la première partie avant les détails.
-        if (errorMessage.length > 100) {
-          errorMessage = `${errorMessage.slice(0, 100)}...`; // Tronquer si le message est trop long.
-        }
+        console.error('Error during borrow:', err.message);
+      } else {
+        console.error('An unknown error occurred during borrow');
       }
-
-      console.error('Error during borrow:', err);
-
-      // Afficher un message d'erreur simplifié
-      toast.error(errorMessage, {
-        ...warn,
-        icon: <span aria-label="error">❌</span>,
-      });
+      throw err; // Re-throw the error for the toast.promise to catch it
     }
   };
 
@@ -340,14 +317,36 @@ const App: React.FC = () => {
   const handleValidateHolytag = async () => {
     try {
       const isValid = await validateHolytag(holytag);
-      alert(isValid ? 'Holytag is valid!' : 'Holytag is not valid!');
-    } catch (err) {
-      toast.error('Please connect your wallet and select a valid chain.', {
-        ...warn,
-        icon: <span aria-label="link">🔗</span>,
-      });
-
-      setError('Failed to validate holytag.');
+      if (isValid) {
+        toast.success('Holytag is valid!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          ...toastConfig,
+        });
+      } else {
+        toast.error('Invalid Holytag', {
+          ...warn,
+          icon: <span aria-label="error">❌</span>,
+        });
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Error during holytag validation:', err.message);
+        toast.error(err.message, {
+          ...warn,
+          icon: <span aria-label="error">❌</span>,
+        });
+      } else {
+        console.error('An unknown error occurred during holytag validation');
+        toast.error('An unknown error occurred during holytag validation', {
+          ...warn,
+          icon: <span aria-label="error">❌</span>,
+        });
+      }
     }
   };
 
@@ -375,7 +374,7 @@ const App: React.FC = () => {
     const chainId = chain?.id;
 
     if (!chainId || !(chainId in CONTRACTS)) {
-      toast.error(`Unsupported chain ID: ${chainId}`);
+      throw new Error(`Unsupported chain ID: ${chainId}`);
     }
 
 
@@ -413,44 +412,26 @@ const App: React.FC = () => {
   const handleTopUp = async () => {
     console.log('Handle Top-Up initiated.');
 
-    const transactionId = toast.info('Top-up process started...', {
-      ...toastConfig,
-      icon: <span aria-label="tools">🛠️</span>,
-      autoClose: false, // Keep the toast visible until updated
-    });
-
     try {
       setIsModalOpen(false);
 
-      if (!address || !walletClient || !chain || !publicClient) {
-        toast.error('Please connect your wallet and select a valid chain.', {
-          ...warn,
-          icon: <span aria-label="link">🔗</span>,
-        });
-        return;
+      // Check if wallet is connected and chain is supported
+      if (!publicClient || !walletClient || !chain || !address) {
+        throw new Error('Please connect your wallet and select a valid chain.');
       }
 
-      toast.update(transactionId, {
-        render: 'Validating input data...',
-        type: 'info',
-        icon: <span aria-label="search">🔍</span>,
-      });
+      // Validate holytag first
+      const isValidTag = await validateHolytag(holytag);
+      if (!isValidTag) {
+        throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
+      }
 
       if (!depositAmount || parseFloat(depositAmount) <= 0) {
         throw new Error('Please enter a valid deposit amount.');
       }
-
       if (!depositAsset) {
         throw new Error('Please select a deposit asset.');
       }
-
-      // Simulate step-by-step progress
-      toast.update(transactionId, {
-        render: 'Fetching server settings...',
-        type: 'info',
-        icon: <span aria-label="antenna">📡</span>,
-      });
-
       if (alchemistsLoading) {
         throw new Error('Loading alchemists data...');
       }
@@ -501,29 +482,7 @@ const App: React.FC = () => {
         throw new Error('Top-up is currently disabled.');
       }
 
-      toast.update(transactionId, {
-        render: 'Validating holytag...',
-        ...toastConfig,
-        icon: <span aria-label="success">✅</span>,
-      });
-
-      // console.log('Validating holytag...');
-      const isValidTag = await validateHolytag(holytag);
-      if (!isValidTag) {
-        toast.error('The Holytag Is not valid', {
-          ...warn,
-          icon: <span aria-label="error">❌</span>,
-        });
-        return;
-      }
-
       // Proceed with the top-up process
-      toast.update(transactionId, {
-        render: 'Processing transaction...',
-        type: 'info',
-        icon: <span aria-label="money">💸</span>,
-      });
-
       type SupportedChainId = keyof typeof CONTRACTS;
 
       const chainId = chain.id as SupportedChainId;
@@ -540,15 +499,7 @@ const App: React.FC = () => {
           throw new Error('Selected strategy does not support ETH deposits')
         }
 
-        // Préparer le dépôt ETH
-        /*         console.log('Depositing ETH via gateway:', {
-                  strategy: selectedStrategy,
-                  amount: depositAmount,
-                  gateway: vault.wethGateway
-                }); */
-
         // Dépôt ETH avec valeur attachée
-        console.log('Depositing ETH to Alchemix...');
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
           depositAmount,
@@ -572,14 +523,13 @@ const App: React.FC = () => {
         const mintAmount = (parseFloat(depositAmount) / 2).toString();
         const { type: synthType } = getSynthToken(depositAsset);
 
-        console.log('Minting synthetic token...', { mintingAmount: mintAmount });
         const mintResult = await mint(
           mintAmount.toString(),
           address,
           synthType
         );
 
-        if (!mintResult) throw new Error(`${synthType} minting failed`);
+        if (!mintResult) throw new Error('Mint failed');
 
         const mintReceipt = await publicClient.waitForTransactionReceipt({
           hash: mintResult.transactionHash,
@@ -588,45 +538,6 @@ const App: React.FC = () => {
         if (mintReceipt.status !== 'success') {
           throw new Error('Minting transaction failed');
         }
-
-        // La suite du processus (conversion EUR et top-up) reste la même
-        const synthTokenAddress = SYNTH_ASSETS_ADDRESSES[chainId][synthType];
-        const decimals = await publicClient.readContract({
-          address: synthTokenAddress as `0x${string}`,
-          abi: erc20Abi,
-          functionName: 'decimals',
-        }) as number;
-
-        const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), decimals);
-        const mappedNetwork = mapNetworkName(chain.name);
-
-        // Conversion et Top-up
-        const { transferData } = await convertToEUR(
-          synthTokenAddress,
-          decimals,
-          formattedAmount,
-          mappedNetwork
-        );
-
-        await performTopUp(
-          publicClient,
-          walletClient,
-          address,
-          synthTokenAddress,
-          mappedNetwork,
-          formattedAmount,
-          transferData,
-          holytag,
-          true,
-          {
-            onHashGenerate: (hash) => console.log('Transaction Hash:', hash),
-            onStepChange: (step) => console.log('Current Step:', step),
-          }
-        );
-
-        console.log('Top-up completed successfully.');
-        //alert('Top-up successful!');
-
       } else {
         setIsModalOpen(false);
 
@@ -690,7 +601,6 @@ const App: React.FC = () => {
         }
 
         // Étape 3 : Dépôt
-        console.log('Depositing to Alchemix...');
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
           depositAmount,
@@ -704,6 +614,7 @@ const App: React.FC = () => {
           hash: depositResult.transactionHash,
         });
         console.log('Deposit confirmed:', depositReceipt);
+
         await new Promise(resolve => setTimeout(resolve, 15000));
 
         // Étape 4 : Mint
@@ -713,7 +624,6 @@ const App: React.FC = () => {
 
         const { type: synthType } = getSynthToken(depositAsset);
 
-        console.log('Minting synthetic token...', { mintingAmount: mintAmount });
         const mintResult = await mint(
           mintAmount.toString(),
           address as `0x${string}`,
@@ -726,6 +636,7 @@ const App: React.FC = () => {
           hash: mintResult.transactionHash,
         });
         console.log('Mint confirmed:', mintReceipt);
+
         await new Promise(resolve => setTimeout(resolve, 10000)); // 10 secondes de pause
 
         /*       // Étape 5 : Vérification du solde synthétique
@@ -797,7 +708,6 @@ const App: React.FC = () => {
               } */
 
         // Étape 7 : Top-Up
-        console.log('Executing top-up...');
         await performTopUp(
           publicClient,
           walletClient,
@@ -819,10 +729,13 @@ const App: React.FC = () => {
         // alert('Top-up successful!');
       }
     } catch (err: unknown) {
-      const errorMessage = (err as Error).message;
-      console.error(err);
-      //console.error('Error during top-up:', errorMessage);
-      setError(errorMessage);
+      if (err instanceof Error) {
+        console.error(err.message);
+      } else {
+        console.error('An unknown error occurred');
+      }
+
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -833,73 +746,109 @@ const App: React.FC = () => {
     try {
       const maxAmount = await calculateMaxAmount(address, chain.id, depositAsset);
       setDepositAmount(maxAmount);
-    } catch (err) {
-      console.error('Error setting max amount:', err);
-      setError(err instanceof Error ? err.message : 'Failed to set maximum amount')
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Error setting max amount:', err.message);
+      } else {
+        console.error('An unknown error occurred while setting max amount');
+      }
+
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     }
   };
 
   const openConfirmationModal = () => {
-    // Construire l’objet de détails à afficher dans le pop-up
-    // (vous pouvez ajuster selon vos besoins)
+    // Construire l'objet de détails à afficher dans le pop-up
     const deposit = parseFloat(depositAmount || '0');
-    const dailyEarnings = calculateEstimatedEarnings(deposit, apr, 1).toFixed(8);
-    const weeklyEarnings = calculateEstimatedEarnings(deposit, apr, 7).toFixed(8);
-    const monthlyEarnings = calculateEstimatedEarnings(deposit, apr, 30).toFixed(8);
-    const yearlyEarnings = calculateEstimatedEarnings(deposit, apr, 365).toFixed(8);
-
-    setTxDetails({
+    const txDetails = {
       type: mode === 'topup' ? 'Top-up' : 'Borrow',
       amount: depositAmount,
       token: depositAsset || '',
-      collateralAmount: depositAmount,
+      collateralAmount: mode === 'topup' ? depositAmount : '',
       depositAsset: depositAsset || '',
-      apr,
-      estimatedEarnings: {
-        daily: dailyEarnings,
-        weekly: weeklyEarnings,
-        monthly: monthlyEarnings,
-        yearly: yearlyEarnings
-      },
+      apr: mode === 'topup' ? apr : 0,
+      estimatedEarnings: mode === 'topup'
+        ? {
+          daily: calculateEstimatedEarnings(deposit, apr, 1).toFixed(8),
+          weekly: calculateEstimatedEarnings(deposit, apr, 7).toFixed(8),
+          monthly: calculateEstimatedEarnings(deposit, apr, 30).toFixed(8),
+          yearly: calculateEstimatedEarnings(deposit, apr, 365).toFixed(8)
+        }
+        : {
+          daily: '0.00',
+          weekly: '0.00',
+          monthly: '0.00',
+          yearly: '0.00'
+        },
       expectedDebt,
-      loanAsset: loanAsset
-    });
+      loanAsset
+    };
+
+    setTxDetails(txDetails);
     setIsModalOpen(true);
   };
 
   // -------------------------------------
   // Confirmation depuis le pop-up
   // -------------------------------------
-  const handleConfirmTransaction = async () => {
+  const handleSubmit = async () => {
     try {
-      await withToast(
-        (async () => {
-          if (mode === 'topup') {
-            await handleTopUp();
-          } else {
-            await handleBorrowOnly();
-          }
-
-          setIsModalOpen(false);
-        })(),
-        {
-          pending: `${mode === 'topup' ? 'Top-up' : 'Borrow'} transaction in progress...`,
-          success: `${mode === 'topup' ? 'Top-up' : 'Borrow'} completed successfully!`,
-          error: `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`,
+      // Validate holytag only in topup mode
+      if (mode === 'topup') {
+        const isValidTag = await validateHolytag(holytag);
+        if (!isValidTag) {
+          toast.error('Invalid Holytag. Please enter a valid holytag before proceeding.', {
+            ...warn,
+            icon: <span aria-label="error">❌</span>,
+          });
+          return;
         }
-      );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Transaction failed';
-      console.error('Error during transaction:', errorMessage);
-      setError(errorMessage);
-    } finally {
+      }
+
+      const promise = (async () => {
+        if (mode === 'topup') {
+          await handleTopUp();
+        } else {
+          await handleBorrowOnly();
+        }
+      })();
+
+      await toast.promise(promise, {
+        pending: {
+          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} transaction in progress...`,
+          ...toastConfig,
+        },
+        success: {
+          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} completed successfully!`,
+          ...toastConfig,
+        },
+        error: {
+          render({ data }) {
+            if (data instanceof Error) {
+              return data.message;
+            }
+            const errorData = data as ErrorData | null | undefined;
+            if (errorData?.message === 'Transaction cancelled') {
+              return 'Transaction cancelled';
+            }
+            return `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`;
+          },
+          ...toastConfig,
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error during transaction:', error);
+      } else {
+        console.error('An unknown error occurred during transaction');
+      }
     }
   };
 
 
 
   return (
-    <>
+    <div className="bg-alchemix">
       <ToastContainer />
       <MessageProvider>
         <div className="app-container" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -914,6 +863,16 @@ const App: React.FC = () => {
             </header>
 
             <main className="main-content">
+              {/* Current Position */}
+              {position && !position.isLoading && (
+                <div>
+
+                  <div className="position-details">
+                    {/* <p>Collateral: {position.collateral.amount} {position.collateral.symbol}</p> */}
+                  </div>
+                </div>
+              )}
+
               {/* Mode Selection */}
               <div className="card">
                 <div className="mode-selection" style={{
@@ -954,7 +913,7 @@ const App: React.FC = () => {
               {/* Holytag Section - Visible only in Top-Up mode */}
               {mode === 'topup' && (
                 <div className="card">
-                  <label htmlFor="holytag">Enter Holytag</label>
+                  <label htmlFor="holytag"></label>
                   <input
                     id="holytag"
                     type="text"
@@ -1093,14 +1052,14 @@ const App: React.FC = () => {
               {/* Loan Asset Display */}
               <div className="card">
                 <label htmlFor="loan-asset">Loan asset</label>
-                <select
+                <input
                   id="loan-asset"
-                  className="dropdown"
+                  type="text"
                   value={loanAsset}
-                  disabled
-                >
-                  <option value="">{loanAsset || "Select asset"}</option>
-                </select>
+                  readOnly
+                  placeholder="Enter loan asset"
+                  className="input-field"
+                />
               </div>
 
               {/* Action Button */}
@@ -1114,17 +1073,18 @@ const App: React.FC = () => {
                 >
                   {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
                 </Button>
-                {error && (
-                  <div className="error-message" style={{ color: 'red', marginTop: '10px' }}>
-                    {error}
-                  </div>
-                )}
               </div>
             </main>
           </div>
-          <div className="summary-section" style={{ width: '300px' }}>
-            {/* Summary Section */}
-            <div className="card-summary-section">
+          <div className="right-panel">
+            <div className="position-summary">
+              <h3>Your Position</h3>
+              <div className="position-details">
+                {/* <p>Collateral: {position.collateral.amount} {position.collateral.symbol}</p> */}
+              </div>
+            </div>
+
+            <div className="position-summary">
               <h2>Summary</h2>
               {selectedStrategy ? (
                 <>
@@ -1159,16 +1119,20 @@ const App: React.FC = () => {
                 <p>Please select a strategy to see the summary.</p>
               )}
             </div>
+
+            <div className="position-summary">
+            </div>
           </div>
+
           <TransactionConfirmation
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onConfirm={handleConfirmTransaction}
+            onConfirm={handleSubmit}
             transactionDetails={txDetails}
           />
         </div>
       </MessageProvider>
-    </>
+    </div>
   );
 };
 

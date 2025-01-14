@@ -49,15 +49,15 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 9999,
-          backgroundColor: "#1c1c1c",
+          backgroundColor: "rgb(14, 17, 22)",
           color: "rgba(255, 255, 255, 0.9)",
           padding: "1.25rem 1.5rem",
           borderRadius: "10px",
           width: "100%",
           maxWidth: "400px",
-          boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.3)",
-          border: "1px solid #333333",
-          fontFamily: "'Arial', sans-serif"
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          fontFamily: "Neue Kabel, Montserrat, sans-serif"
         }}
       >
         <div style={{ position: "absolute", right: "1rem", top: "1rem", display: "none" }}>
@@ -89,7 +89,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
               <span>{transactionDetails.estimatedFee}</span>
             </div>
           )}
-          {transactionDetails.collateralAmount && transactionDetails.depositAsset && (
+          {transactionDetails.type === 'Top-up' && transactionDetails.collateralAmount && transactionDetails.depositAsset && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: "bold" }}>Collateral:</span>
               <span>
@@ -97,13 +97,13 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
               </span>
             </div>
           )}
-          {transactionDetails.apr !== undefined && (
+          {transactionDetails.type === 'Top-up' && transactionDetails.apr !== undefined && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: "bold" }}>APR:</span>
               <span>{transactionDetails.apr}%</span>
             </div>
           )}
-          {transactionDetails.estimatedEarnings && (
+          {transactionDetails.type === 'Top-up' && transactionDetails.estimatedEarnings && (
             <div>
               <span style={{ fontWeight: "bold" }}>Estimated Earnings:</span>
               <div style={{ marginLeft: "1rem", marginTop: "0.5rem" }}>

@@ -1,8 +1,8 @@
 /* General Reset */
 body {
   margin: 0;
-  font-family: 'Arial', sans-serif;
-  background: linear-gradient(to bottom, #0d0d0d, #1c1c1c); /* Alchemix background */
+  font-family: 'Neue Kabel', Josefin Sans, sans-serif;
+  background: linear-gradient(171.08deg, #010101 -11.16%, #141921 6.1%, #0a0d11 49.05%, #000000 93.22%) no-repeat fixed;
   color: rgba(255, 255, 255, 0.9); /* Light beige text */
   min-height: 100vh;
 }
@@ -13,137 +13,240 @@ body {
 
 /* App Container */
 .app-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center; /* Center items vertically within the container */
-  padding: 20px;
   min-height: 100vh;
+  padding-top: 77px;
 }
 
-/* Header */
+/* Header and Logo */
 .header {
-  position: fixed; /* Keep the header fixed */
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
+  height: 77px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  background: linear-gradient(to bottom, #161616, #0d0d0d); /* Header gradient */
-  border-bottom: 1px solid #333333;
-  z-index: 1000; /* Ensure it stays above other content */
-  background-color: #1c1c1c; /* Match your theme */
+  padding: 0 24px;
+  background-color: rgb(14, 17, 22);
+  border-bottom: 1px solid rgb(32, 36, 44);
+  z-index: 1000;
 }
 
 .logo-section {
   display: flex;
   align-items: center;
+  height: 100%;
+  padding: 12px 0;
 }
 
 .logo {
-  height: 64px;
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Content Layout */
+.content-wrapper {
+  display: flex;
+  padding: 24px;
+  gap: 24px;
+  min-height: calc(100vh - 77px);
 }
 
 /* Main Content */
 .main-content {
-  flex: 1; /* Allow main content to take available space */
-  margin-right: 20px; /* Add margin to the right of the main content */
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-  padding: 1rem;
-  padding-top: 60px; /* Add padding to avoid overlap with fixed header */
+  gap: 24px;
 }
 
-/* Card Style */
+/* Card Styles */
 .card {
-  background-color: #1c1c1c; /* Matches the dark theme */
-  padding: 1.25rem 1.5rem;
-  border-radius: 10px;
+  background: rgba(20, 25, 33, 0.95);
+  border: none;
+  border-radius: 8px;
+  padding: 24px 12px;
+  width: 550px;
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.3), 
+              0 4px 8px -2px rgba(0, 0, 0, 0.2),
+              inset 0 0 0 1px rgba(32, 36, 44, 0.4);
+}
+
+@media screen and (max-width: 600px) {
+  .card {
+    width: 100%;
+    margin: 0 12px;
+    margin-left: auto;
+  }
+}
+
+.card + .card {
+  margin-top: 16px;
+}
+
+/* Right Panel */
+.right-panel {
+  width: 300px;
+  background: rgba(20, 25, 33, 0.95);
+  border-left: 1px solid rgb(32, 36, 44);
+  padding: 20px;
+  height: calc(100vh - 77px);
+  overflow-y: auto;
+  color: rgb(151, 155, 162);
+  position: sticky;
+  top: 77px;
+}
+
+/* Form Sections */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 12px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.input-container {
-  margin-bottom: 1rem;  /* 32px d'espace */
-}
-
-.card label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.9); /* Alchemix beige */
-}
-
-.dropdown {
-  width: 100%;
-  padding: 0.5rem;
-  background-color: #0d0d0d; /* Dropdown background */
-  color: rgba(255, 255, 255, 0.9); /* Text color */
+/* Input Styles */
+input,
+select,
+textarea,
+.input-field {
+  background-color: #0d0d0d;
+  color: rgb(255, 255, 255);
   border: 1px solid #333333;
   border-radius: 5px;
+  padding: 0.5rem;
   font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.dropdown:focus {
-  outline: none;
-  border-color: #e7c089; /* Highlight on focus */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"] {
+  background-color: #0d0d0d;
+  color: rgb(255, 255, 255);
 }
 
-.balance-text {
-  margin: 1.5rem 0 0;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7); /* Subtle gray for balance */
+/* Override any browser default styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0d0d0d inset !important;
+  -webkit-text-fill-color: rgb(255, 255, 255) !important;
+}
+
+.input-group label {
+  color: rgb(151, 155, 162);
+  font-size: 14px;
+}
+
+/* Position Summary */
+.position-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(32, 36, 44, 0.8);
+}
+
+.position-summary:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.position-summary + .position-summary {
+  margin-top: 5px;
+}
+
+.position-summary h2, 
+.position-summary h3 {
+  color: rgb(255, 255, 255);
+  margin: 5px;
+  font-size: 1.2rem;
+}
+
+.position-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.earnings-breakdown {
+  background: rgba(32, 36, 44, 0.5);
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.earnings-breakdown p {
+  margin: 0;
+}
+
+.earnings-breakdown strong {
+  color: rgb(255, 255, 255);
+  display: block;
+  margin-bottom: 8px;
 }
 
 /* Summary Section */
 .summary-section {
-  width: 100%; 
+  width: 100%;
   border: none;
-  border-radius: 8px; /* Round corners */
-  padding: 15px; /* Add padding */
-  background-color: #2a2a2a; /* Background color */
-  color: white; /* Text color */
+  padding: 15px;
+  background-color: transparent;
+  color: rgb(255, 255, 255);
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Center content vertically */
-  align-items: center; /* Center content horizontally */
-  margin:  auto; /* Center the summary section horizontally */
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Add shadow for better visibility */
+  gap: 1rem;
+}
+
+/* Changes Section */
+.changes-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgb(32, 36, 44);
+}
+
+.changes-section h2 {
+  color: rgb(245, 245, 245);
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .header {
+  .app-container {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    padding-top: 77px;
   }
 
-  .main-content {
-    gap: 1rem;
-  }
-
-  .card {
+  .right-panel {
+    position: relative;
+    top: 0;
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid rgb(32, 36, 44);
     padding: 1rem;
   }
 
-  .dropdown {
-    font-size: 0.9rem;
-  }
-
-  .app-container {
-    flex-direction: column; /* Stack on mobile */
-  }
-
-  .summary-section {
-    width: 100%; /* Full width on mobile */
-    margin-left: 0; /* Remove left margin */
-    margin-top: 20px; /* Add some top margin */
+  .main-content {
+    padding: 1rem;
   }
 }
 
@@ -152,36 +255,14 @@ body {
   width: 100%;
   padding: 0.5rem;
   margin-top: 0.5rem;
-  background-color: #0d0d0d; /* Matches Alchemix theme */
-  color: rgba(255, 255, 255, 0.9); /* Light text */
+  background-color: #0d0d0d;
+  color: rgb(255, 255, 255);
   border: 1px solid #333333;
   border-radius: 5px;
   font-size: 1rem;
 }
 
 .dropdown:focus {
-  outline: none;
-  border-color: #e7c089; /* Highlight border on focus */
-}
-
-/* Input Field Styling */
-.input-field {
-  width: 100%;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-  background-color: #0d0d0d; /* Matches Alchemix theme */
-  color: rgba(255, 255, 255, 0.9); /* Light text */
-  border: 1px solid #333333;
-  border-radius: 5px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.input-field::placeholder {
-  color: rgba(255, 255, 255, 0.6); /* Subtle placeholder color */
-}
-
-.input-field:focus {
   outline: none;
   border-color: #e7c089; /* Highlight border on focus */
 }
@@ -205,6 +286,7 @@ body {
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
+  font-family: 'Neue Kabel', Josefin Sans, sans-serif;
 }
 
 .black-button:hover {
@@ -285,4 +367,18 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
+}
+
+.bg-alchemix {
+  background: linear-gradient(171.08deg, #010101 -11.16%, #141921 6.1%, #0a0d11 49.05%, #000000 93.22%) no-repeat fixed;
+  min-height: 100vh;
+  width: 100%;
+}
+
+@font-face {
+  font-family: 'neu_kabel';
+  src: url('/fonts/neu_kabel.woff2') format('woff2'),
+       url('/fonts/neu_kabel.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
 }
