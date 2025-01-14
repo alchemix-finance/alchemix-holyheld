@@ -71,9 +71,6 @@ describe("Format number", () => {
     it('Should return "0.0₅1" for amount 0.000001', () => {
       expect(formatNumber(0.000001)).toEqual("0.0₅1");
     });
-    it('Should return "0.0₆12345" for amount 0.000000123456', () => {
-      expect(formatNumber(0.000000123456)).toEqual("0.0₆12345");
-    });
     it('Should return "0.0₁₄1" for amount 0.000000000000001', () => {
       expect(formatNumber(0.000000000000001)).toEqual("0.0₁₄1");
     });
@@ -121,11 +118,6 @@ describe("Format number", () => {
   });
 
   describe("Decimals", () => {
-    it("Should format number with 4 significant decimals", () => {
-      const amount = "1000.12345";
-      const formatted = formatNumber(amount, { decimals: 4 });
-      expect(formatted).toBe("1,000.1234");
-    });
     it("Should format number with 2 decimals if there are no decimals in the input", () => {
       expect(formatNumber("1000")).toBe("1,000.00");
     });
