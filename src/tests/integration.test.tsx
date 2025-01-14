@@ -6,7 +6,7 @@ import { useBorrow } from '../hooks/useBorrow';
 import { useAlchemixDeposit } from '../hooks/useAlchemixLoan';
 import { useTokenBalance } from '../hooks/useTokenBalance';
 import { CONTRACTS } from '../lib/wagmi/chains';
-
+const VITE_WC_PROJECT_ID = "123123"
 // Mock external dependencies
 vi.mock('wagmi', () => ({
   createConfig: vi.fn().mockReturnValue({
