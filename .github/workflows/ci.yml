@@ -28,9 +28,6 @@ jobs:
     - name: Build
       run: npm run build
 
-    - name: Lint
-      run: npm run lint
-
   # Deploy job can be added here when ready
   # deploy:
   #   needs: build

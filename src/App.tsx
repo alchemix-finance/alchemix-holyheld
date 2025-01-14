@@ -77,7 +77,7 @@ const App: React.FC = () => {
   const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
   const { deposit } = useAlchemixDeposit();
   const { mint } = useMintAl();
-  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists(); 
+  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists();
   const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
     address,
     chain?.id,
