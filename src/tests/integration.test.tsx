@@ -6,24 +6,38 @@ import { useBorrow } from '../hooks/useBorrow';
 import { useAlchemixDeposit } from '../hooks/useAlchemixLoan';
 import { useTokenBalance } from '../hooks/useTokenBalance';
 import { CONTRACTS } from '../lib/wagmi/chains';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock import.meta.env
 (globalThis as any).import = {
   meta: {
     env: {
-      VITE_WC_PROJECT_ID: '123123'
+      VITE_WC_PROJECT_ID: '123123',
+      VITE_HOLYHELD_SDK_API_KEY: 'test-api-key'
     }
   }
 };
 
 // Mock wagmiConfig
-vi.mock('../lib/wagmi/wagmiConfig', () => ({
-  projectId: '123123',
-  __esModule: true,
-  default: {
-    projectId: '123123'
-  }
-}));
+vi.mock('../lib/wagmi/wagmiConfig', async () => {
+  return {
+    wagmiConfig: {
+      projectId: '123123',
+      chains: [
+        { id: 1 }, // Ethereum mainnet
+        { id: 5 }  // Goerli testnet
+      ]
+    },
+    __esModule: true,
+    default: {
+      projectId: '123123',
+      chains: [
+        { id: 1 }, // Ethereum mainnet
+        { id: 5 }  // Goerli testnet
+      ]
+    }
+  };
+});
 
 // Mock external dependencies
 vi.mock('wagmi', () => ({
@@ -86,16 +100,47 @@ vi.mock('wagmi', () => ({
     ]
   }
 }));
-vi.mock('@holyheld/sdk');
+vi.mock('@holyheld/sdk', () => {
+  return {
+    default: class MockHolyheldSDK {
+      offRamp: any;
+      constructor() {
+        this.offRamp = {
+          getTagInfoForTopUp: async () => ({ found: true })
+        };
+      }
+      init() {
+        return Promise.resolve();
+      }
+    }
+  };
+});
+
+// Create a new QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+// Wrapper component for tests
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={queryClient}>
+    {children}
+  </QueryClientProvider>
+);
 
 describe('Frontend-Backend Integration Tests', () => {
   beforeEach(() => {
+    queryClient.clear(); // Clear cache between tests
     vi.clearAllMocks();
   });
 
   describe('1. Wallet Connection', () => {
     it('should handle wallet connection correctly', async () => {
-      const { result } = renderHook(() => useAccount());
+      const { result } = renderHook(() => useAccount(), { wrapper });
       await waitFor(() => expect(result.current.address).toBeDefined());
     });
 
@@ -141,7 +186,7 @@ describe('Frontend-Backend Integration Tests', () => {
       });
       vi.mocked(useAccount).mockImplementationOnce(mockUseAccount);
 
-      const { result } = renderHook(() => useAccount());
+      const { result } = renderHook(() => useAccount(), { wrapper });
       await waitFor(() =>
         expect(result.current.address).toBe('0xabcdefabcdefabcdefabcdefabcdefabcdefabcdef')
       );
@@ -152,7 +197,7 @@ describe('Frontend-Backend Integration Tests', () => {
     it('should fetch token balances correctly', async () => {
       const chainId = 42161; // Arbitrum
       const depositAsset = CONTRACTS[42161].TOKENS.USDC.token;
-      const { result } = renderHook(() => useTokenBalance('0x123...', chainId, depositAsset));
+      const { result } = renderHook(() => useTokenBalance('0x123...', chainId, depositAsset), { wrapper });
       await waitFor(() => expect(result.current.Tbalance).toBeDefined());
     });
 
@@ -163,23 +208,26 @@ describe('Frontend-Backend Integration Tests', () => {
 
   describe('3. Alchemix Protocol Interactions', () => {
     it('should handle deposits correctly', async () => {
-      const { result } = renderHook(() => useAlchemixDeposit());
+      const { result } = renderHook(() => useAlchemixDeposit(), { wrapper });
       await waitFor(() => expect(result.current.deposit).toBeDefined());
     });
 
     it('should process borrows correctly', async () => {
-      const { result } = renderHook(() => useBorrow());
+      const { result } = renderHook(() => useBorrow(), { wrapper });
       await waitFor(() => expect(result.current.borrow).toBeDefined());
     });
   });
 
   describe('4. Holyheld SDK Integration', () => {
     it('should validate holytags', async () => {
-      const { result } = renderHook(() => useHolyheldSDK());
+      const { result } = renderHook(() => useHolyheldSDK(), { wrapper });
+      
+      // Wait for SDK to initialize
+      await waitFor(() => expect(result.current.isInitialized).toBe(true));
+      
       const isValid = await result.current.validateHolytag('test-tag');
       expect(isValid).toBe(true);
     });
-
   });
 
   describe('5. Transaction Processing', () => {
