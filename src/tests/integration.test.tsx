@@ -6,7 +6,25 @@ import { useBorrow } from '../hooks/useBorrow';
 import { useAlchemixDeposit } from '../hooks/useAlchemixLoan';
 import { useTokenBalance } from '../hooks/useTokenBalance';
 import { CONTRACTS } from '../lib/wagmi/chains';
-const VITE_WC_PROJECT_ID = "123123"
+
+// Mock import.meta.env
+(globalThis as any).import = {
+  meta: {
+    env: {
+      VITE_WC_PROJECT_ID: '123123'
+    }
+  }
+};
+
+// Mock wagmiConfig
+vi.mock('../lib/wagmi/wagmiConfig', () => ({
+  projectId: '123123',
+  __esModule: true,
+  default: {
+    projectId: '123123'
+  }
+}));
+
 // Mock external dependencies
 vi.mock('wagmi', () => ({
   createConfig: vi.fn().mockReturnValue({
