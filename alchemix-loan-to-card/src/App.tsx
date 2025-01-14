@@ -342,13 +342,30 @@ const App: React.FC = () => {
   const handleValidateHolytag = async () => {
     try {
       const isValid = await validateHolytag(holytag);
-      alert(isValid ? 'Holytag is valid!' : 'Holytag is not valid!');
+      if (isValid) {
+        toast.success('Holytag is valid!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        toast.error('Holytag is not valid!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
     } catch (err) {
       toast.error('Please connect your wallet and select a valid chain.', {
         ...warn,
         icon: <span aria-label="link">🔗</span>,
       });
-
       setError('Failed to validate holytag.');
     }
   };
@@ -904,7 +921,7 @@ const App: React.FC = () => {
 
 
   return (
-    <>
+    <div className="bg-alchemix">
       <ToastContainer />
       <MessageProvider>
         <div className="app-container" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -921,11 +938,10 @@ const App: React.FC = () => {
             <main className="main-content">
               {/* Current Position */}
               {position && !position.isLoading && (
-                <div className="card">
-                  <h3>Your Position</h3>
+                <div>
+
                   <div className="position-details">
                     {/* <p>Collateral: {position.collateral.amount} {position.collateral.symbol}</p> */}
-                    <p>Debt: {parseFloat(position.debt.amount).toFixed(5)} {position.debt.symbol}</p>
                   </div>
                 </div>
               )}
@@ -1138,63 +1154,56 @@ const App: React.FC = () => {
               </div>
             </main>
           </div>
-          <div className="summary-section" style={{ width: '300px' }}>
-            {/* Summary Section */}
-            {mode === 'topup' && (
-              <div className="card-summary-section">
-                <h2>Summary</h2>
-                {selectedStrategy ? (
-                  <>
-                    <p>
-                      <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
-                    </p>
-                    <div className="earnings-breakdown">
-                      <p>
-                        <strong>Estimated Earnings (APR: {apr}%):</strong>
-                      </p>
-                      <p>
-                        Daily: {parseFloat(depositAmount || '0') > 0 ?
-                          calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
-                      </p>
-                      <p>
-                        Weekly: {parseFloat(depositAmount || '0') > 0 ?
-                          calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
-                      </p>
-                      <p>
-                        Monthly: {parseFloat(depositAmount || '0') > 0 ?
-                          calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
-                      </p>
-                      <p>
-                        Yearly: {estimatedEarnings} {depositAsset}
-                      </p>
-                    </div>
-                    <p>
-                      <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
-                    </p>
-                  </>
-                ) : (
-                  <p>Please select a strategy to see the summary.</p>
-                )}
+          <div className="right-panel">
+            <div className="position-summary">
+              <h3>Your Position</h3>
+              <div className="position-details">
+                {/* <p>Collateral: {position.collateral.amount} {position.collateral.symbol}</p> */}
+                <p>Debt: {parseFloat(position.debt.amount).toFixed(5)} {position.debt.symbol}</p>
               </div>
-            )}
-            {mode === 'borrowOnly' && (
-              <div className="card-summary-section">
-                <h2>Summary</h2>
-                {selectedStrategy ? (
-                  <>
+
+            </div>
+
+            <div className="position-summary">
+              <h2>Summary</h2>
+              {selectedStrategy ? (
+                <>
+                  <p>
+                    <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
+                  </p>
+                  <div className="earnings-breakdown">
                     <p>
-                      <strong>Borrow Amount:</strong> {depositAmount} {depositAsset}
+                      <strong>Estimated Earnings (APR: {apr}%):</strong>
                     </p>
                     <p>
-                      <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
+                      Daily: {parseFloat(depositAmount || '0') > 0 ?
+                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
                     </p>
-                  </>
-                ) : (
-                  <p>Please select a strategy to see the summary.</p>
-                )}
-              </div>
-            )}
+                    <p>
+                      Weekly: {parseFloat(depositAmount || '0') > 0 ?
+                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
+                    </p>
+                    <p>
+                      Monthly: {parseFloat(depositAmount || '0') > 0 ?
+                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
+                    </p>
+                    <p>
+                      Yearly: {estimatedEarnings} {depositAsset}
+                    </p>
+                  </div>
+                  <p>
+                    <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
+                  </p>
+                </>
+              ) : (
+                <p>Please select a strategy to see the summary.</p>
+              )}
+            </div>
+
+            <div className="position-summary">
+            </div>
           </div>
+
           <TransactionConfirmation
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
@@ -1203,7 +1212,7 @@ const App: React.FC = () => {
           />
         </div>
       </MessageProvider>
-    </>
+    </div>
   );
 };
 

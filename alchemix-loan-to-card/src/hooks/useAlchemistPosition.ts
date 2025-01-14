@@ -38,6 +38,9 @@ interface Position {
         asset: string;
         symbol: string;
     };
+    collateralization: string;
+    subscriptions?: string;
+    renewalTask?: string;
     isLoading: boolean;
     error: string | null;
 }
@@ -85,6 +88,9 @@ export function useAlchemistPosition(depositAsset: DepositAsset | `0x${string}` 
     const [position, setPosition] = useState<Position>({
         collateral: { amount: '0', asset: '', symbol: '' },
         debt: { amount: '0', asset: '', symbol: '' },
+        collateralization: '0',
+        subscriptions: undefined,
+        renewalTask: undefined,
         isLoading: false,
         error: null,
     });
@@ -174,6 +180,9 @@ export function useAlchemistPosition(depositAsset: DepositAsset | `0x${string}` 
                             asset: synthType,
                             symbol: synthSymbol
                         },
+                        collateralization: '0',
+                        subscriptions: undefined,
+                        renewalTask: undefined,
                         isLoading: false,
                         error: null
                     });
