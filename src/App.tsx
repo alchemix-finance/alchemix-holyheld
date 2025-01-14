@@ -28,7 +28,7 @@ import MessageDisplay from './components/MessageDisplay';
 import { useMessages } from './context/MessageContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { toastConfig, warn, withToast } from './utils/toast';
+import { toastConfig, warn } from './utils/toast';
 
 interface ErrorData { message: string; }
 
@@ -40,7 +40,6 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
-  const [_isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(false);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
   const { borrow, isLoading: isBorrowing } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
@@ -78,7 +77,8 @@ const App: React.FC = () => {
   const { validateHolytag, convertToEUR, performTopUp, sdk } = useHolyheldSDK();
   const { deposit } = useAlchemixDeposit();
   const { mint } = useMintAl();
-  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists(); const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
+  const { data: alchemists, isLoading: alchemistsLoading, error: alchemistsError } = useAlchemists(); 
+  const { Tbalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
     address,
     chain?.id,
     depositAsset
@@ -298,10 +298,10 @@ const App: React.FC = () => {
       const vaults = VAULTS[chain.id];
       if (!vaults) return;
 
-      setIsLoadingStrategies(true);
+      setIsLoading(true);
       const strategies = await getStrategiesForAsset(depositAsset, vaults, chain.id);
       setAvailableStrategies(strategies);
-      setIsLoadingStrategies(false);
+      setIsLoading(false);
     };
 
     fetchStrategies();
@@ -845,7 +845,12 @@ const App: React.FC = () => {
     }
   };
 
-
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      setError(null); // Clear error after showing toast
+    }
+  }, [error]);
 
   return (
     <div className="bg-alchemix">

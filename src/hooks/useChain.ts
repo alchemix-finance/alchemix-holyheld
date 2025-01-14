@@ -3,7 +3,6 @@ import { mainnet } from "viem/chains";
 import { useMemo } from "react";
 import { wagmiConfig } from "../lib/wagmi/wagmiConfig";
 import { tenderlyForkChain } from "../lib/wagmi/tenderly";
-import { Chain } from "wagmi/chains";
 
 const defaultChain = tenderlyForkChain ?? mainnet;
 
