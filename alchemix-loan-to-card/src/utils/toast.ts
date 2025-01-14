@@ -11,11 +11,12 @@ export const toastConfig: ToastOptions = {
   progress: undefined,
   theme: 'dark',
   style: {
-    background: '#1c1c1c',
+    background: 'rgb(14, 17, 22)',
     color: 'rgba(255, 255, 255, 0.9)',
     borderRadius: '8px',
-    border: '1px solid #333333',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    fontFamily: 'Neue Kabel, Montserrat, sans-serif',
   },
 };
 

@@ -49,15 +49,15 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 9999,
-          backgroundColor: "#1c1c1c",
+          backgroundColor: "rgb(14, 17, 22)",
           color: "rgba(255, 255, 255, 0.9)",
           padding: "1.25rem 1.5rem",
           borderRadius: "10px",
           width: "100%",
           maxWidth: "400px",
-          boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.3)",
-          border: "1px solid #333333",
-          fontFamily: "'Arial', sans-serif"
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          fontFamily: "Neue Kabel, Montserrat, sans-serif"
         }}
       >
         <div style={{ position: "absolute", right: "1rem", top: "1rem", display: "none" }}>

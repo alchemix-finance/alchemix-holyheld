@@ -30,6 +30,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { toastConfig, warn, withToast } from './utils/toast';
 
+interface ErrorData { message: string; }
+
 const App: React.FC = () => {
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
@@ -142,7 +144,13 @@ const App: React.FC = () => {
 
       // Succès : Mettez à jour le toast pour indiquer le succès
       ;
-    } catch (err) {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Error during borrow:', err.message);
+      } else {
+        console.error('An unknown error occurred during borrow');
+      }
+
       // Gérer les erreurs
       let errorMessage = 'Unknown error';
 
@@ -152,8 +160,6 @@ const App: React.FC = () => {
           errorMessage = `${errorMessage.slice(0, 100)}...`; // Tronquer si le message est trop long.
         }
       }
-
-      console.error('Error during borrow:', err);
 
       // Afficher un message d'erreur simplifié
       toast.error(errorMessage, {
@@ -350,23 +356,17 @@ const App: React.FC = () => {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
+          ...toastConfig,
         });
       } else {
-        toast.error('Holytag is not valid!', {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        console.log('Holytag validation failed');
       }
-    } catch (err) {
-      toast.error('Please connect your wallet and select a valid chain.', {
-        ...warn,
-        icon: <span aria-label="link">🔗</span>,
-      });
-      setError('Failed to validate holytag.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Error during holytag validation:', err.message);
+      } else {
+        console.error('An unknown error occurred during holytag validation');
+      }
     }
   };
 
@@ -394,7 +394,9 @@ const App: React.FC = () => {
     const chainId = chain?.id;
 
     if (!chainId || !(chainId in CONTRACTS)) {
-      toast.error(`Unsupported chain ID: ${chainId}`);
+      toast.error(`Unsupported chain ID: ${chainId}`, {
+        ...toastConfig,
+      });
     }
 
 
@@ -432,11 +434,12 @@ const App: React.FC = () => {
   const handleTopUp = async () => {
     console.log('Handle Top-Up initiated.');
 
-    const transactionId = toast.info('Top-up process started...', {
-      ...toastConfig,
-      icon: <span aria-label="tools">🛠️</span>,
-      autoClose: false, // Keep the toast visible until updated
-    });
+    /*     const transactionId = toast.info('Top-up process started...', {
+          className: 'dark-toast',
+          ...toastConfig,
+          icon: <span aria-label="tools">🛠️</span>,
+          autoClose: false, // Keep the toast visible until updated
+        }); */
 
     try {
       setIsModalOpen(false);
@@ -449,11 +452,12 @@ const App: React.FC = () => {
         return;
       }
 
-      toast.update(transactionId, {
-        render: 'Validating input data...',
-        type: 'info',
-        icon: <span aria-label="search">🔍</span>,
-      });
+      /*       toast.update(transactionId, {
+              render: 'Validating input data...',
+              type: 'info',
+              icon: <span aria-label="search">🔍</span>,
+              ...toastConfig,
+            }); */
 
       if (!depositAmount || parseFloat(depositAmount) <= 0) {
         throw new Error('Please enter a valid deposit amount.');
@@ -463,12 +467,12 @@ const App: React.FC = () => {
         throw new Error('Please select a deposit asset.');
       }
 
-      // Simulate step-by-step progress
-      toast.update(transactionId, {
-        render: 'Fetching server settings...',
-        type: 'info',
-        icon: <span aria-label="antenna">📡</span>,
-      });
+      /*       // Simulate step-by-step progress
+            toast.update(transactionId, {
+              render: 'Fetching server settings...',
+              type: 'info',
+              icon: <span aria-label="antenna">📡</span>,
+            }); */
 
       if (alchemistsLoading) {
         throw new Error('Loading alchemists data...');
@@ -520,28 +524,25 @@ const App: React.FC = () => {
         throw new Error('Top-up is currently disabled.');
       }
 
-      toast.update(transactionId, {
-        render: 'Validating holytag...',
-        ...toastConfig,
-        icon: <span aria-label="success">✅</span>,
-      });
-
-      // console.log('Validating holytag...');
-      const isValidTag = await validateHolytag(holytag);
-      if (!isValidTag) {
-        toast.error('The Holytag Is not valid', {
-          ...warn,
-          icon: <span aria-label="error">❌</span>,
-        });
-        return;
-      }
+      /*      toast.update(transactionId, {
+             render: 'Validating holytag...',
+             ...toastConfig,
+             icon: <span aria-label="success">✅</span>,
+           });
+     
+           // console.log('Validating holytag...');
+           const isValidTag = await validateHolytag(holytag);
+           if (!isValidTag) {
+             console.log('Holytag validation failed');
+             return;
+           } */
 
       // Proceed with the top-up process
-      toast.update(transactionId, {
-        render: 'Processing transaction...',
-        type: 'info',
-        icon: <span aria-label="money">💸</span>,
-      });
+      /*       toast.update(transactionId, {
+              render: 'Processing transaction...',
+              type: 'info',
+              icon: <span aria-label="money">💸</span>,
+            }); */
 
       type SupportedChainId = keyof typeof CONTRACTS;
 
@@ -567,7 +568,9 @@ const App: React.FC = () => {
                 }); */
 
         // Dépôt ETH avec valeur attachée
-        console.log('Depositing ETH to Alchemix...');
+        toast.info('Depositing to Alchemix...', {
+          ...toastConfig,
+        });
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
           depositAmount,
@@ -584,6 +587,9 @@ const App: React.FC = () => {
         if (depositReceipt.status !== 'success') {
           throw new Error('ETH deposit transaction failed');
         }
+        toast.success('Deposit to Alchemix successful!', {
+          ...toastConfig,
+        });
 
         await new Promise(resolve => setTimeout(resolve, 15000));
 
@@ -591,7 +597,9 @@ const App: React.FC = () => {
         const mintAmount = (parseFloat(depositAmount) / 2).toString();
         const { type: synthType } = getSynthToken(depositAsset);
 
-        console.log('Minting synthetic token...', { mintingAmount: mintAmount });
+        toast.info('Initiating borrow process...', {
+          ...toastConfig,
+        });
         const mintResult = await mint(
           mintAmount.toString(),
           address,
@@ -607,6 +615,10 @@ const App: React.FC = () => {
         if (mintReceipt.status !== 'success') {
           throw new Error('Minting transaction failed');
         }
+        toast.success('Borrowing process completed successfully!', {
+          className: 'dark-toast',
+          ...toastConfig,
+        });
 
         // La suite du processus (conversion EUR et top-up) reste la même
         const synthTokenAddress = SYNTH_ASSETS_ADDRESSES[chainId][synthType];
@@ -709,7 +721,10 @@ const App: React.FC = () => {
         }
 
         // Étape 3 : Dépôt
-        console.log('Depositing to Alchemix...');
+        toast.info('Depositing to Alchemix...', {
+          className: 'dark-toast',
+          ...toastConfig,
+        });
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
           depositAmount,
@@ -723,6 +738,10 @@ const App: React.FC = () => {
           hash: depositResult.transactionHash,
         });
         console.log('Deposit confirmed:', depositReceipt);
+        toast.success('Deposit to Alchemix successful!', {
+          className: 'dark-toast',
+          ...toastConfig,
+        });
         await new Promise(resolve => setTimeout(resolve, 15000));
 
         // Étape 4 : Mint
@@ -732,7 +751,10 @@ const App: React.FC = () => {
 
         const { type: synthType } = getSynthToken(depositAsset);
 
-        console.log('Minting synthetic token...', { mintingAmount: mintAmount });
+        toast.info('Initiating borrow process...', {
+          className: 'dark-toast',
+          ...toastConfig,
+        });
         const mintResult = await mint(
           mintAmount.toString(),
           address as `0x${string}`,
@@ -745,6 +767,10 @@ const App: React.FC = () => {
           hash: mintResult.transactionHash,
         });
         console.log('Mint confirmed:', mintReceipt);
+        toast.success('Borrowing process completed successfully!', {
+          className: 'dark-toast',
+          ...toastConfig,
+        });
         await new Promise(resolve => setTimeout(resolve, 10000)); // 10 secondes de pause
 
         /*       // Étape 5 : Vérification du solde synthétique
@@ -816,7 +842,9 @@ const App: React.FC = () => {
               } */
 
         // Étape 7 : Top-Up
-        console.log('Executing top-up...');
+        toast.info('Executing top-up...', {
+          ...toastConfig,
+        });
         await performTopUp(
           publicClient,
           walletClient,
@@ -838,10 +866,13 @@ const App: React.FC = () => {
         // alert('Top-up successful!');
       }
     } catch (err: unknown) {
-      const errorMessage = (err as Error).message;
-      console.error(err);
-      //console.error('Error during top-up:', errorMessage);
-      setError(errorMessage);
+      if (err instanceof Error) {
+        console.error(err.message);
+      } else {
+        console.error('An unknown error occurred');
+      }
+
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -852,9 +883,14 @@ const App: React.FC = () => {
     try {
       const maxAmount = await calculateMaxAmount(address, chain.id, depositAsset);
       setDepositAmount(maxAmount);
-    } catch (err) {
-      console.error('Error setting max amount:', err);
-      setError(err instanceof Error ? err.message : 'Failed to set maximum amount')
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Error setting max amount:', err.message);
+      } else {
+        console.error('An unknown error occurred while setting max amount');
+      }
+
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     }
   };
 
@@ -894,27 +930,54 @@ const App: React.FC = () => {
   // -------------------------------------
   const handleConfirmTransaction = async () => {
     try {
-      await withToast(
-        (async () => {
+      const promise = (async () => {
+        try {
           if (mode === 'topup') {
             await handleTopUp();
           } else {
             await handleBorrowOnly();
           }
-
           setIsModalOpen(false);
-        })(),
-        {
-          pending: `${mode === 'topup' ? 'Top-up' : 'Borrow'} transaction in progress...`,
-          success: `${mode === 'topup' ? 'Top-up' : 'Borrow'} completed successfully!`,
-          error: `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`,
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            if (error.message?.includes('User denied') || error.message?.includes('user rejected')) {
+              console.log('Transaction cancelled by user');
+              return Promise.reject(new Error('Transaction cancelled'));
+            }
+            throw error;
+          } else {
+            console.error('An unknown error occurred during transaction');
+            return Promise.reject(new Error('An unknown error occurred'));
+          }
         }
-      );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Transaction failed';
-      console.error('Error during transaction:', errorMessage);
-      setError(errorMessage);
-    } finally {
+      })();
+
+      toast.promise(promise, {
+        pending: {
+          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} transaction in progress...`,
+          ...toastConfig,
+        },
+        success: {
+          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} completed successfully!`,
+          ...toastConfig,
+        },
+        error: {
+          render({ data }) {
+            const errorData = data as ErrorData | null | undefined;
+            if (errorData?.message === 'Transaction cancelled') {
+              return 'Transaction cancelled';
+            }
+            return `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`;
+          },
+          ...toastConfig,
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error during transaction:', error.message);
+      } else {
+        console.error('An unknown error occurred during transaction');
+      }
     }
   };
 
@@ -1125,14 +1188,14 @@ const App: React.FC = () => {
               {/* Loan Asset Display */}
               <div className="card">
                 <label htmlFor="loan-asset">Loan asset</label>
-                <select
+                <input
                   id="loan-asset"
-                  className="dropdown"
+                  type="text"
                   value={loanAsset}
-                  disabled
-                >
-                  <option value="">{loanAsset || "Select asset"}</option>
-                </select>
+                  readOnly
+                  placeholder="Enter loan asset"
+                  className="input-field"
+                />
               </div>
 
               {/* Action Button */}
@@ -1146,11 +1209,6 @@ const App: React.FC = () => {
                 >
                   {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
                 </Button>
-                {error && (
-                  <div className="error-message" style={{ color: 'red', marginTop: '10px' }}>
-                    {error}
-                  </div>
-                )}
               </div>
             </main>
           </div>
