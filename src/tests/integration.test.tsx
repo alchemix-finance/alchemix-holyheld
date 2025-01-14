@@ -165,10 +165,6 @@ describe('Frontend-Backend Integration Tests', () => {
   });
 
   describe('5. Transaction Processing', () => {
-    // it('should do something that requires VITE_WC_PROJECT_ID', () => {
-    //   // test implementation
-    // });
-
     it('should handle transaction confirmations', async () => {
       // Add implementation for transaction confirmation testing
     });
