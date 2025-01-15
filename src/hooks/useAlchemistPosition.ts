@@ -72,7 +72,6 @@ const TOKEN_ADDRESSES: { [key: string]: { [chainId: number]: `0x${string}` } } =
 
 const defaultChain = { id: 1 };
 
-
 const getSynthSymbol = (depositAsset: string): string => {
     const synthMapping: Record<string, string> = {
         USDC: "alUSD",
@@ -99,116 +98,95 @@ export function useAlchemistPosition(depositAsset: DepositAsset | `0x${string}` 
     const { address: account } = useAccount();
     const publicClient = usePublicClient();
 
+    const fetchPosition = async () => {
+        if (!account || !depositAsset || !publicClient) {
+            setPosition(prev => ({ ...prev, isLoading: false }));
+            return;
+        }
+
+        const chainId = chain?.id ?? defaultChain.id;
+
+        if (!isSupportedChainId(chainId)) {
+            setPosition(prev => ({
+                ...prev,
+                isLoading: false,
+                error: `Unsupported chain ID: ${chainId}`
+            }));
+            return;
+        }
+
+        try {
+            setPosition(prev => ({ ...prev, isLoading: true, error: null }));
+
+            // If depositAsset is a token symbol, get its address
+            const assetAddress = TOKEN_ADDRESSES[depositAsset as keyof typeof TOKEN_ADDRESSES]?.[chainId];
+            if (!assetAddress) {
+                throw new Error(`Invalid asset address for ${depositAsset}`);
+            }
+
+            const chainAddresses = ALCHEMIST_ADDRESSES[chainId];
+            if (!chainAddresses) {
+                throw new Error(`No contracts found for chain ID: ${chainId}`);
+            }
+
+            // Determine which Alchemist to use based on deposit asset
+            const synthType = assetAddress.toUpperCase() === 'ETH' || assetAddress.toUpperCase() === 'WETH'
+                ? 'alETH'
+                : 'alUSD';
+
+            const alchemistAddress = chainAddresses[synthType];
+            if (!alchemistAddress) {
+                throw new Error(`No Alchemist contract found for ${synthType}`);
+            }
+
+            // Get positions from the contract
+            const [positionData, accountData] = await Promise.all([
+                publicClient.readContract({
+                    address: alchemistAddress,
+                    abi: alchemistV2Abi,
+                    functionName: 'positions',
+                    args: [account, assetAddress]
+                }),
+                publicClient.readContract({
+                    address: alchemistAddress,
+                    abi: alchemistV2Abi,
+                    functionName: 'accounts',
+                    args: [account]
+                })
+            ]);
+
+            // Format the results
+            const assetSymbol = depositAsset as string; const synthSymbol = getSynthSymbol(assetSymbol);
+
+            setPosition({
+                collateral: {
+                    amount: formatUnits(positionData?.[0] || 0n, 18),
+                    asset: assetAddress,
+                    symbol: assetSymbol
+                },
+                debt: {
+                    amount: formatUnits(accountData?.[0] || 0n, 18),
+                    asset: synthType,
+                    symbol: synthSymbol
+                },
+                collateralization: '0',
+                subscriptions: undefined,
+                renewalTask: undefined,
+                isLoading: false,
+                error: null
+            });
+        } catch (err) {
+            console.error('Error fetching Alchemist position:', err);
+            setPosition(prev => ({
+                ...prev,
+                isLoading: false,
+                error: err instanceof Error ? err.message : 'Failed to fetch position'
+            }));
+        }
+    };
+
     useEffect(() => {
-        let mounted = true;
-
-        async function fetchPosition() {
-            if (!account || !depositAsset || !publicClient) {
-                if (mounted) {
-                    setPosition(prev => ({ ...prev, isLoading: false }));
-                }
-                return;
-            }
-
-            const chainId = chain?.id ?? defaultChain.id;
-
-            if (!isSupportedChainId(chainId)) {
-                if (mounted) {
-                    setPosition(prev => ({
-                        ...prev,
-                        isLoading: false,
-                        error: `Unsupported chain ID: ${chainId}`
-                    }));
-                }
-                return;
-            }
-
-            try {
-                if (mounted) {
-                    setPosition(prev => ({ ...prev, isLoading: true, error: null }));
-                }
-
-                // If depositAsset is a token symbol, get its address
-                const assetAddress = TOKEN_ADDRESSES[depositAsset as keyof typeof TOKEN_ADDRESSES]?.[chainId];
-                if (!assetAddress) {
-                    throw new Error(`Invalid asset address for ${depositAsset}`);
-                }
-
-                const chainAddresses = ALCHEMIST_ADDRESSES[chainId];
-                if (!chainAddresses) {
-                    throw new Error(`No contracts found for chain ID: ${chainId}`);
-                }
-
-                // Determine which Alchemist to use based on deposit asset
-                const synthType = assetAddress.toUpperCase() === 'ETH' || assetAddress.toUpperCase() === 'WETH'
-                    ? 'alETH'
-                    : 'alUSD';
-
-                const alchemistAddress = chainAddresses[synthType];
-                if (!alchemistAddress) {
-                    throw new Error(`No Alchemist contract found for ${synthType}`);
-                }
-
-                // Get positions from the contract
-                const [positionData, accountData] = await Promise.all([
-                    publicClient.readContract({
-                        address: alchemistAddress,
-                        abi: alchemistV2Abi,
-                        functionName: 'positions',
-                        args: [account, assetAddress]
-                    }),
-                    publicClient.readContract({
-                        address: alchemistAddress,
-                        abi: alchemistV2Abi,
-                        functionName: 'accounts',
-                        args: [account]
-                    })
-                ]);
-
-                // Format the results
-                if (mounted) {
-                    const assetSymbol = depositAsset as string; const synthSymbol = getSynthSymbol(assetSymbol);
-
-                    setPosition({
-                        collateral: {
-                            amount: formatUnits(positionData?.[0] || 0n, 18),
-                            asset: assetAddress,
-                            symbol: assetSymbol
-                        },
-                        debt: {
-                            amount: formatUnits(accountData?.[0] || 0n, 18),
-                            asset: synthType,
-                            symbol: synthSymbol
-                        },
-                        collateralization: '0',
-                        subscriptions: undefined,
-                        renewalTask: undefined,
-                        isLoading: false,
-                        error: null
-                    });
-                }
-
-            } catch (err) {
-                console.error('Error fetching Alchemist position:', err);
-                if (mounted) {
-                    setPosition(prev => ({
-                        ...prev,
-                        isLoading: false,
-                        error: err instanceof Error ? err.message : 'Failed to fetch position'
-                    }));
-                }
-            }
-        };
-
         fetchPosition();
-
-        // Set up an interval to refresh the position periodically
-        const intervalId = setInterval(fetchPosition, 30000); // Refresh every 30 seconds
-
-        return () => {
-            mounted = false;
-            clearInterval(intervalId);
-        };
     }, [account, chain.id, publicClient, depositAsset]);
 
     return position;
