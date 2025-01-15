@@ -1126,7 +1126,52 @@ const App: React.FC = () => {
             </div>
 
             <div className="position-summary">
+              <a
+                href="https://alchemix.fi/vaults"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '12px',
+                  backgroundColor: '#1a1b1f',
+                  color: '#fff',
+                  textDecoration: 'none',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s ease',
+                  border: '1px solid #444',
+                  fontSize: '14px'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2d2f36';
+                  e.currentTarget.style.borderColor = '#666';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1a1b1f';
+                  e.currentTarget.style.borderColor = '#444';
+                }}
+              >
+                Manage your position on Alchemix
+                <span style={{ fontSize: '20px' }}>↗</span>
+              </a>
             </div>
+
+            <div className="position-summary">
+            </div>
+          </div>
+
+          <div style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            background: '#1a1b1f',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}>
+
           </div>
 
           <TransactionConfirmation
