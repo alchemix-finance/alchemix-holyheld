@@ -130,7 +130,8 @@ export function useAlchemistPosition(depositAsset: DepositAsset | `0x${string}` 
             }
 
             // Determine which Alchemist to use based on deposit asset
-            const synthType = assetAddress.toUpperCase() === 'ETH' || assetAddress.toUpperCase() === 'WETH'
+            const wethAddress = TOKEN_ADDRESSES['ETH']?.[chainId];
+            const synthType = assetAddress.toLowerCase() === wethAddress?.toLowerCase()
                 ? 'alETH'
                 : 'alUSD';
 

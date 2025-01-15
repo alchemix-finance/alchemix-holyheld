@@ -873,7 +873,7 @@ const App: React.FC = () => {
                 <div>
 
                   <div className="position-details">
-                    <p>Debt: {position.debt.amount} {position.debt.symbol}</p>
+                    {/* <p>Collateral: {position.collateral.amount} {position.collateral.symbol}</p> */}
                   </div>
                 </div>
               )}
@@ -1085,7 +1085,7 @@ const App: React.FC = () => {
             <div className="position-summary">
               <h3>Your Position</h3>
               <div className="position-details">
-                <p>Debt: {position.debt.amount} {position.debt.symbol}</p>
+                <p>Debt: {parseFloat(position.debt.amount).toFixed(6)} {position.debt.symbol}</p>
               </div>
             </div>
 
