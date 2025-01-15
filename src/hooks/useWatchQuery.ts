@@ -18,16 +18,21 @@ export const useWatchQuery = ({ scopeKey }: UseWatchQueryArgs) => {
     chainId: chain.id,
     watch: true,
   });
+
   useEffect(() => {
-    if (document.visibilityState === "visible") {
+    const fetchPosition = async () => {
       const isEth = chain.id === mainnet.id;
       const isBlockNumberEven = !!blockNumber && Number(blockNumber) % 2 === 0;
       if (isEth || isBlockNumberEven) {
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           predicate: (query) =>
             invalidateWagmiUseQueryPredicate({ query, scopeKey }),
         });
       }
-    }
-  }, [blockNumber, chain.id, queryClient, scopeKey]);
+    };
+
+    fetchPosition(); // Fetch position only on component mount
+
+    // Optional: Clean up or additional logic can be added here
+  }, [queryClient, scopeKey, chain.id, blockNumber]);
 };
