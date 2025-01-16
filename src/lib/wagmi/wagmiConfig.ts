@@ -12,25 +12,32 @@ import {
 import { tenderlyForkChain } from "./tenderly";
 import { chains } from "./chains";
 
-
-
-
 const projectId = import.meta.env.VITE_WC_PROJECT_ID;
 if (!projectId) {
   throw new Error("Missing VITE_WC_PROJECT_ID environment variable");
 }
 
+// Detect if we're on mobile
+const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
 const connectors = connectorsForWallets(
   [
     {
       groupName: "Recommended",
-      wallets: [
-        injectedWallet,
-        rabbyWallet,
-        metaMaskWallet,
-        walletConnectWallet,
-        coinbaseWallet,
-      ],
+      wallets: isMobile
+        ? [
+            walletConnectWallet,
+            coinbaseWallet,
+            metaMaskWallet,
+            injectedWallet,
+          ]
+        : [
+            injectedWallet,
+            rabbyWallet,
+            metaMaskWallet,
+            walletConnectWallet,
+            coinbaseWallet,
+          ],
     },
   ],
   {
@@ -40,7 +47,6 @@ const connectors = connectorsForWallets(
 );
 
 const typedChains = chains as [Chain, ...Chain[]];
-
 
 export const wagmiConfig = createConfig({
   connectors,
