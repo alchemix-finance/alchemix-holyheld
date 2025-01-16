@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { WagmiConfig, createConfig, http } from 'wagmi';
+import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { optimism, arbitrum } from 'wagmi/chains';
-import { darkTheme, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { darkTheme, getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { ThemeProvider } from '@mui/material/styles';
 import { Buffer } from 'buffer';
 import App from './App';
@@ -38,7 +38,7 @@ if (!projectId) {
   throw new Error('Missing VITE_WC_PROJECT_ID environment variable');
 }
 
-const chains = [optimism] as const;
+//const chains = [optimism] as const;
 
 // Configuration des wallets
 /* const { wallets } = getDefaultWallets({
@@ -91,14 +91,10 @@ alchemixTheme.colors.connectButtonText = '#f5caa4'; // Texte du bouton Connect
 alchemixTheme.colors.connectButtonTextError = '##f5caa4';
 
 // Configuration Wagmi
-const config = createConfig({
-  chains,
-  transports: {
-    //[mainnet.id]: http(),
-    [arbitrum.id]: http(),
-    [optimism.id]: http(),
-    //[ganacheChain.id]: http(),
-  },
+const config = getDefaultConfig({
+  appName: 'ALchemix Loan to Card',
+  projectId: import.meta.env.VITE_WC_PROJECT_ID,
+  chains: [optimism, arbitrum]
 });
 
 // Client React Query
@@ -107,7 +103,7 @@ const queryClient = new QueryClient();
 // Rendu de l'application
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WagmiConfig config={config}>
+    <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <RainbowKitProvider theme={alchemixTheme} showRecentTransactions={true}>
@@ -115,6 +111,6 @@ createRoot(document.getElementById('root')!).render(
           </RainbowKitProvider>
         </ThemeProvider>
       </QueryClientProvider>
-    </WagmiConfig>
+    </WagmiProvider>
   </React.StrictMode>
 );
