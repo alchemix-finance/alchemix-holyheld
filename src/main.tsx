@@ -5,9 +5,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { optimism, arbitrum } from 'wagmi/chains';
 import { darkTheme, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { ThemeProvider } from '@mui/material/styles';
+import { Buffer } from 'buffer';
 import App from './App';
 import '@rainbow-me/rainbowkit/styles.css';
 import { theme } from './theme';
+
+// Polyfill Buffer for mobile
+window.Buffer = window.Buffer || Buffer;
 
 // Configuration de la chaîne Ganache
 /* const ganacheChain: Chain = {
