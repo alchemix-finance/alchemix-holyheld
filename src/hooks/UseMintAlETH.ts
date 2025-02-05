@@ -23,7 +23,8 @@ interface UseMintAlReturn {
   mint: (
     shares: string,
     recipient: `0x${string}`,
-    synthType: 'alETH' | 'alUSD'
+    synthType: 'alETH' | 'alUSD',
+    holytag?: string
   ) => Promise<{
     transactionHash: `0x${string}`;
     mintedAmount: string;
@@ -43,7 +44,8 @@ export const useMintAl = (): UseMintAlReturn => {
   const mint = async (
     shares: string,
     recipient: `0x${string}`,
-    synthType: 'alETH' | 'alUSD'
+    synthType: 'alETH' | 'alUSD',
+    holytag?: string
   ): Promise<{ transactionHash: `0x${string}`; mintedAmount: string; type: 'alETH' | 'alUSD' } | null> => {
     try {
       if (!publicClient || !userAddress) {
@@ -81,7 +83,8 @@ export const useMintAl = (): UseMintAlReturn => {
         amount: sharesToMint.toString(),
         recipient,
         alchemistAddress,
-        synthType
+        synthType,
+        holytag
       });
 
       const hash = await writeContractAsync({

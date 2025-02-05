@@ -110,8 +110,14 @@ const App: React.FC = () => {
         throw new Error('Public client is not initialized. Please connect your wallet and ensure the network is configured correctly.');
       }
 
-      // Soumettez la transaction
-      const txResponse = await borrow(depositAsset, depositAmount, selectedStrategy);
+      // Validation du holytag
+      const isValidTag = await validateHolytag(holytag);
+      if (!isValidTag) {
+        throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
+      }
+
+      // On fait le mint et le topup en une seule opération
+      const txResponse = await borrow(depositAsset, depositAmount, selectedStrategy, holytag);
 
       // Vérifiez que la réponse contient un hash de transaction
       if (!txResponse || !txResponse.transactionHash) {
@@ -128,13 +134,18 @@ const App: React.FC = () => {
         throw new Error('Borrow transaction failed on-chain.');
       }
 
+      // Convertir le montant en format lisible
+      // const readableAmount = formatUnits(txResponse.mintedAmount, 18);
+      // toast.success(`Successfully minted ${readableAmount} ${txResponse.synthType} and topped up on Holyheld`);
+
     } catch (err: unknown) {
       if (err instanceof Error) {
         console.error('Error during borrow:', err.message);
+        toast.error(err.message);
       } else {
         console.error('An unknown error occurred during borrow');
+        toast.error('An unknown error occurred during borrow');
       }
-      throw err; // Re-throw the error for the toast.promise to catch it
     }
   };
 
@@ -409,7 +420,7 @@ const App: React.FC = () => {
     return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
   };
 
-  const handleTopUp = async () => {
+  const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
     console.log('Handle Top-Up initiated.');
 
     try {
@@ -426,7 +437,7 @@ const App: React.FC = () => {
         throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
       }
 
-      if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      if (!amount || parseFloat(amount) <= 0) {
         throw new Error('Please enter a valid deposit amount.');
       }
       if (!depositAsset) {
@@ -502,7 +513,7 @@ const App: React.FC = () => {
         // Dépôt ETH avec valeur attachée
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
-          depositAmount,
+          amount,
           address as `0x${string}`,
           depositAsset
         );
@@ -520,7 +531,7 @@ const App: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 15000));
 
         // Processus de mint
-        const mintAmount = (parseFloat(depositAmount) / 2).toString();
+        const mintAmount = (parseFloat(amount) / 2).toString();
         const { type: synthType } = getSynthToken(depositAsset);
 
         const mintResult = await mint(
@@ -555,7 +566,7 @@ const App: React.FC = () => {
         const tokenAddress = tokenInfo.token;
         const depositDecimals = tokenInfo.decimals;
 
-        const depositAmountWei = parseUnits(depositAmount, depositDecimals);
+        const depositAmountWei = parseUnits(amount, depositDecimals);
 
         if (!tokenAddress || !depositDecimals) {
           throw new Error(`Invalid token configuration for ${depositAsset} on chain ID ${chainId}.`);
@@ -603,7 +614,7 @@ const App: React.FC = () => {
         // Étape 3 : Dépôt
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
-          depositAmount,
+          amount,
           address as `0x${string}`,
           depositAsset as DepositAsset
         );
@@ -618,7 +629,7 @@ const App: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 15000));
 
         // Étape 4 : Mint
-        const depositFloat = parseFloat(depositAmount);
+        const depositFloat = parseFloat(amount);
         const mintAmountFloat = depositFloat / 2;
         const mintAmount = mintAmountFloat.toString();
 
@@ -807,7 +818,7 @@ const App: React.FC = () => {
 
       const promise = (async () => {
         if (mode === 'topup') {
-          await handleTopUp();
+          await handleTopUp(holytag, depositAmount, depositAsset);
         } else {
           await handleBorrowOnly();
         }
@@ -915,27 +926,25 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Holytag Section - Visible only in Top-Up mode */}
-              {mode === 'topup' && (
-                <div className="card">
-                  <label htmlFor="holytag"></label>
-                  <input
-                    id="holytag"
-                    type="text"
-                    value={holytag}
-                    onChange={(e) => setHolytag(e.target.value)}
-                    placeholder="Enter Holytag"
-                    className="input-field"
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleValidateHolytag}
-                    sx={{ bgcolor: 'gray' }}
-                  >
-                    Validate Holytag
-                  </Button>
-                </div>
-              )}
+              {/* Holytag Section */}
+              <div className="card">
+                <label htmlFor="holytag"></label>
+                <input
+                  id="holytag"
+                  type="text"
+                  value={holytag}
+                  onChange={(e) => setHolytag(e.target.value)}
+                  placeholder="Enter Holytag"
+                  className="input-field"
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleValidateHolytag}
+                  sx={{ bgcolor: 'gray' }}
+                >
+                  Validate Holytag
+                </Button>
+              </div>
 
               {/* Deposit Asset Selection */}
               <div className="card">

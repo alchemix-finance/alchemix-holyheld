@@ -1,15 +1,15 @@
 import { useState, useCallback } from 'react';
-import { parseUnits } from 'ethers';
+import { parseUnits, formatUnits } from 'ethers';
 import { erc20Abi } from 'viem';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { useChain } from './useChain';
-import { useAlchemixDeposit } from './useAlchemixLoan';
 import { useMintAl } from './UseMintAlETH';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
-import { VAULTS } from '@/lib/queries/useVaults';
 import { CONTRACTS } from '@/lib/wagmi/chains';
 import { SYNTH_ASSETS, SYNTH_ASSETS_ADDRESSES } from "@/lib/config/synths";
 import type { SynthAsset } from "@/lib/config/synths";
+import { useHolyheldSDK } from './useHolyheld';
+import { Network } from '@holyheld/sdk';
 
 type SupportedChainId = keyof typeof CONTRACTS;
 
@@ -20,6 +20,18 @@ interface BorrowResult {
     transactionHash: string;
 }
 
+const mapNetworkName = (networkName: string): Network => {
+    const networkMapping: Record<string, Network> = {
+        'arbitrum one': Network.arbitrum,
+        arbitrum: Network.arbitrum,
+        polygon: Network.polygon,
+        ethereum: Network.ethereum,
+        optimism: Network.optimism,
+        'op mainnet': Network.optimism,
+    };
+    return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
+};
+
 export const useBorrow = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -28,8 +40,8 @@ export const useBorrow = () => {
     const { data: walletClient } = useWalletClient();
     const chain = useChain();
     const publicClient = usePublicClient();
+    const { validateHolytag, convertToEUR, performTopUp } = useHolyheldSDK();
 
-    const { deposit } = useAlchemixDeposit();
     const { mint } = useMintAl();
     const { data: alchemists } = useAlchemists();
     // Mapping des assets
@@ -145,6 +157,7 @@ export const useBorrow = () => {
         depositAsset: string,
         depositAmount: string,
         selectedStrategy: string,
+        holytag?: string
     ): Promise<BorrowResult> => {
         setIsLoading(true);
         setError(null);
@@ -179,7 +192,6 @@ export const useBorrow = () => {
                 return al.synthType === mappedSynthType;
             });
 
-
             if (!alchemist) {
                 console.error('Alchemist not found:', {
                     depositAsset,
@@ -189,117 +201,132 @@ export const useBorrow = () => {
                 throw new Error(`No alchemist found for asset: ${depositAsset} (mapped to ${mappedSynthType})`);
             }
 
-            const chainId = chain.id as SupportedChainId;
 
-            // Traitement ETH
-            if (depositAsset === 'ETH') {
-                const vaults = VAULTS[chainId];
-                const vault = Object.entries(vaults).find(([addr]) => addr === selectedStrategy)?.[1];
+            // Traitement ETH et ERC20
+            const { type: synthType } = getSynthToken(depositAsset);
 
-                if (!vault?.wethGateway) {
-                    throw new Error('Selected strategy does not support ETH deposits');
-                }
+            // Convertir le montant en nombre décimal
+            const depositFloat = parseFloat(depositAmount);
+            const mintAmountFloat = depositFloat / 2; // On mint la moitié comme dans App.tsx
+            const mintAmount = mintAmountFloat.toString();
 
-                const depositResult = await deposit(
-                    selectedStrategy as `0x${string}`,
-                    depositAmount,
-                    address as `0x${string}`,
-                    depositAsset
-                );
+            console.log('Minting with amount:', {
+                originalAmount: depositAmount,
+                depositFloat,
+                mintAmountFloat,
+                mintAmount
+            });
 
-                if (!depositResult) throw new Error('ETH deposit failed');
+            // Mint the tokens avec le montant décimal
+            const mintResult = await mint(
+                mintAmount,
+                address as `0x${string}`,
+                synthType,
+                holytag
+            );
 
-                const depositReceipt = await publicClient.waitForTransactionReceipt({
-                    hash: depositResult.transactionHash,
-                });
+            if (!mintResult) throw new Error(`${synthType} minting failed.`);
 
-                if (depositReceipt.status !== 'success') {
-                    throw new Error('ETH deposit transaction failed');
-                }
+            console.log('Mint successful:', mintResult);
 
-                await new Promise(resolve => setTimeout(resolve, 15000));
-
-                const mintAmount = (parseFloat(depositAmount) / 2).toString();
-                const { type: synthType } = getSynthToken(depositAsset);
-
-                const mintResult = await mint(
-                    mintAmount.toString(),
-                    address,
-                    synthType
-                );
-
-                if (!mintResult) throw new Error(`${synthType} minting failed`);
-
-                return {
-                    status,
-                    mintedAmount: mintResult.mintedAmount,
-                    synthType,
-                    transactionHash: mintResult.transactionHash
-                };
-
-            } else {
-                // Traitement ERC20
-                const tokenKey = depositAsset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
-                const tokenInfo = CONTRACTS[chainId]?.TOKENS[tokenKey];
-
-                if (!tokenInfo) {
-                    throw new Error(`Token configuration not found for asset: ${depositAsset}`);
-                }
-
-                const tokenAddress = tokenInfo.token;
-                const depositDecimals = tokenInfo.decimals;
-                const depositAmountWei = parseUnits(depositAmount, depositDecimals);
-
-                // Vérifier le solde
-                await checkBalance(address as `0x${string}`, tokenAddress as `0x${string}`, depositAmountWei, depositAsset);
-
-                // Gérer l'approbation
-                await handleApproval(
-                    tokenAddress as `0x${string}`,
-                    alchemist.address as `0x${string}`,
-                    depositAmountWei,
-                    address as `0x${string}`
-                );
-
-                // Dépôt
-                const depositResult = await deposit(
-                    selectedStrategy as `0x${string}`,
-                    depositAmount,
-                    address as `0x${string}`,
-                    depositAsset
-                );
-
-                if (!depositResult) throw new Error('Deposit failed.');
-
-                await publicClient.waitForTransactionReceipt({
-                    hash: depositResult.transactionHash,
-                });
-
-                await new Promise(resolve => setTimeout(resolve, 15000));
-
-                const mintAmountFloat = parseFloat(depositAmount) / 2;
-                const mintAmount = mintAmountFloat.toString();
-                const { type: synthType } = getSynthToken(depositAsset);
-
-                const mintResult = await mint(
-                    mintAmount,
-                    address as `0x${string}`,
-                    synthType
-                );
-
-                if (!mintResult) throw new Error(`${synthType} minting failed.`);
-
-                return {
-                    status,
-                    mintedAmount: mintResult.mintedAmount,
-                    synthType,
-                    transactionHash: mintResult.transactionHash
-                };
+            // Validation du holytag
+            const isValidTag = await validateHolytag(holytag as string);
+            if (!isValidTag) {
+                throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
             }
+
+            // Déterminer le réseau pour Holyheld
+            const chainName = chain?.name;
+            if (!chainName) {
+                throw new Error('Chain name is undefined');
+            }
+            const network = mapNetworkName(chainName);
+            if (!network) {
+                throw new Error(`Unsupported network for Holyheld topup: ${chainName}`);
+            }
+
+            // Get the correct alAsset (alUSD or alETH) for conversion
+            const synthTokenAddress = SYNTH_ASSETS_ADDRESSES[chain.id][synthType];
+            if (!synthTokenAddress) {
+                throw new Error(`Synthetic token address not found for ${synthType}`);
+            }
+
+            console.log('Using synthetic token address:', synthTokenAddress);
+
+            // Le montant est déjà en wei dans mintResult.mintedAmount
+            // Pour Holyheld, nous devons le convertir en format décimal
+            const formattedAmount = formatUnits(mintResult.mintedAmount, 18);
+
+            console.log('Converting to EUR with parameters:', {
+                mintedAmountWei: mintResult.mintedAmount,
+                formattedDecimal: formattedAmount,
+                decimals: 18,
+                network: network,
+            });
+
+            // Convertir le montant en EUR
+            try {
+                const { transferData } = await convertToEUR(
+                    synthTokenAddress,
+                    18,
+                    formattedAmount, // Utiliser le montant formaté en décimal
+                    network
+                );
+
+                console.log('Conversion successful, transfer data:', transferData);
+
+                if (!transferData) {
+                    throw new Error('Transfer data is undefined after conversion');
+                }
+
+                // Effectuer le topup sur Holyheld
+                if (!holytag) {
+                    throw new Error('Holytag is required for topup');
+                }
+
+                await performTopUp(
+                    publicClient,
+                    walletClient,
+                    address,
+                    synthTokenAddress,
+                    network,
+                    formattedAmount, // Utiliser le même montant formaté
+                    transferData,
+                    holytag,
+                    true,
+                    {}
+                );
+
+            } catch (conversionError: unknown) {
+                console.error('Conversion error:', {
+                    error: conversionError,
+                    synthType,
+                    network,
+                    mintedAmount: mintResult.mintedAmount,
+                    tokenAddress: synthTokenAddress
+                });
+
+                let errorMessage = 'Unknown error';
+                if (conversionError instanceof Error) {
+                    errorMessage = conversionError.message;
+                } else if (typeof conversionError === 'object' && conversionError !== null) {
+                    errorMessage = (conversionError as any).message || JSON.stringify(conversionError);
+                }
+
+                throw new Error(`Failed to convert ${synthType} to EUR: ${errorMessage}. Please try with a smaller amount or contact support if the issue persists.`);
+            }
+
+            return {
+                status: 'success',
+                mintedAmount: mintResult.mintedAmount,
+                synthType,
+                transactionHash: mintResult.transactionHash
+            };
+
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
             setError(errorMessage);
-            throw new Error(errorMessage);
+            throw err;
         } finally {
             setIsLoading(false);
         }
