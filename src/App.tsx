@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
+  const [borrowAmount, setBorrowAmount] = useState<string>('');
   const { borrow, isLoading: isBorrowing } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
   const position = useAlchemistPosition(depositAsset);
@@ -117,7 +118,13 @@ const App: React.FC = () => {
       }
 
       // On fait le mint et le topup en une seule opération
-      const txResponse = await borrow(depositAsset, depositAmount, selectedStrategy, holytag);
+      const txResponse = await borrow(
+        depositAsset,
+        depositAmount,
+        borrowAmount,
+        selectedStrategy,
+        holytag
+      );
 
       // Vérifiez que la réponse contient un hash de transaction
       if (!txResponse || !txResponse.transactionHash) {
@@ -149,6 +156,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleBorrowPercentage = (percentage: number) => {
+    if (!depositAmount) return;
+    // On calcule d'abord 50% du montant de dépôt (limitation du contrat)
+    const maxBorrowAmount = parseFloat(depositAmount) * 0.5;
+    // Puis on applique le pourcentage choisi par l'utilisateur sur ce montant maximum
+    const amount = maxBorrowAmount * (percentage / 100);
+    setBorrowAmount(amount.toString());
+  };
 
   const getStrategyImplications = (apr: string | number): string => {
     const aprValue = typeof apr === 'string' ? parseFloat(apr) : apr;
@@ -372,6 +387,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Validation basique : nombre positif
+    if (!value || parseFloat(value) >= 0) {
+      setBorrowAmount(value);
+    }
+  };
+
   // useEffect pour mettre à jour automatiquement le loanAsset
   useEffect(() => {
     if (depositAsset) {
@@ -530,12 +553,11 @@ const App: React.FC = () => {
 
         await new Promise(resolve => setTimeout(resolve, 15000));
 
-        // Processus de mint
-        const mintAmount = (parseFloat(amount) / 2).toString();
+        // Utiliser le borrowAmount pour le mint au lieu de 50% du dépôt
         const { type: synthType } = getSynthToken(depositAsset);
 
         const mintResult = await mint(
-          mintAmount.toString(),
+          borrowAmount,
           address,
           synthType
         );
@@ -549,6 +571,57 @@ const App: React.FC = () => {
         if (mintReceipt.status !== 'success') {
           throw new Error('Minting transaction failed');
         }
+
+        // Top-up pour ETH
+        const synthTokenAddress = SYNTH_ASSETS_ADDRESSES[chainId][synthType];
+        if (!synthTokenAddress) {
+          throw new Error(`Synthetic token address not found for ${synthType}`);
+        }
+
+        // Étape 6 : Conversion en EUR
+        const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), 18);
+
+        console.log('Converting to EUR...', {
+          mintedAmount: mintResult.mintedAmount,
+          formattedAmount,
+          synthType
+        });
+
+        const mappedNetwork = mapNetworkName(chain.name);
+
+        const decimals = await publicClient.readContract({
+          address: synthTokenAddress as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'decimals',
+        }) as number;
+
+        const alAmount = formatUnits(BigInt(mintResult.mintedAmount), decimals);
+
+        const { transferData } = await convertToEUR(
+          synthTokenAddress,
+          decimals,
+          formattedAmount,
+          mappedNetwork
+        );
+
+        // Étape 7 : Top-Up
+        await performTopUp(
+          publicClient,
+          walletClient,
+          address,
+          synthTokenAddress,
+          mappedNetwork,
+          alAmount,
+          transferData,
+          holytag,
+          true,
+          {
+            onHashGenerate: (hash) => console.log('Transaction Hash:', hash),
+            onStepChange: (step) => console.log('Current Step:', step),
+          }
+        );
+
+        console.log('Top-up completed successfully.');
       } else {
         setIsModalOpen(false);
 
@@ -629,14 +702,10 @@ const App: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 15000));
 
         // Étape 4 : Mint
-        const depositFloat = parseFloat(amount);
-        const mintAmountFloat = depositFloat / 2;
-        const mintAmount = mintAmountFloat.toString();
-
         const { type: synthType } = getSynthToken(depositAsset);
 
         const mintResult = await mint(
-          mintAmount.toString(),
+          borrowAmount,
           address as `0x${string}`,
           synthType
         );
@@ -1010,6 +1079,44 @@ const App: React.FC = () => {
                       {balanceError}
                     </p>
                   )}
+                </div>
+              </div>
+
+              {/* Borrow Amount Input */}
+              <div className="card">
+                <label htmlFor="borrow-amount">
+                  Borrow amount
+                  <span className="tooltip-icon" data-tooltip="Amount you want to borrow">
+                    ⓘ
+                  </span>
+                </label>
+                <input
+                  id="borrow-amount"
+                  type="text"
+                  value={borrowAmount}
+                  onChange={handleBorrowAmountChange}
+                  placeholder="0.00"
+                  className="input-field"
+                />
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  {[25, 50, 75, 100].map((percentage) => (
+                    <button
+                      key={percentage}
+                      onClick={() => handleBorrowPercentage(percentage)}
+                      className="percentage-button"
+                      style={{
+                        flex: 1,
+                        padding: '4px',
+                        backgroundColor: '#1a1b1f',
+                        border: '1px solid #2d2f36',
+                        borderRadius: '4px',
+                        color: 'white',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {percentage}%
+                    </button>
+                  ))}
                 </div>
               </div>
 

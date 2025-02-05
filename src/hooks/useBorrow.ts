@@ -153,21 +153,26 @@ export const useBorrow = () => {
         if (!selectedStrategy) throw new Error('No strategy selected');
     }, []);
 
-    const borrow = async (
+    const borrow = useCallback(async (
         depositAsset: string,
         depositAmount: string,
+        borrowAmount: string,
         selectedStrategy: string,
-        holytag?: string
+        holytag: string
     ): Promise<BorrowResult> => {
         setIsLoading(true);
         setError(null);
 
         try {
-            if (!address || !walletClient || !chain || !publicClient) {
-                throw new Error('Please connect your wallet and ensure all clients are initialized.');
+            // Validation des entrées
+            validateInputs(depositAsset, depositAmount, selectedStrategy);
+            if (!borrowAmount || parseFloat(borrowAmount) <= 0) {
+                throw new Error('Invalid borrow amount');
             }
 
-            validateInputs(depositAsset, depositAmount, selectedStrategy);
+            if (!address || !publicClient || !walletClient || !chain) {
+                throw new Error('Wallet not connected');
+            }
 
             // Log détaillé des données avant la recherche
             console.log('Current state:', {
@@ -205,21 +210,15 @@ export const useBorrow = () => {
             // Traitement ETH et ERC20
             const { type: synthType } = getSynthToken(depositAsset);
 
-            // Convertir le montant en nombre décimal
-            const depositFloat = parseFloat(depositAmount);
-            const mintAmountFloat = depositFloat / 2; // On mint la moitié comme dans App.tsx
-            const mintAmount = mintAmountFloat.toString();
-
+            // Utiliser le borrowAmount pour le mint
             console.log('Minting with amount:', {
-                originalAmount: depositAmount,
-                depositFloat,
-                mintAmountFloat,
-                mintAmount
+                borrowAmount,
+                synthType
             });
 
-            // Mint the tokens avec le montant décimal
+            // Mint the tokens avec le borrowAmount
             const mintResult = await mint(
-                mintAmount,
+                borrowAmount,
                 address as `0x${string}`,
                 synthType,
                 holytag
@@ -253,13 +252,12 @@ export const useBorrow = () => {
 
             console.log('Using synthetic token address:', synthTokenAddress);
 
-            // Le montant est déjà en wei dans mintResult.mintedAmount
-            // Pour Holyheld, nous devons le convertir en format décimal
-            const formattedAmount = formatUnits(mintResult.mintedAmount, 18);
+            // Le montant pour le topup doit être le borrowAmount original, pas le montant minté
+            const formattedAmount = formatUnits(parseUnits(borrowAmount, 18), 18);
 
             console.log('Converting to EUR with parameters:', {
-                mintedAmountWei: mintResult.mintedAmount,
-                formattedDecimal: formattedAmount,
+                borrowAmount,
+                formattedAmount,
                 decimals: 18,
                 network: network,
             });
@@ -269,7 +267,7 @@ export const useBorrow = () => {
                 const { transferData } = await convertToEUR(
                     synthTokenAddress,
                     18,
-                    formattedAmount, // Utiliser le montant formaté en décimal
+                    formattedAmount, // Utiliser le borrowAmount formaté
                     network
                 );
 
@@ -330,7 +328,7 @@ export const useBorrow = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [address, publicClient, walletClient, chain, synthMapping, getSynthToken, validateHolytag, convertToEUR, performTopUp, mint]);
 
     return {
         borrow,
