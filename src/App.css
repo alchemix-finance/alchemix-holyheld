@@ -13,6 +13,8 @@ body {
 
 /* App Container */
 .app-container {
+  max-width: 600px; /* Adjust the width as needed */
+  margin: 0 auto; /* Center the container */
   min-height: 100vh;
   padding-top: 77px;
 }
@@ -56,18 +58,18 @@ body {
 /* Main Content */
 .main-content {
   flex: 1;
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 1px;
 }
 
 /* Card Styles */
 .card {
   background: transparent;
-  padding: 24px 12px;
-  width: 550px;
+  padding: 1px 12px;
+  width: 400px;
   box-shadow: none;
 }
 
@@ -80,7 +82,7 @@ body {
 }
 
 .card + .card {
-  margin-top: 16px;
+  margin-top: 2px;
 }
 
 /* Right Panel */
@@ -117,6 +119,8 @@ input {
   padding: 8px;
   background-color: transparent !important; /* Fully transparent background */
   color: white !important;
+  height: 21px;
+  background-color: transparent !important;
 }
 
 input:focus {
@@ -190,7 +194,7 @@ input:-webkit-autofill:active {
 .earnings-breakdown strong {
   color: rgb(255, 255, 255);
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 1px;
 }
 
 /* Summary Section */
@@ -206,8 +210,8 @@ input:-webkit-autofill:active {
 
 /* Changes Section */
 .changes-section {
-  margin-top: 2rem;
-  padding-top: 2rem;
+  margin-top: 2px;
+  padding-top: 2px;
 }
 
 .changes-section h2 {
@@ -252,6 +256,8 @@ input:-webkit-autofill:active {
 }
 
 select {
+  width: 100%; /* Ensure dropdown takes full width */
+  margin: 0 auto; /* Center the dropdown */
   border: 1px solid #f5caa4 !important; /* Ensure border color */
   border-radius: 5px;
   padding: 8px;
@@ -397,4 +403,40 @@ input.split-input::after {
   width: 1px;
   background-color: #f5caa4;
   margin: 0 8px;
+}
+#holytag {
+  width: 95%; /* Ensure holytag takes full width */
+  margin: 0 auto; /* Center the input */
+}
+#deposit-amount {
+  width: 95%; /* Ensure deposit input takes full width */
+  background-color: transparent !important; /* Ensure background stays transparent on focus */
+}
+#borrow-amount {
+  width: 95%; /* Ensure borrow amount input takes full width */
+  margin: 0 auto; /* Center the input */
+  background-color: transparent !important; /* Make background transparent */
+}
+/* IMPORTANT - Holytag Validation Styles */
+.input-field {
+  width: 95% !important;
+}
+.input-field.valid {
+  color: green !important;
+}
+.input-field.invalid {
+  color: red !important;
+}
+.input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+.checkmark {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 1.2em;
 }

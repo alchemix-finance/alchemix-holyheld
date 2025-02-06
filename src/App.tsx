@@ -356,6 +356,23 @@ const App: React.FC = () => {
     }));
   }, [availableStrategies]);
 
+  const [isValidHolytag, setIsValidHolytag] = useState(false);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (holytag) {
+        validateHolytag(holytag).then((isValid) => {
+          setIsValidHolytag(isValid);
+        });
+      } else {
+        setIsValidHolytag(false);
+      }
+    }, 500);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [holytag]);
+
+
   const handleValidateHolytag = async () => {
     try {
       const isValid = await validateHolytag(holytag);
@@ -1277,18 +1294,6 @@ const App: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                )}
-
-                {/* Strategy Implications */}
-                {selectedStrategy && (
-                  <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
-                    <h3>Implications of Selected Strategy:</h3>
-                    <p>
-                      {getStrategyImplications(
-                        availableStrategies.find((strategy) => strategy.address === selectedStrategy)?.apr || 0
-                      )}
-                    </p>
-                  </div>
                 )}
               </div>
 
