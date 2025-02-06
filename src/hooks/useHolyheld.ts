@@ -54,10 +54,7 @@ export const useHolyheldSDK = (): UseHolyheldSDKReturn => {
 
   const validateHolytag = async (holytag: string) => {
     if (!sdk) throw new Error('SDK not initialized');
-    const trimmedTag = holytag.trim();
-    const response = await sdk.offRamp.getTagInfoForTopUp(trimmedTag);
-    console.log("Response from getTagInfoForTopUp for holytag", trimmedTag, response);
-    return response.found;
+    return (await sdk.offRamp.getTagInfoForTopUp(holytag)).found;
   };
 
   const convertToEUR = async (
