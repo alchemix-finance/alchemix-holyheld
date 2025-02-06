@@ -9,6 +9,7 @@ import { Buffer } from 'buffer';
 import App from './App';
 import '@rainbow-me/rainbowkit/styles.css';
 import { theme } from './theme';
+import { MessageProvider } from './context/MessageContext';
 
 // Polyfill Buffer for mobile
 window.Buffer = window.Buffer || Buffer;
@@ -107,7 +108,9 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <RainbowKitProvider theme={alchemixTheme} showRecentTransactions={true}>
-            <App />
+            <MessageProvider>
+              <App />
+            </MessageProvider>
           </RainbowKitProvider>
         </ThemeProvider>
       </QueryClientProvider>

@@ -10,7 +10,6 @@ import { wethGatewayAbi } from '../abi/wethGateway';
 export const DEPOSIT_ASSETS = ['ETH', 'WETH', 'USDC', 'USDT', 'DAI'] as const;
 export type DepositAsset = typeof DEPOSIT_ASSETS[number];
 
-
 type SupportedChainId = typeof mainnet.id | typeof optimism.id | typeof arbitrum.id | typeof fantom.id;
 
 const ALCHEMIST_ADDRESSES = {
@@ -54,9 +53,9 @@ export const useAlchemixDeposit = () => {
 
       const chainId = chain.id as SupportedChainId;
 
-      // Vérifier si la chaîne est supportée
-      if (!ALCHEMIST_ADDRESSES[chainId]) {
-        throw new Error(`Chain ${chainId} is not supported`);
+      console.log('Deposit: chainId:', chainId, 'selectedStrategy:', selectedStrategy);
+      if (!selectedStrategy) {
+        throw new Error('Selected strategy is not provided. Check the modal connection flow.');
       }
 
       // Récupérer les infos de la vault pour cette chaîne
@@ -64,7 +63,6 @@ export const useAlchemixDeposit = () => {
       if (!vaultInfo) {
         throw new Error(`No vault found for strategy ${selectedStrategy} on chain ${chainId}`);
       }
-
 
       // Récupérer l'adresse appropriée
       const synthType = vaultInfo.synthAssetType;
@@ -80,7 +78,6 @@ export const useAlchemixDeposit = () => {
       console.log("Chain ID:", chainId);
       console.log("Selected Synth Type:", synthType);
       console.log("Alchemist Address:", alchemistAddress);
-
 
       // Gérer les différents decimals selon l'asset
       const decimals = depositAsset === 'USDC' || depositAsset === 'USDT' ? 6 : 18;

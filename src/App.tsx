@@ -23,9 +23,8 @@ import type { SynthAsset } from "@/lib/config/synths";
 import { CONTRACTS } from './lib/wagmi/chains';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
 import { TransactionConfirmation } from './components/TransactionConfirmation';
-import { MessageProvider } from './context/MessageContext';
+import { MessageProvider, useMessages } from './context/MessageContext';
 import MessageDisplay from './components/MessageDisplay';
-import { useMessages } from './context/MessageContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { toastConfig, warn } from './utils/toast';
@@ -37,6 +36,8 @@ import DialogActions from '@mui/material/DialogActions';
 interface ErrorData { message: string; }
 
 const App: React.FC = () => {
+  const { addMessage } = useMessages();
+
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [loanAsset, setLoanAsset] = useState<string>('');
@@ -232,15 +233,26 @@ const App: React.FC = () => {
   }, [chain.id]);
 
   const handleDepositAssetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Selected deposit asset:', e.target.value);
     const value = e.target.value;
     if (value === '' || DEPOSIT_ASSETS.includes(value as DepositAsset)) {
       setDepositAsset(value as DepositAsset | '');
+      addMessage(`Selected deposit asset: ${value}`, 'info');
     }
-    // Réinitialiser la stratégie
-    setSelectedStrategy('');
-    setSelectKey(prev => prev + 1);
-    const { addMessage } = useMessages();
-    addMessage(`Selected deposit asset: ${value}`, 'info');
+
+    // Check if the current strategy is valid for the new asset
+    const isCurrentStrategyValid = availableStrategies.some(strategy => {
+      console.log('Checking strategy:', strategy);
+      return strategy.address === selectedStrategy && strategy.asset === value;
+    });
+    console.log('Is current strategy valid:', isCurrentStrategyValid);
+    console.log('Current selectedStrategy:', selectedStrategy);
+    console.log('Available strategies:', availableStrategies);
+    
+    if (!isCurrentStrategyValid && selectedStrategy) {
+      console.log('Resetting strategy selection');
+      setSelectedStrategy('');
+    }
   };
 
   const synthMapping: Record<string, string> = {
@@ -385,7 +397,6 @@ const App: React.FC = () => {
     if (regex.test(value)) {
       setDepositAmount(value);
     }
-    const { addMessage } = useMessages();
     if (value && parseFloat(value) > 0) {
       addMessage(`Set deposit amount to ${value}`, 'info');
     }
@@ -448,6 +459,7 @@ const App: React.FC = () => {
   };
 
   const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
+    console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
     console.log('Handle Top-Up initiated.');
 
     try {
@@ -458,7 +470,7 @@ const App: React.FC = () => {
         throw new Error('Please connect your wallet and select a valid chain.');
       }
 
-      // Validate holytag first
+      // Validation du holytag
       const isValidTag = await validateHolytag(holytag);
       if (!isValidTag) {
         throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
@@ -469,6 +481,9 @@ const App: React.FC = () => {
       }
       if (!depositAsset) {
         throw new Error('Please select a deposit asset.');
+      }
+      if (!selectedStrategy) {
+        throw new Error('Please select a yield strategy.');
       }
       if (alchemistsLoading) {
         throw new Error('Loading alchemists data...');
@@ -688,6 +703,10 @@ const App: React.FC = () => {
           console.log(`Sufficient allowance: ${allowance.toString()} (no need to approve).`);
         }
 
+        console.log('handleTopUp: selectedStrategy =', selectedStrategy);
+        if (!selectedStrategy) {
+          throw new Error('Aucune stratégie sélectionnée');
+        }
         // Étape 3 : Dépôt
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
@@ -1241,7 +1260,17 @@ const App: React.FC = () => {
                 {isLoading ? (
                   <p>Waiting for Strategies...</p>
                 ) : (
-                  <select id="yield-strategy" className="dropdown">
+                  <select 
+                    id="yield-strategy" 
+                    className="dropdown"
+                    value={selectedStrategy}
+                    onChange={(e) => {
+                      console.log('Strategy selected:', e.target.value);
+                      setSelectedStrategy(e.target.value);
+                      addMessage(`Selected strategy: ${e.target.value}`, 'info');
+                    }}
+                  >
+                    <option value="">Select strategy</option>
                     {formattedStrategies.map((strategy) => (
                       <option key={strategy.value} value={strategy.value}>
                         {strategy.label}
