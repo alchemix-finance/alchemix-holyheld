@@ -29,6 +29,10 @@ import { useMessages } from './context/MessageContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { toastConfig, warn } from './utils/toast';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 
 interface ErrorData { message: string; }
 
@@ -932,12 +936,87 @@ const App: React.FC = () => {
     }
   }, [error]);
 
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    if (!hasSeenWelcome) {
+      setShowWelcomeModal(true);
+    }
+  }, []);
+
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    localStorage.setItem('hasSeenWelcome', 'true');
+  };
+
   return (
     <div className="bg-alchemix">
       <ToastContainer />
       <MessageProvider>
         <div className="app-container" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <MessageDisplay />
+
+          {/* Welcome Modal */}
+          <Dialog
+            open={showWelcomeModal}
+            onClose={handleCloseWelcomeModal}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+              style: {
+                background: 'rgba(20, 25, 33, 0.95)',
+                color: 'white',
+                border: '1px solid #2d2f36',
+                borderRadius: '8px',
+              },
+            }}
+          >
+            <DialogTitle sx={{
+              borderBottom: '1px solid #2d2f36',
+              color: '#f5caa4'
+            }}>
+              Welcome to Alchemix Self-Repaying Loans
+            </DialogTitle>
+            <DialogContent sx={{ mt: 2 }}>
+              <p>Choose an option:</p>
+              <ul style={{ paddingLeft: '20px' }}>
+                <li style={{ marginBottom: '15px' }}>
+                  <strong>Deposit & Top-up</strong>
+                  <p style={{ margin: '5px 0', color: '#979BA2' }}>
+                    Deposit assets into an Alchemix vault and take a loan to your HolyHeld card
+                  </p>
+                </li>
+                <li style={{ marginBottom: '15px' }}>
+                  <strong>Top-up</strong>
+                  <p style={{ margin: '5px 0', color: '#979BA2' }}>
+                    Borrow against an existing position to top-up your HolyHeld card
+                  </p>
+                </li>
+              </ul>
+            </DialogContent>
+            <DialogActions sx={{
+              borderTop: '1px solid #2d2f36',
+              padding: '16px 24px'
+            }}>
+              <Button
+                onClick={handleCloseWelcomeModal}
+                variant="contained"
+                sx={{
+                  textTransform: 'none',
+                  bgcolor: '#f5caa4',
+                  color: '#232833',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    bgcolor: '#d4a88c',
+                  },
+                }}
+              >
+                Get Started
+              </Button>
+            </DialogActions>
+          </Dialog>
+
           <div className="main-content">
             {/* Header */}
             <header className="header">
@@ -958,11 +1037,12 @@ const App: React.FC = () => {
                 </div>
               )}
 
+
               {/* Mode Selection */}
-              <div className="card">
+              <div className="card" style={{ border: 'none' }}>
                 <div className="mode-selection" style={{
                   display: 'flex',
-                  gap: '10px',
+                  gap: '0px',
                   marginBottom: '20px',
                   justifyContent: 'center'
                 }}>
@@ -970,33 +1050,47 @@ const App: React.FC = () => {
                     variant={mode === 'topup' ? 'contained' : 'outlined'}
                     onClick={() => setMode('topup')}
                     sx={{
-                      bgcolor: mode === 'topup' ? 'gray' : 'transparent',
+                      textTransform: 'none',
+                      bgcolor: mode === 'topup' ? '#f5caa4' : 'transparent',
+                      color: mode === 'topup' ? '#232833' : 'white',
+                      fontWeight: mode === 'topup' ? 'bold' : 'normal',
                       flex: 1,
+                      borderTopRightRadius: 0,
+                      borderBottomRightRadius: 0,
+                      borderColor: '#f5caa4',
                       '&:hover': {
-                        bgcolor: mode === 'topup' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                        bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245,202,164,0.1)',
                       },
                     }}
                   >
-                    Top-Up
+                    Deposit & Top-Up
                   </Button>
                   <Button
                     variant={mode === 'borrowOnly' ? 'contained' : 'outlined'}
                     onClick={() => setMode('borrowOnly')}
                     sx={{
-                      bgcolor: mode === 'borrowOnly' ? 'gray' : 'transparent',
+                      textTransform: 'none',
+                      bgcolor: mode === 'borrowOnly' ? '#f5caa4' : 'transparent',
+                      color: mode === 'borrowOnly' ? '#232833' : 'white',
+                      fontWeight: mode === 'borrowOnly' ? 'bold' : 'normal',
                       flex: 1,
+                      borderTopLeftRadius: 0,
+                      borderBottomLeftRadius: 0,
+                      borderColor: '#f5caa4',
                       '&:hover': {
-                        bgcolor: mode === 'borrowOnly' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
+                        bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245,202,164,0.1)',
                       },
                     }}
                   >
-                    Borrow Only
+                    Top-Up
                   </Button>
                 </div>
               </div>
 
+              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
+
               {/* Holytag Section */}
-              <div className="card">
+              <div className="card" style={{ border: 'none' }}>
                 <label htmlFor="holytag"></label>
                 <input
                   id="holytag"
@@ -1009,14 +1103,22 @@ const App: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={handleValidateHolytag}
-                  sx={{ bgcolor: 'gray' }}
+                  sx={{
+                    textTransform: 'none',
+                    bgcolor: '#f5caa4',
+                    color: '#232833',
+                    fontWeight: 'bold',
+                    '&:hover': { bgcolor: '#d4a88c' },
+                  }}
                 >
                   Validate Holytag
                 </Button>
               </div>
 
+              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
+
               {/* Deposit Asset Selection */}
-              <div className="card">
+              <div className="card" style={{ border: 'none' }}>
                 <label htmlFor="deposit-asset">Select deposit asset</label>
                 <select
                   id="deposit-asset"
@@ -1050,10 +1152,12 @@ const App: React.FC = () => {
                     size="small"
                     disabled={balanceLoading || maxLoading || !depositAsset || !address}
                     sx={{
+                      textTransform: 'none',
                       minWidth: '60px',
                       height: '32px',
                       color: 'gray',
                       borderColor: 'gray',
+                      fontWeight: 'normal',
                       '&:hover': {
                         borderColor: 'white',
                         color: 'white',
@@ -1082,8 +1186,10 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
+
               {/* Borrow Amount Input */}
-              <div className="card">
+              <div className="card" style={{ border: 'none' }}>
                 <label htmlFor="borrow-amount">
                   Borrow amount
                   <span className="tooltip-icon" data-tooltip="Amount you want to borrow">
@@ -1112,6 +1218,7 @@ const App: React.FC = () => {
                         borderRadius: '4px',
                         color: 'white',
                         cursor: 'pointer',
+                        fontWeight: 'normal'
                       }}
                     >
                       {percentage}%
@@ -1120,8 +1227,10 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
+
               {/* Yield Strategy Selection */}
-              <div className="card">
+              <div className="card" style={{ border: 'none' }}>
                 <label htmlFor="yield-strategy">
                   Select yield strategy
                   <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
@@ -1132,29 +1241,13 @@ const App: React.FC = () => {
                 {isLoading ? (
                   <p>Waiting for Strategies...</p>
                 ) : (
-                  <Select
-                    key={selectKey}
-                    options={formattedStrategies}
-                    value={formattedStrategies.find((s) => s.value === selectedStrategy)}
-                    onChange={(option) => setSelectedStrategy(option?.value || '')}
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        backgroundColor: '#000',
-                        border: '1px solid #444',
-                        color: '#fff',
-                      }),
-                      option: (base, { isFocused }) => ({
-                        ...base,
-                        backgroundColor: isFocused ? '#333' : '#000',
-                        color: '#fff',
-                      }),
-                      singleValue: (base) => ({
-                        ...base,
-                        color: '#fff',
-                      }),
-                    }}
-                  />
+                  <select id="yield-strategy" className="dropdown">
+                    {formattedStrategies.map((strategy) => (
+                      <option key={strategy.value} value={strategy.value}>
+                        {strategy.label}
+                      </option>
+                    ))}
+                  </select>
                 )}
 
                 {/* Strategy Implications */}
@@ -1170,124 +1263,27 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              {/* Loan Asset Display */}
-              <div className="card">
-                <label htmlFor="loan-asset">Loan asset</label>
-                <input
-                  id="loan-asset"
-                  type="text"
-                  value={loanAsset}
-                  readOnly
-                  placeholder="Enter loan asset"
-                  className="input-field"
-                />
-              </div>
+              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
 
               {/* Action Button */}
-              <div className="card">
+              <div className="card" style={{ border: 'none' }}>
                 <Button
                   variant="contained"
                   onClick={openConfirmationModal}
                   disabled={isBorrowing}
                   fullWidth
-                  sx={{ bgcolor: 'Gray' }}
+                  sx={{
+                    textTransform: 'none',
+                    bgcolor: '#f5caa4',
+                    color: '#232833',
+                    fontWeight: 'bold',
+                    '&:hover': { bgcolor: '#d4a88c' },
+                  }}
                 >
                   {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
                 </Button>
               </div>
             </main>
-          </div>
-          <div className="right-panel">
-            <div className="position-summary">
-              <h3>Your Position</h3>
-              <div className="position-details">
-                <p>Debt: {parseFloat(position.debt.amount).toFixed(6)} {position.debt.symbol}</p>
-              </div>
-            </div>
-
-            <div className="position-summary">
-              <h2>Summary</h2>
-              {selectedStrategy ? (
-                <>
-                  <p>
-                    <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
-                  </p>
-                  <div className="earnings-breakdown">
-                    <p>
-                      <strong>Estimated Earnings (APR: {apr}%):</strong>
-                    </p>
-                    <p>
-                      Daily: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Weekly: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Monthly: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Yearly: {estimatedEarnings} {depositAsset}
-                    </p>
-                  </div>
-                  <p>
-                    <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
-                  </p>
-                </>
-              ) : (
-                <p>Please select a strategy to see the summary.</p>
-              )}
-            </div>
-
-            <div className="position-summary">
-              <a
-                href="https://alchemix.fi/vaults"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '12px',
-                  backgroundColor: '#1a1b1f',
-                  color: '#fff',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  transition: 'all 0.2s ease',
-                  border: '1px solid #444',
-                  fontSize: '14px'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#2d2f36';
-                  e.currentTarget.style.borderColor = '#666';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1a1b1f';
-                  e.currentTarget.style.borderColor = '#444';
-                }}
-              >
-                Manage your position on Alchemix
-                <span style={{ fontSize: '20px' }}>↗</span>
-              </a>
-            </div>
-
-            <div className="position-summary">
-            </div>
-          </div>
-
-          <div style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            background: '#1a1b1f',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-          }}>
-
           </div>
 
           <TransactionConfirmation
