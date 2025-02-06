@@ -344,6 +344,23 @@ const App: React.FC = () => {
     }));
   }, [availableStrategies]);
 
+  const [isValidHolytag, setIsValidHolytag] = useState(false);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (holytag) {
+        validateHolytag(holytag).then((isValid) => {
+          setIsValidHolytag(isValid);
+        });
+      } else {
+        setIsValidHolytag(false);
+      }
+    }, 500);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [holytag]);
+
   const handleValidateHolytag = async () => {
     try {
       const isValid = await validateHolytag(holytag);
@@ -1092,34 +1109,23 @@ const App: React.FC = () => {
               {/* Holytag Section */}
               <div className="card" style={{ border: 'none' }}>
                 <label htmlFor="holytag"></label>
-                <input
-                  id="holytag"
-                  type="text"
-                  value={holytag}
-                  onChange={(e) => setHolytag(e.target.value)}
-                  placeholder="Enter Holytag"
-                  className="input-field"
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleValidateHolytag}
-                  sx={{
-                    textTransform: 'none',
-                    bgcolor: '#f5caa4',
-                    color: '#232833',
-                    fontWeight: 'bold',
-                    '&:hover': { bgcolor: '#d4a88c' },
-                  }}
-                >
-                  Validate Holytag
-                </Button>
+                <div className="input-wrapper">
+                  <input
+                    type="text"
+                    value={holytag}
+                    onChange={(e) => { setHolytag(e.target.value); }}
+                    placeholder="alchemix"
+                    className={`input-field ${holytag ? (isValidHolytag ? 'valid' : 'invalid') : ''}`}
+                  />
+                  {isValidHolytag && <span className="checkmark">✔️</span>}
+                </div>
               </div>
 
               <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
 
               {/* Deposit Asset Selection */}
               <div className="card" style={{ border: 'none' }}>
-                <label htmlFor="deposit-asset">Select deposit asset</label>
+                <label htmlFor="deposit-asset">Deposit asset</label>
                 <select
                   id="deposit-asset"
                   className="dropdown"
@@ -1135,38 +1141,15 @@ const App: React.FC = () => {
                 </select>
 
                 {/* Deposit Amount Input */}
-                <label htmlFor="deposit-amount">Enter deposit amount</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    id="deposit-amount"
-                    type="text"
-                    value={depositAmount}
-                    onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder="0.00"
-                    className="input-field"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={handleMaxAmount}
-                    size="small"
-                    disabled={balanceLoading || maxLoading || !depositAsset || !address}
-                    sx={{
-                      textTransform: 'none',
-                      minWidth: '60px',
-                      height: '32px',
-                      color: 'gray',
-                      borderColor: 'gray',
-                      fontWeight: 'normal',
-                      '&:hover': {
-                        borderColor: 'white',
-                        color: 'white',
-                      },
-                    }}
-                  >
-                    MAX
-                  </Button>
-                </div>
+                <label htmlFor="deposit-amount">Deposit amount</label>
+                <input
+                  id="deposit-amount"
+                  type="text"
+                  value={depositAmount}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  placeholder="$100"
+                  className="input-field"
+                />
 
                 {/* Balance Display */}
                 <div style={{
@@ -1201,7 +1184,7 @@ const App: React.FC = () => {
                   type="text"
                   value={borrowAmount}
                   onChange={handleBorrowAmountChange}
-                  placeholder="0.00"
+                  placeholder="$100"
                   className="input-field"
                 />
                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>

@@ -13,8 +13,10 @@ body {
 
 /* App Container */
 .app-container {
-  min-height: 100vh;
+  max-width: 600px; /* Adjust the width as needed */
+  margin: 0 auto; /* Center the container */
   padding-top: 77px;
+  min-height: 100vh;
 }
 
 /* Header and Logo */
@@ -56,7 +58,7 @@ body {
 /* Main Content */
 .main-content {
   flex: 1;
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -66,21 +68,20 @@ body {
 /* Card Styles */
 .card {
   background: transparent;
-  padding: 24px 12px;
-  width: 550px;
+  padding: 1px 12px;
+  max-width: 400px; /* Reduced by 10% from 540px */
   box-shadow: none;
 }
 
 @media screen and (max-width: 600px) {
   .card {
-    width: 100%;
     margin: 0 12px;
     margin-left: auto;
   }
 }
 
 .card + .card {
-  margin-top: 16px;
+  margin-top: 2px;
 }
 
 /* Right Panel */
@@ -117,6 +118,7 @@ input {
   padding: 8px;
   background-color: transparent !important; /* Fully transparent background */
   color: white !important;
+  height: 21px;
 }
 
 input:focus {
@@ -130,6 +132,10 @@ input[type="email"],
 input[type="password"] {
   background-color: #0d0d0d;
   color: rgb(255, 255, 255);
+}
+
+input[type="number"]:focus {
+  background-color: transparent !important;
 }
 
 /* Override any browser default styles */
@@ -190,7 +196,7 @@ input:-webkit-autofill:active {
 .earnings-breakdown strong {
   color: rgb(255, 255, 255);
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 1px;
 }
 
 /* Summary Section */
@@ -206,8 +212,8 @@ input:-webkit-autofill:active {
 
 /* Changes Section */
 .changes-section {
-  margin-top: 2rem;
-  padding-top: 2rem;
+  margin-top: 2px;
+  padding-top: 2px;
 }
 
 .changes-section h2 {
@@ -252,6 +258,8 @@ input:-webkit-autofill:active {
 }
 
 select {
+  width: 100%; /* Ensure dropdown takes full width */
+  margin: 0 auto; /* Center the dropdown */
   border: 1px solid #f5caa4 !important; /* Ensure border color */
   border-radius: 5px;
   padding: 8px;
@@ -380,7 +388,12 @@ select:focus {
 .divider {
   background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent); /* Gradient effect */
   height: 1px; /* Set height for visibility */
-  margin: 16px 0; /* Adjust margin for spacing */
+  margin: 1px 0; /* Adjust margin for spacing */
+}
+
+hr {
+  border: 0.01px solid rgba(255, 255, 255, 0.1) !important; /* Thinner line */
+  margin: 1px 0 !important;
 }
 
 /* Input Split Styles */
@@ -397,4 +410,50 @@ input.split-input::after {
   width: 1px;
   background-color: #f5caa4;
   margin: 0 8px;
+}
+
+#holytag {
+  width: 95%; /* Ensure holytag takes full width */
+  margin: 0 auto; /* Center the input */
+}
+
+#deposit-amount {
+  width: 95%; /* Ensure deposit input takes full width */
+
+  background-color: transparent !important; /* Ensure background stays transparent on focus */
+}
+
+#borrow-amount {
+  width: 95%; /* Ensure borrow amount input takes full width */
+  margin: 0 auto; /* Center the input */
+  background-color: transparent !important; /* Make background transparent */
+
+}
+
+/* IMPORTANT - Holytag Validation Styles */
+.input-field {
+  width: 95% !important;
+}
+
+.input-field.valid {
+  color: green !important;
+}
+
+.input-field.invalid {
+  color: red !important;
+}
+
+.input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.checkmark {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 1.2em;
 }
