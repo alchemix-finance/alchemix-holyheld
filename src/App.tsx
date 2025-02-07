@@ -248,7 +248,7 @@ const App: React.FC = () => {
     console.log('Is current strategy valid:', isCurrentStrategyValid);
     console.log('Current selectedStrategy:', selectedStrategy);
     console.log('Available strategies:', availableStrategies);
-    
+
     if (!isCurrentStrategyValid && selectedStrategy) {
       console.log('Resetting strategy selection');
       setSelectedStrategy('');
@@ -1178,7 +1178,7 @@ const App: React.FC = () => {
                     type="text"
                     value={depositAmount}
                     onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder="0.00"
+                    placeholder="$100"
                     className="input-field"
                     style={{ flex: 1 }}
                   />
@@ -1237,7 +1237,7 @@ const App: React.FC = () => {
                   type="text"
                   value={borrowAmount}
                   onChange={handleBorrowAmountChange}
-                  placeholder="0.00"
+                  placeholder="$100"
                   className="input-field"
                 />
                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
@@ -1277,8 +1277,8 @@ const App: React.FC = () => {
                 {isLoading ? (
                   <p>Waiting for Strategies...</p>
                 ) : (
-                  <select 
-                    id="yield-strategy" 
+                  <select
+                    id="yield-strategy"
                     className="dropdown"
                     value={selectedStrategy}
                     onChange={(e) => {
