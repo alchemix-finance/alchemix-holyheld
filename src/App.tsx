@@ -1075,7 +1075,7 @@ const App: React.FC = () => {
 
 
               {/* Mode Selection */}
-              <div className="card" style={{ border: 'none' }}>
+              <div className="card first-card">
                 <div className="mode-selection" style={{
                   display: 'flex',
                   gap: '0px',
@@ -1123,10 +1123,9 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
 
-              {/* Holytag Section */}
-              <div className="card" style={{ border: 'none' }}>
+              {/* Holytag */}
+              <div className="card holytag-card">
                 <label htmlFor="holytag"></label>
                 <input
                   id="holytag"
@@ -1151,10 +1150,9 @@ const App: React.FC = () => {
                 </Button>
               </div>
 
-              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
 
               {/* Deposit Asset Selection */}
-              <div className="card" style={{ border: 'none' }}>
+              <div className="card deposit-card">
                 <label htmlFor="deposit-asset">Select deposit asset</label>
                 <select
                   id="deposit-asset"
@@ -1222,51 +1220,8 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
-
-              {/* Borrow Amount Input */}
-              <div className="card" style={{ border: 'none' }}>
-                <label htmlFor="borrow-amount">
-                  Borrow amount
-                  <span className="tooltip-icon" data-tooltip="Amount you want to borrow">
-                    ⓘ
-                  </span>
-                </label>
-                <input
-                  id="borrow-amount"
-                  type="text"
-                  value={borrowAmount}
-                  onChange={handleBorrowAmountChange}
-                  placeholder="$100"
-                  className="input-field"
-                />
-                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                  {[25, 50, 75, 100].map((percentage) => (
-                    <button
-                      key={percentage}
-                      onClick={() => handleBorrowPercentage(percentage)}
-                      className="percentage-button"
-                      style={{
-                        flex: 1,
-                        padding: '4px',
-                        backgroundColor: '#1a1b1f',
-                        border: '1px solid #2d2f36',
-                        borderRadius: '4px',
-                        color: 'white',
-                        cursor: 'pointer',
-                        fontWeight: 'normal'
-                      }}
-                    >
-                      {percentage}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
-
-              {/* Yield Strategy Selection */}
-              <div className="card" style={{ border: 'none' }}>
+              {/* Yield Strategy and Borrow Amount */}
+              <div className="card yield-strategy-card">
                 <label htmlFor="yield-strategy">
                   Select yield strategy
                   <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
@@ -1295,12 +1250,48 @@ const App: React.FC = () => {
                     ))}
                   </select>
                 )}
+
+                <div style={{ marginTop: '20px' }}>
+                  <label htmlFor="borrow-amount">
+                    Borrow amount
+                    <span className="tooltip-icon" data-tooltip="Amount you want to borrow">
+                      ⓘ
+                    </span>
+                  </label>
+                  <input
+                    id="borrow-amount"
+                    type="text"
+                    value={borrowAmount}
+                    onChange={handleBorrowAmountChange}
+                    placeholder="$100"
+                    className="input-field"
+                  />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    {[25, 50, 75, 100].map((percentage) => (
+                      <button
+                        key={percentage}
+                        onClick={() => handleBorrowPercentage(percentage)}
+                        className="percentage-button"
+                        style={{
+                          flex: 1,
+                          padding: '4px',
+                          backgroundColor: '#1a1b1f',
+                          border: '1px solid #2d2f36',
+                          borderRadius: '4px',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontWeight: 'normal'
+                        }}
+                      >
+                        {percentage}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <hr style={{ border: '0.5px solid rgba(255, 255, 255, 0.5)', margin: '10px 0' }} />
-
               {/* Action Button */}
-              <div className="card" style={{ border: 'none' }}>
+              <div className="card">
                 <Button
                   variant="contained"
                   onClick={openConfirmationModal}
