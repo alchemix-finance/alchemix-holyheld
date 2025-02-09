@@ -145,10 +145,11 @@ const App: React.FC = () => {
       // Call borrow function with the appropriate deposit amount
       const txResponse = await borrow(
         depositAsset,
-        depositAmountToUse, // Use '0' for borrow-only, otherwise use depositAmount
+        depositAmountToUse, // '0' pour borrow-only ou depositAmount selon le mode
         selectedStrategy,
-        mode === 'borrowOnly', // Pass true if in borrow-only mode
-        borrowAmount // Pass the borrowAmount explicitly
+        mode === 'borrowOnly', // true en borrow-only
+        holytag,              // holytag à fournir
+        borrowAmount          // montant à mint
       );
 
       return txResponse;
@@ -191,7 +192,7 @@ const App: React.FC = () => {
       const maxBorrowableAmount = parseFloat(depositAmount) * 0.5;
       amount = maxBorrowableAmount * (percentage / 100);
     }
-    
+
     // Limite à 5000 ETH dans tous les cas
     amount = Math.min(amount, 5000);
     console.log('Calculated borrow amount:', {
