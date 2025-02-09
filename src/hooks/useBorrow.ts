@@ -143,11 +143,13 @@ export const useBorrow = () => {
 
     const validateInputs = useCallback((
         depositAsset: string,
-        depositAmount: string,
-        selectedStrategy: string
+        depositAmount: string | null,
+        selectedStrategy: string,
+        isBorrowOnly: boolean
     ) => {
         if (!depositAsset) throw new Error('No deposit asset selected');
-        if (!depositAmount || parseFloat(depositAmount) <= 0) {
+        // Only validate deposit amount if not in borrow-only mode
+        if (!isBorrowOnly && (!depositAmount || parseFloat(depositAmount) <= 0)) {
             throw new Error('Invalid deposit amount');
         }
         if (!selectedStrategy) throw new Error('No strategy selected');
@@ -164,8 +166,12 @@ export const useBorrow = () => {
         setError(null);
 
         try {
+            // Check if this is a borrow-only operation
+            const isBorrowOnly = depositAmount === '0';
+            
             // Validation des entrées
-            validateInputs(depositAsset, depositAmount, selectedStrategy);
+            validateInputs(depositAsset, isBorrowOnly ? null : depositAmount, selectedStrategy, isBorrowOnly);
+            
             if (!borrowAmount || parseFloat(borrowAmount) <= 0) {
                 throw new Error('Invalid borrow amount');
             }
@@ -211,14 +217,41 @@ export const useBorrow = () => {
             const { type: synthType } = getSynthToken(depositAsset);
 
             // Utiliser le borrowAmount pour le mint
+            console.log('=== AMOUNT DETAILS ===');
+            console.log('1. Original borrowAmount:', borrowAmount);
+            console.log('1b. In ETH:', formatUnits(borrowAmount, 18));
+            
+            if (!borrowAmount) {
+                throw new Error('Invalid borrow amount');
+            }
+
+            // Le montant est déjà en wei (18 décimales)
+            // La limite du contrat est 5000000000000000000000000 (5e24)
+            // Nous devons nous assurer que notre montant est en dessous
+            const amount = BigInt(borrowAmount);
+            const maxLimit = BigInt('5000000000000000000000000'); // 5e24
+
+            console.log('2. Amount as BigInt:', amount.toString());
+            console.log('3. Max limit:', maxLimit.toString());
+            console.log('4. Is amount > limit:', amount > maxLimit);
+            console.log('===================');
+
+            if (amount > maxLimit) {
+                throw new Error('Amount exceeds contract limit');
+            }
+            
             console.log('Minting with amount:', {
-                borrowAmount,
+                originalAmount: borrowAmount,
+                amountInWei: amount.toString(),
+                amountInETH: formatUnits(amount.toString(), 18),
+                maxLimit: maxLimit.toString(),
+                maxLimitInETH: formatUnits(maxLimit.toString(), 18),
                 synthType
             });
 
-            // Mint the tokens avec le borrowAmount
+            // Mint the tokens
             const mintResult = await mint(
-                borrowAmount,
+                amount.toString(),
                 address as `0x${string}`,
                 synthType,
                 holytag

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWriteContract, useAccount, usePublicClient } from 'wagmi';
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import { alchemistV2Abi } from '../abi/alchemistV2';
 import { arbitrum, mainnet, optimism } from 'wagmi/chains';
 
@@ -59,33 +59,42 @@ export const useMintAl = (): UseMintAlReturn => {
 
       const chainAddresses = ALCHEMIST_CONTRACTS[chainId as keyof typeof ALCHEMIST_CONTRACTS];
       if (!chainAddresses) {
-        throw new Error(`Unsupported chain ID: ${chainId}`);
+        throw new Error('Chain not supported');
       }
 
       const alchemistAddress = chainAddresses[synthType];
-      if (!alchemistAddress || alchemistAddress === "0x0000000000000000000000000000000000000000") {
-        throw new Error(`No contract address found for synth type: ${synthType} on chain ID: ${chainId}`);
+      if (!alchemistAddress) {
+        throw new Error('Alchemist not found for this synth type');
       }
+
+      console.log('=== MINT DETAILS ===');
+      console.log('1. Shares to mint:', shares);
+      console.log('3. Recipient:', recipient);
+      console.log('4. Contract:', alchemistAddress);
+      console.log('5. Synth Type:', synthType);
+      console.log('===================');
 
       let sharesToMint: bigint;
       try {
-        sharesToMint = parseUnits(shares, 18);
-        console.log('Amount details:', {
-          input: shares,
-          formatted: sharesToMint.toString()
-        });
+        // Le montant est déjà en wei, pas besoin de le convertir
+        sharesToMint = BigInt(shares);
+
+        // Vérifier que le montant ne dépasse pas la limite
+        const maxLimit = BigInt('5000000000000000000000000');
+        if (sharesToMint > maxLimit) {
+          throw new Error('Amount exceeds minting limit');
+        }
       } catch (error) {
         console.error('Error formatting amount:', error);
         throw new Error('Invalid amount format');
       }
 
-      console.log('Mint parameters:', {
-        amount: sharesToMint.toString(),
-        recipient,
-        alchemistAddress,
-        synthType,
-        holytag
-      });
+      console.log('=== MINT DETAILS ===');
+      console.log('1. Shares to mint:', sharesToMint.toString());
+      console.log('3. Recipient:', recipient);
+      console.log('4. Contract:', alchemistAddress);
+      console.log('5. Synth Type:', synthType);
+      console.log('===================');
 
       const hash = await writeContractAsync({
         address: alchemistAddress,

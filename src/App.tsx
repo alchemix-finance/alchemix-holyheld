@@ -50,6 +50,10 @@ const App: React.FC = () => {
   const { borrow, isLoading: isBorrowing } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
   const position = useAlchemistPosition(depositAsset);
+  console.log('Position object:', position);
+  const depositedAmount = parseFloat(position.collateral.amount).toFixed(6);
+
+  console.log('Deposited amount:', depositedAmount);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [txDetails, setTxDetails] = useState({
@@ -111,9 +115,29 @@ const App: React.FC = () => {
   const handleBorrowOnly = async () => {
     try {
       setIsModalOpen(false);
-      // Vérifiez si publicClient est défini
+
       if (!publicClient) {
         throw new Error('Public client is not initialized. Please connect your wallet and ensure the network is configured correctly.');
+      }
+
+      // Validation du montant
+      if (!borrowAmount || parseFloat(formatUnits(borrowAmount, 18)) <= 0) {
+        throw new Error('Please enter a valid borrow amount greater than 0.');
+      }
+
+      console.log('=== BORROW ONLY DETAILS ===');
+      console.log('1. Borrow Amount:', borrowAmount);
+      console.log('2. In ETH:', formatUnits(borrowAmount, 18));
+      console.log('3. Deposit Asset:', depositAsset);
+      console.log('4. Strategy:', selectedStrategy);
+      console.log('========================');
+
+      if (!depositAsset) {
+        throw new Error('Please select an asset.');
+      }
+
+      if (!selectedStrategy) {
+        throw new Error('Please select a strategy.');
       }
 
       // Validation du holytag
@@ -125,49 +149,40 @@ const App: React.FC = () => {
       // On fait le mint et le topup en une seule opération
       const txResponse = await borrow(
         depositAsset,
-        depositAmount,
+        '0', // En mode borrow-only, on met 0 comme depositAmount
         borrowAmount,
         selectedStrategy,
         holytag
       );
 
-      // Vérifiez que la réponse contient un hash de transaction
       if (!txResponse || !txResponse.transactionHash) {
         throw new Error('Transaction submission failed: No transaction hash returned.');
       }
 
-      // Attendez la confirmation de la transaction
-      const txReceipt = await publicClient.waitForTransactionReceipt({
-        hash: txResponse.transactionHash as `0x${string}`,
-      });
-
-      // Vérifiez le statut de la transaction
-      if (txReceipt.status !== 'success') {
-        throw new Error('Borrow transaction failed on-chain.');
-      }
-
-      // Convertir le montant en format lisible
-      // const readableAmount = formatUnits(txResponse.mintedAmount, 18);
-      // toast.success(`Successfully minted ${readableAmount} ${txResponse.synthType} and topped up on Holyheld`);
-
+      return txResponse;
     } catch (err: unknown) {
       if (err instanceof Error) {
         console.error('Error during borrow:', err.message);
-        toast.error(err.message);
+        throw err;
       } else {
         console.error('An unknown error occurred during borrow');
-        toast.error('An unknown error occurred during borrow');
+        throw new Error('An unknown error occurred during borrow');
       }
     }
   };
 
   const handleBorrowPercentage = (percentage: number) => {
-    if (!depositAmount) return;
-    // On calcule d'abord 50% du montant de dépôt (limitation du contrat)
-    const maxBorrowAmount = parseFloat(depositAmount) * 0.5;
-    // Puis on applique le pourcentage choisi par l'utilisateur sur ce montant maximum
-    const amount = maxBorrowAmount * (percentage / 100);
-    setBorrowAmount(amount.toString());
+    if (mode === 'borrowOnly') {
+      const amountToBorrow = (parseFloat(depositedAmount) * percentage) / 100;
+      setBorrowAmount(amountToBorrow.toString());
+    } else {
+      if (!depositAmount) return;
+      // On calcule d'abord 50% du montant de dépôt (limitation du contrat)
+      const maxBorrowAmount = parseFloat(depositAmount) * 0.5;
+      // Puis on applique le pourcentage choisi par l'utilisateur sur ce montant maximum
+      const amount = maxBorrowAmount * (percentage / 100);
+      setBorrowAmount(amount.toString());
+    }
   };
 
   const getStrategyImplications = (apr: string | number): string => {
@@ -421,9 +436,12 @@ const App: React.FC = () => {
 
   const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Validation basique : nombre positif
-    if (!value || parseFloat(value) >= 0) {
-      setBorrowAmount(value);
+    console.log('Input value:', value);
+    // Only allow numbers and one decimal point
+    if (!value || /^\d*\.?\d*$/.test(value)) {
+      const formatted = value.replace(/^0+(?=\d)/, ''); // Remove leading zeros
+      console.log('Setting borrowAmount to:', formatted);
+      setBorrowAmount(formatted);
     }
   };
 
@@ -1026,7 +1044,7 @@ const App: React.FC = () => {
                 <li style={{ marginBottom: '15px' }}>
                   <strong>Top-up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
-                    Borrow against an existing position to top-up your HolyHeld card
+                    Borrow against an existing position to top-up your Holyheld Card.
                   </p>
                 </li>
               </ul>
@@ -1118,11 +1136,30 @@ const App: React.FC = () => {
                       },
                     }}
                   >
-                    Top-Up
+                    Borrow Only
                   </Button>
                 </div>
+                {mode === 'topup' && (
+                  <div style={{ textAlign: 'left', marginTop: '15px', marginBottom: '12px', color: '#979BA2', fontSize: '0.9em' }}>
+                    Deposit into an Alchemix vault and take a loan to top-up your Holyheld Card.<br />
+                    <br />
+                    1. Tag your HolyHeld card.<br />
+                    2. Select your deposit asset and amount.<br />
+                    3. Choose your Yield Strategy to deposit into.<br />
+                    4. Borrow and top-up your card.
+                  </div>
+                )}
+                {mode === 'borrowOnly' && (
+                  <div style={{ textAlign: 'left', marginTop: '15px', marginBottom: '12px', color: '#979BA2', fontSize: '0.9em' }}>
+                    Borrow against an existing position to top-up your Holyheld Card .<br />
+                    <br />
+                    1. Tag your HolyHeld Card.<br />
+                    2. Select your asset .<br />
+                    3. Choose your Yield Strategy to deposit into.<br />
+                    4. Borrow and top-up your card.
+                  </div>
+                )}
               </div>
-
 
               {/* Holytag */}
               <div className="card holytag-card">
@@ -1153,7 +1190,7 @@ const App: React.FC = () => {
 
               {/* Deposit Asset Selection */}
               <div className="card deposit-card">
-                <label htmlFor="deposit-asset">Select deposit asset</label>
+                <label htmlFor="deposit-asset">{mode === 'borrowOnly' ? 'Select your asset' : 'Deposit asset'}</label>
                 <select
                   id="deposit-asset"
                   className="dropdown"
@@ -1168,62 +1205,66 @@ const App: React.FC = () => {
                   ))}
                 </select>
 
-                {/* Deposit Amount Input */}
-                <label htmlFor="deposit-amount">Enter deposit amount</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    id="deposit-amount"
-                    type="text"
-                    value={depositAmount}
-                    onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder="$100"
-                    className="input-field"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={handleMaxAmount}
-                    size="small"
-                    disabled={balanceLoading || maxLoading || !depositAsset || !address}
-                    sx={{
-                      textTransform: 'none',
-                      minWidth: '60px',
-                      height: '32px',
-                      color: 'gray',
-                      borderColor: 'gray',
-                      fontWeight: 'normal',
-                      '&:hover': {
-                        borderColor: 'white',
-                        color: 'white',
-                      },
-                    }}
-                  >
-                    MAX
-                  </Button>
-                </div>
-
+                {mode !== 'borrowOnly' && (
+                  <>
+                    <label htmlFor="deposit-amount">Deposit amount</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        id="deposit-amount"
+                        type="text"
+                        value={depositAmount}
+                        onChange={(e) => handleInputChange(e.target.value)}
+                        placeholder="$100"
+                        className="input-field"
+                        style={{ flex: 1 }}
+                      />
+                      <Button
+                        variant="outlined"
+                        onClick={handleMaxAmount}
+                        size="small"
+                        disabled={balanceLoading || maxLoading || !depositAsset || !address}
+                        sx={{
+                          textTransform: 'none',
+                          minWidth: '60px',
+                          height: '32px',
+                          color: 'gray',
+                          borderColor: 'gray',
+                          fontWeight: 'normal',
+                          '&:hover': {
+                            borderColor: 'white',
+                            color: 'white',
+                          },
+                        }}
+                      >
+                        MAX
+                      </Button>
+                    </div>
+                  </>
+                )}
                 {/* Balance Display */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '4px'
-                }}>
-                  <p className="balance-text">
-                    {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
-                  </p>
-                  {balanceError && (
-                    <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
-                      {balanceError}
+                {mode !== 'borrowOnly' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '4px'
+                  }}>
+                    <p className="balance-text">
+                      {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
                     </p>
-                  )}
-                </div>
+                    {balanceError && (
+                      <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
+                        {balanceError}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Yield Strategy and Borrow Amount */}
               <div className="card yield-strategy-card">
                 <label htmlFor="yield-strategy">
-                  Select yield strategy
+                  Yield strategy
                   <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
                     ⓘ
                   </span>
@@ -1259,13 +1300,13 @@ const App: React.FC = () => {
                     </span>
                   </label>
                   <input
-                    id="borrow-amount"
                     type="text"
-                    value={borrowAmount}
+                    value={borrowAmount ? Number(formatUnits(borrowAmount, 18)).toFixed(8) : "0.00000000"}
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
                     className="input-field"
                   />
+
                   <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                     {[25, 50, 75, 100].map((percentage) => (
                       <button
