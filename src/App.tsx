@@ -51,7 +51,8 @@ const App: React.FC = () => {
   const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
   const position = useAlchemistPosition(depositAsset);
   console.log('Position object:', position);
-  const depositedAmount = parseFloat(position.collateral.amount).toFixed(6);
+  // Ne pas formater le montant déposé pour garder la précision
+  const depositedAmount = position.collateral.amount;
 
   console.log('Deposited amount:', depositedAmount);
 
@@ -116,18 +117,20 @@ const App: React.FC = () => {
     try {
       setIsModalOpen(false);
 
-      if (!publicClient) {
-        throw new Error('Public client is not initialized. Please connect your wallet and ensure the network is configured correctly.');
+      // Si c'est un nombre décimal en cours de saisie, on le convertit en wei
+      let finalAmount = borrowAmount;
+      if (typeof borrowAmount === 'string' && borrowAmount.includes('.')) {
+        finalAmount = parseUnits(borrowAmount, 18).toString();
       }
 
       // Validation du montant
-      if (!borrowAmount || parseFloat(formatUnits(borrowAmount, 18)) <= 0) {
+      if (!finalAmount || parseFloat(formatUnits(finalAmount, 18)) <= 0) {
         throw new Error('Please enter a valid borrow amount greater than 0.');
       }
 
       console.log('=== BORROW ONLY DETAILS ===');
-      console.log('1. Borrow Amount:', borrowAmount);
-      console.log('2. In ETH:', formatUnits(borrowAmount, 18));
+      console.log('1. Final Amount:', finalAmount);
+      console.log('2. In ETH:', formatUnits(finalAmount, 18));
       console.log('3. Deposit Asset:', depositAsset);
       console.log('4. Strategy:', selectedStrategy);
       console.log('========================');
@@ -136,53 +139,68 @@ const App: React.FC = () => {
         throw new Error('Please select an asset.');
       }
 
-      if (!selectedStrategy) {
-        throw new Error('Please select a strategy.');
-      }
+      // Determine the deposit amount based on the mode
+      const depositAmountToUse = mode === 'borrowOnly' ? '0' : depositAmount;
 
-      // Validation du holytag
-      const isValidTag = await validateHolytag(holytag);
-      if (!isValidTag) {
-        throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
-      }
-
-      // On fait le mint et le topup en une seule opération
+      // Call borrow function with the appropriate deposit amount
       const txResponse = await borrow(
         depositAsset,
-        '0', // En mode borrow-only, on met 0 comme depositAmount
-        borrowAmount,
+        depositAmountToUse, // Use '0' for borrow-only, otherwise use depositAmount
         selectedStrategy,
-        holytag
+        mode === 'borrowOnly', // Pass true if in borrow-only mode
+        borrowAmount // Pass the borrowAmount explicitly
       );
-
-      if (!txResponse || !txResponse.transactionHash) {
-        throw new Error('Transaction submission failed: No transaction hash returned.');
-      }
 
       return txResponse;
     } catch (err: unknown) {
       if (err instanceof Error) {
         console.error('Error during borrow:', err.message);
         throw err;
-      } else {
-        console.error('An unknown error occurred during borrow');
-        throw new Error('An unknown error occurred during borrow');
       }
     }
   };
 
   const handleBorrowPercentage = (percentage: number) => {
-    if (mode === 'borrowOnly') {
-      const amountToBorrow = (parseFloat(depositedAmount) * percentage) / 100;
-      setBorrowAmount(amountToBorrow.toString());
-    } else {
-      if (!depositAmount) return;
-      // On calcule d'abord 50% du montant de dépôt (limitation du contrat)
-      const maxBorrowAmount = parseFloat(depositAmount) * 0.5;
-      // Puis on applique le pourcentage choisi par l'utilisateur sur ce montant maximum
-      const amount = maxBorrowAmount * (percentage / 100);
-      setBorrowAmount(amount.toString());
+    // Validate depositAmount for all modes
+    if (!depositAmount && mode !== 'borrowOnly') {
+      console.error('Deposit amount is required for this mode.');
+      return;
     }
+    // For borrow-only mode, validate deposited amount
+    if (mode === 'borrowOnly' && (!depositedAmount || parseFloat(depositedAmount) <= 0)) {
+      console.error('Invalid deposited amount for borrow-only mode.');
+      return;
+    }
+
+    let amount;
+    if (mode === 'borrowOnly') {
+      // Convertir le montant de wei en ETH avant les calculs
+      const depositedAmountInEth = parseFloat(formatUnits(depositedAmount, 18));
+      // En mode borrow-only, on calcule le pourcentage du montant maximum empruntable (50% du dépôt)
+      const maxBorrowableAmount = depositedAmountInEth * 0.5;
+      amount = maxBorrowableAmount * (percentage / 100);
+      console.log('Borrow only calculation:', {
+        depositedAmount,
+        depositedAmountInEth,
+        maxBorrowableAmount,
+        percentage,
+        finalAmount: amount
+      });
+    } else {
+      // En mode deposit, même logique
+      const maxBorrowableAmount = parseFloat(depositAmount) * 0.5;
+      amount = maxBorrowableAmount * (percentage / 100);
+    }
+    
+    // Limite à 5000 ETH dans tous les cas
+    amount = Math.min(amount, 5000);
+    console.log('Calculated borrow amount:', {
+      mode,
+      depositedAmount: mode === 'borrowOnly' ? depositedAmount : depositAmount,
+      percentage,
+      calculatedAmount: amount
+    });
+    setBorrowAmount(amount.toString());
   };
 
   const getStrategyImplications = (apr: string | number): string => {
@@ -435,13 +453,24 @@ const App: React.FC = () => {
   };
 
   const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    console.log('Input value:', value);
-    // Only allow numbers and one decimal point
-    if (!value || /^\d*\.?\d*$/.test(value)) {
-      const formatted = value.replace(/^0+(?=\d)/, ''); // Remove leading zeros
-      console.log('Setting borrowAmount to:', formatted);
-      setBorrowAmount(formatted);
+    try {
+      const value = e.target.value;
+      if (!value || value === "0") {
+        setBorrowAmount("0");
+        return;
+      }
+
+      // Si c'est un nombre en cours de saisie (avec un point), on le garde tel quel
+      if (value.includes('.')) {
+        setBorrowAmount(value);
+        return;
+      }
+
+      // Sinon on le convertit en wei
+      const valueInWei = parseUnits(value, 18).toString();
+      setBorrowAmount(valueInWei);
+    } catch (error) {
+      console.error('Error converting borrow amount:', error);
     }
   };
 
@@ -461,7 +490,24 @@ const App: React.FC = () => {
       throw new Error(`Unsupported chain ID: ${chainId}`);
     }
 
+    // Handle direct synth assets
+    if (assetUpper === 'ALETH') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
+      return {
+        type: SYNTH_ASSETS.ALETH,
+        address
+      };
+    }
 
+    if (assetUpper === 'ALUSD') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
+      return {
+        type: SYNTH_ASSETS.ALUSD,
+        address
+      };
+    }
+
+    // Handle deposit assets
     if (assetUpper === 'WETH' || assetUpper === 'ETH') {
       const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
       return {
@@ -1136,7 +1182,7 @@ const App: React.FC = () => {
                       },
                     }}
                   >
-                    Borrow Only
+                    Top-Up
                   </Button>
                 </div>
                 {mode === 'topup' && (
@@ -1301,7 +1347,11 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={borrowAmount ? Number(formatUnits(borrowAmount, 18)).toFixed(8) : "0.00000000"}
+                    value={borrowAmount ?
+                      typeof borrowAmount === 'string' && borrowAmount.includes('.') ?
+                        borrowAmount :
+                        formatUnits(borrowAmount, 18)
+                      : "0"}
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
                     className="input-field"

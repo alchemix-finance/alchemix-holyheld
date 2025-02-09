@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWriteContract, useAccount, usePublicClient } from 'wagmi';
-import { parseUnits, formatUnits } from 'viem';
+import { parseUnits } from 'viem';
 import { alchemistV2Abi } from '../abi/alchemistV2';
 import { arbitrum, mainnet, optimism } from 'wagmi/chains';
 
@@ -23,8 +23,7 @@ interface UseMintAlReturn {
   mint: (
     shares: string,
     recipient: `0x${string}`,
-    synthType: 'alETH' | 'alUSD',
-    holytag?: string
+    synthType: 'alETH' | 'alUSD'
   ) => Promise<{
     transactionHash: `0x${string}`;
     mintedAmount: string;
@@ -44,8 +43,7 @@ export const useMintAl = (): UseMintAlReturn => {
   const mint = async (
     shares: string,
     recipient: `0x${string}`,
-    synthType: 'alETH' | 'alUSD',
-    holytag?: string
+    synthType: 'alETH' | 'alUSD'
   ): Promise<{ transactionHash: `0x${string}`; mintedAmount: string; type: 'alETH' | 'alUSD' } | null> => {
     try {
       if (!publicClient || !userAddress) {
@@ -59,42 +57,33 @@ export const useMintAl = (): UseMintAlReturn => {
 
       const chainAddresses = ALCHEMIST_CONTRACTS[chainId as keyof typeof ALCHEMIST_CONTRACTS];
       if (!chainAddresses) {
-        throw new Error('Chain not supported');
+        throw new Error(`Unsupported chain ID: ${chainId}`);
       }
 
       const alchemistAddress = chainAddresses[synthType];
-      if (!alchemistAddress) {
-        throw new Error('Alchemist not found for this synth type');
+      if (!alchemistAddress || alchemistAddress === "0x0000000000000000000000000000000000000000") {
+        throw new Error(`No contract address found for synth type: ${synthType} on chain ID: ${chainId}`);
       }
-
-      console.log('=== MINT DETAILS ===');
-      console.log('1. Shares to mint:', shares);
-      console.log('3. Recipient:', recipient);
-      console.log('4. Contract:', alchemistAddress);
-      console.log('5. Synth Type:', synthType);
-      console.log('===================');
 
       let sharesToMint: bigint;
       try {
-        // Le montant est déjà en wei, pas besoin de le convertir
-        sharesToMint = BigInt(shares);
-
-        // Vérifier que le montant ne dépasse pas la limite
-        const maxLimit = BigInt('5000000000000000000000000');
-        if (sharesToMint > maxLimit) {
-          throw new Error('Amount exceeds minting limit');
-        }
+        console.log('Input shares amount:', shares);
+        sharesToMint = parseUnits(shares, 18);
+        console.log('Amount details:', {
+          input: shares,
+          formatted: sharesToMint.toString()
+        });
       } catch (error) {
         console.error('Error formatting amount:', error);
         throw new Error('Invalid amount format');
       }
 
-      console.log('=== MINT DETAILS ===');
-      console.log('1. Shares to mint:', sharesToMint.toString());
-      console.log('3. Recipient:', recipient);
-      console.log('4. Contract:', alchemistAddress);
-      console.log('5. Synth Type:', synthType);
-      console.log('===================');
+      console.log('Mint parameters:', {
+        amount: sharesToMint.toString(),
+        recipient,
+        alchemistAddress,
+        synthType
+      });
 
       const hash = await writeContractAsync({
         address: alchemistAddress,
