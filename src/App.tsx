@@ -1210,7 +1210,7 @@ const App: React.FC = () => {
 
               {/* Holytag */}
               <div className="card holytag-card">
-                <label htmlFor="holytag">Holytag</label>
+                <label htmlFor="holytag" style={{ marginBottom: '10px' }}>Holytag</label>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <input
                     id="holytag"
@@ -1242,12 +1242,13 @@ const App: React.FC = () => {
 
               {/* Deposit Asset Selection */}
               <div className="card deposit-card">
-                <label htmlFor="deposit-asset">{mode === 'borrowOnly' ? 'Select your asset' : 'Deposit asset'}</label>
+                <label htmlFor="deposit-asset" style={{ marginBottom: '0px' }}>{mode === 'borrowOnly' ? 'Select your asset' : 'Deposit asset'}</label>
                 <select
                   id="deposit-asset"
                   className="dropdown"
                   value={depositAsset}
                   onChange={handleDepositAssetChange}
+                  style={{ margin: '10px 0', backgroundColor: '#1a1b1f' }}
                 >
                   <option value="">Select asset</option>
                   {availableDepositAssets.map((asset) => (
@@ -1259,7 +1260,7 @@ const App: React.FC = () => {
 
                 {mode !== 'borrowOnly' && (
                   <>
-                    <label htmlFor="deposit-amount">Deposit amount</label>
+                    <label htmlFor="deposit-amount" style={{ marginBottom: '10px' }}>Deposit amount</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
                       <input
                         id="deposit-amount"
@@ -1318,7 +1319,7 @@ const App: React.FC = () => {
 
               {/* Yield Strategy and Borrow Amount */}
               <div className="card yield-strategy-card">
-                <label htmlFor="yield-strategy">
+                <label htmlFor="yield-strategy" style={{ marginBottom: '0px' }}>
                   Yield strategy
                   <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
                     ⓘ
@@ -1337,6 +1338,7 @@ const App: React.FC = () => {
                       setSelectedStrategy(e.target.value);
                       addMessage(`Selected strategy: ${e.target.value}`, 'info');
                     }}
+                    style={{ margin: '10px 0', backgroundColor: '#1a1b1f' }}
                   >
                     <option value="">Select strategy</option>
                     {formattedStrategies.map((strategy) => (
@@ -1347,8 +1349,8 @@ const App: React.FC = () => {
                   </select>
                 )}
 
-                <div style={{ marginTop: '20px' }}>
-                  <label htmlFor="borrow-amount">
+                <div style={{ marginTop: '0px' }}>
+                  <label htmlFor="borrow-amount" style={{ marginBottom: '0px' }}>
                     Borrow amount
                     <span className="tooltip-icon" data-tooltip="Amount you want to borrow">
                       ⓘ
@@ -1364,6 +1366,7 @@ const App: React.FC = () => {
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
                     className="input-field"
+                    style={{ margin: '10px 0' }}
                   />
 
                   <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
@@ -1399,10 +1402,11 @@ const App: React.FC = () => {
                   fullWidth
                   sx={{
                     textTransform: 'none',
-                    bgcolor: '#f5caa4',
-                    color: '#232833',
+                    backgroundColor: 'transparent',
+                    border: '2px solid green',
+                    color: 'green',
                     fontWeight: 'bold',
-                    '&:hover': { bgcolor: '#d4a88c' },
+                    '&:hover': { backgroundColor: 'transparent', border: '2px solid green', color: 'green' },
                   }}
                 >
                   {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
