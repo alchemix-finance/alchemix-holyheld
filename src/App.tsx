@@ -1210,28 +1210,33 @@ const App: React.FC = () => {
 
               {/* Holytag */}
               <div className="card holytag-card">
-                <label htmlFor="holytag"></label>
-                <input
-                  id="holytag"
-                  type="text"
-                  value={holytag}
-                  onChange={(e) => setHolytag(e.target.value)}
-                  placeholder="Enter Holytag"
-                  className="input-field"
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleValidateHolytag}
-                  sx={{
-                    textTransform: 'none',
-                    bgcolor: '#f5caa4',
-                    color: '#232833',
-                    fontWeight: 'bold',
-                    '&:hover': { bgcolor: '#d4a88c' },
-                  }}
-                >
-                  Validate Holytag
-                </Button>
+                <label htmlFor="holytag">Holytag</label>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    id="holytag"
+                    type="text"
+                    value={holytag}
+                    onChange={(e) => setHolytag(e.target.value)}
+                    placeholder="alchemix"
+                    className="input-field"
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleValidateHolytag}
+                    sx={{
+                      textTransform: 'none',
+                      bgcolor: '#f5caa4',
+                      color: '#232833',
+                      fontWeight: 'bold',
+                      width: '150px',
+                      marginLeft: '10px',
+                      '&:hover': { bgcolor: '#d4a88c' },
+                    }}
+                  >
+                    Validate Holytag
+                  </Button>
+                </div>
               </div>
 
 
@@ -1255,7 +1260,7 @@ const App: React.FC = () => {
                 {mode !== 'borrowOnly' && (
                   <>
                     <label htmlFor="deposit-amount">Deposit amount</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
                       <input
                         id="deposit-amount"
                         type="text"
@@ -1263,7 +1268,7 @@ const App: React.FC = () => {
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="$100"
                         className="input-field"
-                        style={{ flex: 1 }}
+                        style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
                       />
                       <Button
                         variant="outlined"
@@ -1273,10 +1278,13 @@ const App: React.FC = () => {
                         sx={{
                           textTransform: 'none',
                           minWidth: '60px',
-                          height: '32px',
-                          color: 'gray',
-                          borderColor: 'gray',
+                          height: '33px',
+                          color: 'white',
+                          borderColor: '#f5caa4',
                           fontWeight: 'normal',
+                          margin: 0,
+                          borderTopLeftRadius: 0,
+                          borderBottomLeftRadius: 0,
                           '&:hover': {
                             borderColor: 'white',
                             color: 'white',
