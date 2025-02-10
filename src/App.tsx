@@ -1409,7 +1409,7 @@ const App: React.FC = () => {
                     '&:hover': { backgroundColor: 'transparent', border: '2px solid green', color: 'green' },
                   }}
                 >
-                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
+                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-Up' : 'Top-Up'}
                 </Button>
               </div>
             </main>
