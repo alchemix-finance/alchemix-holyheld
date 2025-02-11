@@ -118,7 +118,7 @@ const App: React.FC = () => {
       // Si c'est un nombre décimal en cours de saisie, on le convertit en wei
       let finalAmount = borrowAmount;
       if (typeof borrowAmount === 'string' && borrowAmount.includes('.')) {
-        finalAmount = parseUnits(borrowAmount, 18).toString();
+        finalAmount = parseUnits(parseFloat(borrowAmount).toFixed(18), 18).toString();
       }
 
       // Validation du montant
@@ -1168,7 +1168,7 @@ const App: React.FC = () => {
                   </Button>
                 </div>
                 {mode === 'topup' && (
-                  <div style={{ textAlign: 'left', marginTop: '15px', marginBottom: '12px', color: '#979BA2', fontSize: '0.9em' }}>
+                  <div style={{ textAlign: 'left', marginTop: '12px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }}>
                     Deposit into an Alchemix vault and take a loan to top-up your Holyheld Card.<br />
                     <br />
                     1. Tag your HolyHeld card.<br />
@@ -1178,7 +1178,7 @@ const App: React.FC = () => {
                   </div>
                 )}
                 {mode === 'borrowOnly' && (
-                  <div style={{ textAlign: 'left', marginTop: '15px', marginBottom: '12px', color: '#979BA2', fontSize: '0.9em' }}>
+                  <div style={{ textAlign: 'left', marginTop: '12px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }}>
                     Borrow against an existing position to top-up your Holyheld Card .<br />
                     <br />
                     1. Tag your HolyHeld Card.<br />
