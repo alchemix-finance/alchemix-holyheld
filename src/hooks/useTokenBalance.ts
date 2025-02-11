@@ -3,8 +3,45 @@ import { formatUnits } from 'ethers';
 import { erc20Abi, createPublicClient, http } from 'viem';
 import { supportedChains, CONTRACTS } from '../lib/wagmi/chains';
 
+/**
+ * Cache to store token balances to reduce RPC calls
+ * Key format: `${chainId}-${depositAsset}-${address}`
+ */
 const balanceCache = new Map<string, number>();
 
+/**
+ * Hook for fetching token balances with caching support
+ * 
+ * This hook retrieves the balance of a specified token for a given address
+ * on a specific blockchain. It includes caching to minimize RPC calls and
+ * handles both ETH and ERC20 token balances.
+ * 
+ * @param {`0x${string}` | undefined} address - The address to check balance for
+ * @param {number | undefined} chainId - The blockchain network ID
+ * @param {string} depositAsset - The token symbol (e.g., 'ETH', 'USDC')
+ * 
+ * @returns {Object} Balance information and loading state
+ * @property {number} Tbalance - The token balance
+ * @property {boolean} isLoading - Whether the balance is being fetched
+ * @property {string|null} error - Error message if the fetch failed
+ * 
+ * @example
+ * ```typescript
+ * const { Tbalance, isLoading, error } = useTokenBalance(
+ *   "0x123...",
+ *   1,
+ *   "ETH"
+ * );
+ * 
+ * if (isLoading) {
+ *   console.log("Loading balance...");
+ * } else if (error) {
+ *   console.error("Error:", error);
+ * } else {
+ *   console.log(`Balance: ${Tbalance}`);
+ * }
+ * ```
+ */
 export const useTokenBalance = (
   address: `0x${string}` | undefined,
   chainId: number | undefined,

@@ -10,6 +10,14 @@ import type { SynthAsset } from "@/lib/config/synths";
 import { useHolyheldSDK } from './useHolyheld';
 import { Network } from '@holyheld/sdk';
 
+/**
+ * Result interface for a borrow operation
+ * @interface BorrowResult
+ * @property {string} status - Current status of the borrow operation
+ * @property {string} mintedAmount - Amount of synthetic assets minted
+ * @property {SynthAsset} synthType - Type of synthetic asset minted
+ * @property {string} transactionHash - Hash of the borrow transaction
+ */
 interface BorrowResult {
     status: string;
     mintedAmount: string;
@@ -17,6 +25,10 @@ interface BorrowResult {
     transactionHash: string;
 }
 
+/**
+ * Mapping of deposit assets to their corresponding synthetic assets
+ * @constant
+ */
 const synthMapping: Record<string, string> = {
     USDC: "alUSD",
     DAI: "alUSD",
@@ -25,6 +37,11 @@ const synthMapping: Record<string, string> = {
     USDT: "alUSD",
 };
 
+/**
+ * Maps chain names to Holyheld network types
+ * @param {string} networkName - Name of the blockchain network
+ * @returns {Network} Corresponding Holyheld network type
+ */
 const mapNetworkName = (networkName: string): Network => {
     const mapping: Record<string, Network> = {
         'arbitrum one': Network.arbitrum,
@@ -37,6 +54,40 @@ const mapNetworkName = (networkName: string): Network => {
     return mapping[networkName.toLowerCase()] || networkName.toLowerCase();
 };
 
+/**
+ * Hook for borrowing synthetic assets in the Alchemix protocol
+ * 
+ * This hook provides functionality to borrow synthetic assets (alUSD or alETH)
+ * against deposited collateral. It handles the entire borrowing process,
+ * including validation, minting, and optional top-up operations.
+ * 
+ * Features:
+ * - Supports multiple deposit assets (ETH, WETH, USDC, DAI, USDT)
+ * - Automatically determines correct synthetic asset type
+ * - Handles gas estimation and transaction execution
+ * - Integrates with Holyheld for top-up functionality
+ * 
+ * @returns {Object} Borrowing functions and state
+ * @property {Function} borrow - Function to execute a borrow operation
+ * @property {boolean} isLoading - Whether a borrow operation is in progress
+ * @property {string|null} error - Error message if the operation failed
+ * 
+ * @example
+ * ```typescript
+ * const { borrow, isLoading, error } = useBorrow();
+ * 
+ * // Borrow synthetic assets
+ * try {
+ *   await borrow({
+ *     depositAsset: 'ETH',
+ *     amount: '1.0',
+ *     holytag: 'username',  // Optional, for top-up
+ *   });
+ * } catch (err) {
+ *   console.error('Borrow failed:', err);
+ * }
+ * ```
+ */
 export const useBorrow = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -50,6 +101,11 @@ export const useBorrow = () => {
     const { data: alchemists } = useAlchemists();
     const { validateHolytag, convertToEUR, performTopUp } = useHolyheldSDK();
 
+    /**
+     * Retrieves the synthetic token type and address for a given deposit asset
+     * @param {string} asset - Deposit asset symbol (e.g. ETH, USDC)
+     * @returns {Object} Synthetic token type and address
+     */
     const getSynthToken = useCallback((asset: string): { type: SynthAsset; address: string } => {
         const assetUpper = asset.toUpperCase();
         const chainId = chain?.id;
@@ -65,6 +121,13 @@ export const useBorrow = () => {
         throw new Error(`Unsupported deposit asset: ${asset}`);
     }, [chain?.id]);
 
+    /**
+     * Validates user input for the borrow operation
+     * @param {string} depositAsset - Deposit asset symbol (e.g. ETH, USDC)
+     * @param {string} selectedStrategy - Selected strategy for the borrow operation
+     * @param {string} userInputMintAmount - User-input mint amount
+     * @param {string} holytag - Optional holytag for top-up
+     */
     const validateInputs = useCallback((
         depositAsset: string,
         selectedStrategy: string,
@@ -77,6 +140,16 @@ export const useBorrow = () => {
         if (!holytag) throw new Error('Holytag is required');
     }, []);
 
+    /**
+     * Executes a borrow operation
+     * @param {string} depositAsset - Deposit asset symbol (e.g. ETH, USDC)
+     * @param {string} _depositAmount - Deposit amount (currently ignored)
+     * @param {string} selectedStrategy - Selected strategy for the borrow operation
+     * @param {boolean} _isBorrowOnly - Whether to only borrow (currently ignored)
+     * @param {string} holytag - Optional holytag for top-up
+     * @param {string} userInputMintAmount - User-input mint amount
+     * @returns {Promise<BorrowResult>} Borrow result
+     */
     const borrow = async (
         depositAsset: string,
         _depositAmount: string, // Ignoré puisque le dépôt n'est pas géré ici

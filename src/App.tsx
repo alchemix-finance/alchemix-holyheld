@@ -1,3 +1,33 @@
+/**
+ * App.tsx - Main Application Component
+ *
+ * Overview:
+ *   This file defines the main component (App) for the Alchemix Self-Repaying Loans dApp.
+ *   It orchestrates functionalities including deposits, borrowing, top-up operations, and user notifications.
+ *
+ * Key functionalities:
+ *   - State management for deposit amounts, borrow amounts, selected strategies, and operation modes (e.g., 'topup' vs 'borrowOnly').
+ *   - Integration with custom hooks:
+ *       * useAlchemistPosition: Retrieves user position details related to collateral.
+ *       * useTokenBalance: Fetches token balances for the connected wallet.
+ *       * useMaxAmount: Calculates the maximum available amount for transactions.
+ *       * useHolyheldSDK: Provides methods for tag validation, currency conversion, and top-up operations.
+ *       * useBorrow: Manages the borrowing process.
+ *       * useAlchemixDeposit: Handles deposit operations related to Alchemix loans.
+ *       * useMintAl: Manages minting of synthetic tokens (alETH, etc.).
+ *   - UI Components:
+ *       * ConnectButton from RainbowKit for wallet connections.
+ *       * Material UI components (Button, Dialog, etc.) for interactive elements.
+ *       * Custom components for transaction confirmations and message displays.
+ *   - Error handling and notifications:
+ *       * Utilizes react-toastify and a global MessageContext to handle and display errors and notifications.
+ *   - Utility functions for financial calculations:
+ *       * For example, calculating estimated earnings based on deposits and APR.
+ *
+ * Note:
+ *   Debug logs (console.log) are present throughout the component to assist during development and troubleshooting.
+ */
+
 import { useState, useEffect, useMemo } from 'react';
 import * as React from "react";
 import { formatUnits, parseUnits } from 'ethers';
