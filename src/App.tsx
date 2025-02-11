@@ -14,7 +14,6 @@ import { useBorrow } from './hooks/useBorrow';
 import { useAlchemistPosition } from './hooks/useAlchemistPosition';
 import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
-import Select from 'react-select';
 import { Network } from '@holyheld/sdk';
 import { useAlchemixDeposit, DepositAsset, DEPOSIT_ASSETS } from './hooks/useAlchemixLoan';
 import { useMintAl } from './hooks/UseMintAlETH';
@@ -78,10 +77,9 @@ const App: React.FC = () => {
   const { data: walletClient } = useWalletClient();
   const chain = useChain();
   const publicClient = usePublicClient();
-  const [selectKey, setSelectKey] = useState(0);
 
-  const [collateralAmount, setCollateralAmount] = useState<string>('0.00');
-  const [estimatedEarnings, setEstimatedEarnings] = useState<string>('0.00');
+  const [, setCollateralAmount] = useState<string>('0.00');
+  const [, setEstimatedEarnings] = useState<string>('0.00');
   const [expectedDebt, setExpectedDebt] = useState<string>('0.00');
   const [apr, setApr] = useState<number>(0);
 
@@ -204,19 +202,6 @@ const App: React.FC = () => {
     setBorrowAmount(amount.toString());
   };
 
-  const getStrategyImplications = (apr: string | number): string => {
-    const aprValue = typeof apr === 'string' ? parseFloat(apr) : apr;
-
-    if (aprValue <= 5) {
-      return "This strategy offers low returns with minimal risk. Suitable for conservative investors.";
-    } else if (aprValue <= 10) {
-      return "This strategy provides balanced returns and moderate risk. Ideal for steady growth.";
-    } else if (aprValue <= 15) {
-      return "This strategy offers high returns but comes with increased risk. Suitable for bold investors.";
-    } else {
-      return "Invalid APR value.";
-    }
-  };
 
   useEffect(() => {
     if (!selectedStrategy) {
@@ -390,7 +375,7 @@ const App: React.FC = () => {
     }));
   }, [availableStrategies]);
 
-  const [isValidHolytag, setIsValidHolytag] = useState(false);
+  const [, setIsValidHolytag] = useState(false);
   useEffect(() => {
     const handler = setTimeout(() => {
       if (holytag) {
@@ -1159,9 +1144,7 @@ const App: React.FC = () => {
                       borderTopRightRadius: 0,
                       borderBottomRightRadius: 0,
                       borderColor: '#f5caa4',
-                      '&:hover': {
-                        bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245,202,164,0.1)',
-                      },
+                      '&:hover': { bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245,202,164,0.1)', color: mode === 'topup' ? '#232833' : 'white' },
                     }}
                   >
                     Deposit & Top-Up
@@ -1178,9 +1161,7 @@ const App: React.FC = () => {
                       borderTopLeftRadius: 0,
                       borderBottomLeftRadius: 0,
                       borderColor: '#f5caa4',
-                      '&:hover': {
-                        bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245,202,164,0.1)',
-                      },
+                      '&:hover': { bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245,202,164,0.1)', color: mode === 'borrowOnly' ? '#232833' : 'white' },
                     }}
                   >
                     Top-Up
@@ -1366,25 +1347,34 @@ const App: React.FC = () => {
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
                     className="input-field"
-                    style={{ margin: '10px 0' }}
+                    style={{ margin: '10px 0', width: '500px' }}
                   />
 
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                    {[25, 50, 75, 100].map((percentage) => (
+                  <div style={{ display: 'flex', gap: '0', marginTop: '10px' }}>
+                    {[25, 50, 75, 100].map((percentage, index, array) => (
                       <button
                         key={percentage}
                         onClick={() => handleBorrowPercentage(percentage)}
-                        className="percentage-button"
                         style={{
                           flex: 1,
-                          padding: '4px',
-                          backgroundColor: '#1a1b1f',
-                          border: '1px solid #2d2f36',
-                          borderRadius: '4px',
-                          color: 'white',
+                          padding: '3px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #f5caa4',
+                          color: '#ccc',
                           cursor: 'pointer',
-                          fontWeight: 'normal'
+                          margin: 0,
+                          borderRadius: index === 0
+                            ? '4px 0 0 4px'
+                            : index === array.length - 1
+                              ? '0 4px 4px 0'
+                              : '0',
+                          borderRight: index === array.length - 1 ? '1px solid #f5caa4' : 'none',
+                          transition: 'background-color 0.3s, color 0.3s',
                         }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 202, 164, 0.2)'; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#ccc'; }}
+                        onMouseDown={(e) => { e.currentTarget.style.backgroundColor = '#d4a88c'; e.currentTarget.style.color = 'white'; }}
+                        onMouseUp={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 202, 164, 0.2)'; e.currentTarget.style.color = 'white'; }}
                       >
                         {percentage}%
                       </button>

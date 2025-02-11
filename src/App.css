@@ -268,7 +268,7 @@ input:-webkit-autofill:active {
   width: 100%;
   padding: 0.5rem;
   margin-top: 0.5rem;
-  background-color: #0d0d0d;
+  background-color: #f5caa4;
   color: rgb(255, 255, 255);
   font-size: 1rem;
   padding-right: 10px; /* Ajustez la valeur selon vos besoins */
@@ -276,6 +276,7 @@ input:-webkit-autofill:active {
 }
 
 .dropdown:focus {
+  background-color: #f5caa4;
   outline: none;
   border-color: transparent; /* Highlight border on focus */
 }
@@ -286,13 +287,26 @@ select {
   border: 1px solid #f5caa4 !important; /* Ensure border color */
   border-radius: 5px;
   padding: 8px;
-  background-color: transparent !important; /* Fully transparent background */
-  color: white !important;
+  background-color: #0f131a !important; /* Fully transparent background */
+  color: rgb(255, 255, 255) !important;
 }
 
 select:focus {
   outline: none;
   border-color: #f5caa4 !important; /* Ensure focus color */
+}
+
+.dropdown-menu {
+  background-color: #f5caa4; /* Couleur de fond du menu dropdown */
+  border: 1px solid #f5caa4;
+  border-radius: 5px;
+  padding: 8px;
+  color: rgb(0, 0, 0);
+}
+
+.dropdown-menu:focus {
+  outline: none;
+  border-color: #f5caa4; /* Couleur de bordure sur focus */
 }
 
 /* Margin Utility */
@@ -444,7 +458,7 @@ input.split-input::after {
 }
 /* IMPORTANT - Holytag Validation Styles */
 .input-field {
-  width: 95% !important;
+  width: 95.5% !important;
 }
 .input-field.valid {
   color: green !important;
@@ -464,4 +478,54 @@ input.split-input::after {
   transform: translateY(-50%);
   pointer-events: none;
   font-size: 1.2em;
+}
+
+.percentage-buttons {
+  display: flex;
+  gap: 0;
+  margin-top: 10px;
+}
+
+.percentage-button {
+  flex: 1;
+  padding: 8px;
+  background-color: transparent;
+  border: 1px solid #f5caa4;
+  color: #ccc;
+  cursor: pointer;
+  margin: 0;
+}
+
+.percentage-button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.percentage-button:last-child {
+  border-radius: 0 4px 4px 0;
+  border-right: 1px solid #f5caa4;
+}
+
+.percentage-button:not(:last-child) {
+  border-right: none;
+}
+
+.percentage-button:hover {
+  background-color: #f5caa4;
+  color: white;
+  border-color: #f5caa4;
+}
+
+/* Custom styles for react-select dropdown */
+.react-select__menu {
+  background-color: #f5caa4; /* Couleur de fond lorsque le dropdown est ouvert */
+  border: 1px solid #f5caa4;
+  border-radius: 5px;
+  padding: 8px;
+  background-color: transparent !important; /* Fully transparent background */
+  color: white !important;
+}
+
+.react-select__menu:focus {
+  outline: none;
+  border-color: #f5caa4 !important; /* Ensure focus color */
 }
