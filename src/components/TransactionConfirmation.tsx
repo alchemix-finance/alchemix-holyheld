@@ -75,10 +75,10 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
         <div style={{ display: "grid", gap: "0.75rem", padding: "1rem 0", fontSize: "0.95rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontWeight: "bold" }}>Type:</span>
-            <span>{transactionDetails.type}</span>
+            <span>{transactionDetails.type === 'Borrow' ? 'Top-up' : transactionDetails.type === 'Top-up' ? 'Deposit & Topup' : transactionDetails.type}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: "bold" }}>Amount:</span>
+            <span style={{ fontWeight: "bold" }}>Deposit:</span>
             <span>
               {transactionDetails.amount} {transactionDetails.token}
             </span>
@@ -91,10 +91,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           )}
           {transactionDetails.type === 'Top-up' && transactionDetails.collateralAmount && transactionDetails.depositAsset && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: "bold" }}>Collateral:</span>
-              <span>
-                {transactionDetails.collateralAmount} {transactionDetails.depositAsset}
-              </span>
+
             </div>
           )}
           {transactionDetails.type === 'Top-up' && transactionDetails.apr !== undefined && (
@@ -103,32 +100,13 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
               <span>{transactionDetails.apr}%</span>
             </div>
           )}
-          {transactionDetails.type === 'Top-up' && transactionDetails.estimatedEarnings && (
-            <div>
-              <span style={{ fontWeight: "bold" }}>Estimated Earnings:</span>
-              <div style={{ marginLeft: "1rem", marginTop: "0.5rem" }}>
-                <p>Daily: {transactionDetails.estimatedEarnings.daily} {transactionDetails.depositAsset}</p>
-                <p>Weekly: {transactionDetails.estimatedEarnings.weekly} {transactionDetails.depositAsset}</p>
-                <p>Monthly: {transactionDetails.estimatedEarnings.monthly} {transactionDetails.depositAsset}</p>
-                <p>Yearly: {transactionDetails.estimatedEarnings.yearly} {transactionDetails.depositAsset}</p>
-              </div>
-            </div>
-          )}
-          {transactionDetails.expectedDebt && transactionDetails.loanAsset && (
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: "bold" }}>Expected Debt:</span>
-              <span>
-                {transactionDetails.expectedDebt} {transactionDetails.loanAsset}
-              </span>
-            </div>
-          )}
         </div>
 
         <DialogFooter style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
           <Button
             onClick={onClose}
             sx={{
-              backgroundColor: "#0d0d0d",
+              backgroundColor: "#141921",
               color: "#ffffff",
               padding: "0.5rem 1rem",
               borderRadius: "6px",
