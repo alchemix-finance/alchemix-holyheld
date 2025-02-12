@@ -145,12 +145,6 @@ const App: React.FC = () => {
         throw new Error('Please enter a valid borrow amount greater than 0.');
       }
 
-      // Vérification des limites min/max
-      /*       const amountInEth = parseFloat(formatUnits(finalAmount, 18));
-            if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
-              throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR `);
-            } */
-
       console.log('=== BORROW ONLY DETAILS ===');
       console.log('1. Final Amount:', finalAmount);
       console.log('2. In ETH:', formatUnits(finalAmount, 18));
@@ -175,12 +169,16 @@ const App: React.FC = () => {
         borrowAmount
       );
 
-      return txResponse;
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error('Error during borrow:', err.message);
-        throw err;
+      if (!txResponse || txResponse.status !== 'success') {
+        throw new Error(txResponse?.status === 'reverted' 
+          ? 'Transaction was reverted by the network' 
+          : 'Transaction failed');
       }
+
+      return txResponse;
+    } catch (err) {
+      console.error('Error during borrow:', err);
+      throw err;
     }
   };
 
@@ -964,8 +962,8 @@ const App: React.FC = () => {
     // Construire l'objet de détails à afficher dans le pop-up
     const deposit = parseFloat(depositAmount || '0');
     const txDetails = {
-      type: mode === 'topup' ? 'Top-up' : 'Borrow',
-      amount: depositAmount,
+      type: mode === 'topup' ? 'Deposit & Top-up' : 'Top-up',
+      amount: mode === 'topup' ? depositAmount : borrowAmount,
       token: depositAsset || '',
       collateralAmount: mode === 'topup' ? depositAmount : '',
       depositAsset: depositAsset || '',
@@ -1009,38 +1007,43 @@ const App: React.FC = () => {
       }
 
       const promise = (async () => {
-        let result;
         try {
           if (mode === 'topup') {
-            await handleTopUp(holytag, depositAmount, depositAsset);
-            result = true; // Si handleTopUp ne lance pas d'erreur, c'est un succès
+            const result = await handleTopUp(holytag, depositAmount, depositAsset);
+            if (!result) {
+              throw new Error('Top-up operation failed');
+            }
           } else {
-            result = await handleBorrowOnly();
+            const borrowResult = await handleBorrowOnly();
+            if (!borrowResult || borrowResult.status !== 'success') {
+              throw new Error(borrowResult?.status === 'reverted' 
+                ? 'Transaction was reverted by the network' 
+                : 'Transaction failed');
+            }
           }
-          if (result === false) {
-            throw new Error(`${mode === 'topup' ? 'Top-up' : 'Borrow'} operation failed`);
-          }
-          return result;
+          return true;
         } catch (err) {
-          // Ensure the error is propagated to the toast
           console.error(`Error in ${mode} operation:`, err);
-          throw err;
+          if (err instanceof Error) {
+            throw err;
+          } else {
+            throw new Error('Transaction failed');
+          }
         }
       })();
 
       await toast.promise(promise, {
         pending: {
-          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} transaction in progress...`,
+          render: `${mode === 'topup' ? 'Deposit & Top-up' : 'Top-up'} transaction in progress...`,
           ...toastConfig,
         },
         success: {
-          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} completed successfully!`,
+          render: `${mode === 'topup' ? 'Deposit & Top-up' : 'Top-up'} completed successfully!`,
           ...toastConfig,
         },
         error: {
           render({ data }) {
-            const errorMessage = data instanceof Error ? data.message : `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`;
-            return errorMessage;
+            return data instanceof Error ? data.message : 'Transaction failed';
           },
           ...toastConfig,
         },
@@ -1453,7 +1456,7 @@ const App: React.FC = () => {
                     '&:hover': { backgroundColor: 'transparent', border: '2px solid green', color: 'green' },
                   }}
                 >
-                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-Up' : 'Top-Up'}
+                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-up' : 'Borrow'}
                 </Button>
 
                 <div className=" ">

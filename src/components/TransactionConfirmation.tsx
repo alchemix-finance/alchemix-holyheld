@@ -75,7 +75,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
         <div style={{ display: "grid", gap: "0.75rem", padding: "1rem 0", fontSize: "0.95rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontWeight: "bold" }}>Type:</span>
-            <span>{transactionDetails.type === 'Borrow' ? 'Top-up' : transactionDetails.type === 'Top-up' ? 'Deposit & Topup' : transactionDetails.type}</span>
+            <span>{transactionDetails.type}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontWeight: "bold" }}>Deposit:</span>
@@ -91,7 +91,8 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           )}
           {transactionDetails.type === 'Top-up' && transactionDetails.collateralAmount && transactionDetails.depositAsset && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-
+              <span style={{ fontWeight: "bold" }}>Collateral:</span>
+              <span>{transactionDetails.collateralAmount} {transactionDetails.depositAsset}</span>
             </div>
           )}
           {transactionDetails.type === 'Top-up' && transactionDetails.apr !== undefined && (
