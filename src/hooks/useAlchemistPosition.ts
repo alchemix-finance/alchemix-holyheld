@@ -197,9 +197,7 @@ export function useAlchemistPosition(depositAsset: DepositAsset | `0x${string}` 
     };
 
     const calculateCollateralFromShares = (shares: string): string => {
-        const SOME_RATIO = 0.1; // Exemple de ratio, remplacez par la logique appropriée
-        // Ne pas utiliser toFixed pour garder la précision complète
-        return (parseFloat(shares) * SOME_RATIO).toString();
+        return shares;
     };
 
     useEffect(() => {

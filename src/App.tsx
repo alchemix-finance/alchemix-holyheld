@@ -26,7 +26,7 @@ import { MessageProvider, useMessages } from './context/MessageContext';
 import MessageDisplay from './components/MessageDisplay';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { toastConfig, warn } from './utils/toast';
+import { toastConfig } from './utils/toast';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -41,7 +41,7 @@ const App: React.FC = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [loanAsset, setLoanAsset] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | Error | null>(null);
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
   const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
@@ -111,6 +111,7 @@ const App: React.FC = () => {
 
     return earnings;
   };
+
   const handleBorrowOnly = async () => {
     try {
       setIsModalOpen(false);
@@ -143,11 +144,11 @@ const App: React.FC = () => {
       // Call borrow function with the appropriate deposit amount
       const txResponse = await borrow(
         depositAsset,
-        depositAmountToUse, // '0' pour borrow-only ou depositAmount selon le mode
+        depositAmountToUse,
         selectedStrategy,
-        mode === 'borrowOnly', // true en borrow-only
-        holytag,              // holytag à fournir
-        borrowAmount          // montant à mint
+        mode === 'borrowOnly',
+        holytag,
+        borrowAmount
       );
 
       return txResponse;
@@ -157,6 +158,28 @@ const App: React.FC = () => {
         throw err;
       }
     }
+  };
+
+  const formatNumberWithoutExponent = (num: number | string): string => {
+    // Si c'est déjà une chaîne, vérifier si elle contient un point décimal
+    if (typeof num === 'string') {
+      return num.includes('.') ? num : num;
+    }
+
+    // Pour les nombres
+    const str = num.toString();
+    if (str.includes('e')) {
+      const [base, exponent] = str.split('e');
+      const exp = parseInt(exponent);
+      if (exp < 0) {
+        const baseWithoutDot = base.replace('.', '');
+        return '0.' + '0'.repeat(-exp - 1) + baseWithoutDot;
+      } else {
+        const baseWithoutDot = base.replace('.', '');
+        return baseWithoutDot + '0'.repeat(exp - (baseWithoutDot.length - 1));
+      }
+    }
+    return str;
   };
 
   const handleBorrowPercentage = (percentage: number) => {
@@ -173,20 +196,17 @@ const App: React.FC = () => {
 
     let amount;
     if (mode === 'borrowOnly') {
-      // Convertir le montant de wei en ETH avant les calculs
       const depositedAmountInEth = parseFloat(formatUnits(depositedAmount, 18));
-      // En mode borrow-only, on calcule le pourcentage du montant maximum empruntable (50% du dépôt)
       const maxBorrowableAmount = depositedAmountInEth * 0.5;
       amount = maxBorrowableAmount * (percentage / 100);
       console.log('Borrow only calculation:', {
-        depositedAmount,
-        depositedAmountInEth,
-        maxBorrowableAmount,
+        depositedAmount: formatNumberWithoutExponent(parseFloat(depositedAmount)),
+        depositedAmountInEth: formatNumberWithoutExponent(depositedAmountInEth),
+        maxBorrowableAmount: formatNumberWithoutExponent(maxBorrowableAmount),
         percentage,
-        finalAmount: amount
+        finalAmount: formatNumberWithoutExponent(amount)
       });
     } else {
-      // En mode deposit, même logique
       const maxBorrowableAmount = parseFloat(depositAmount) * 0.5;
       amount = maxBorrowableAmount * (percentage / 100);
     }
@@ -195,13 +215,12 @@ const App: React.FC = () => {
     amount = Math.min(amount, 5000);
     console.log('Calculated borrow amount:', {
       mode,
-      depositedAmount: mode === 'borrowOnly' ? depositedAmount : depositAmount,
+      depositedAmount: mode === 'borrowOnly' ? formatNumberWithoutExponent(parseFloat(depositedAmount)) : depositAmount,
       percentage,
-      calculatedAmount: amount
+      calculatedAmount: formatNumberWithoutExponent(amount)
     });
     setBorrowAmount(amount.toString());
   };
-
 
   useEffect(() => {
     if (!selectedStrategy) {
@@ -308,7 +327,7 @@ const App: React.FC = () => {
           const tokenKey = asset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
           const tokenAddress = CONTRACTS[supportedChainId]?.TOKENS[tokenKey]?.token;
           if (!tokenAddress) toast.error(`No token address found for ${tokenKey}`, {
-            ...warn,
+            ...toastConfig,
             icon: <span aria-label="error">❌</span>,
           });
 
@@ -319,7 +338,7 @@ const App: React.FC = () => {
           return apr;
         } catch (err) {
           toast.error(`Error fetching APR for asset ${asset}:`, {
-            ...warn,
+            ...toastConfig,
             icon: <span aria-label="error">❌</span>,
           });
           return 'N/A';
@@ -407,7 +426,7 @@ const App: React.FC = () => {
         });
       } else {
         toast.error('Invalid Holytag', {
-          ...warn,
+          ...toastConfig,
           icon: <span aria-label="error">❌</span>,
         });
       }
@@ -415,13 +434,13 @@ const App: React.FC = () => {
       if (err instanceof Error) {
         console.error('Error during holytag validation:', err.message);
         toast.error(err.message, {
-          ...warn,
+          ...toastConfig,
           icon: <span aria-label="error">❌</span>,
         });
       } else {
         console.error('An unknown error occurred during holytag validation');
         toast.error('An unknown error occurred during holytag validation', {
-          ...warn,
+          ...toastConfig,
           icon: <span aria-label="error">❌</span>,
         });
       }
@@ -439,24 +458,19 @@ const App: React.FC = () => {
   };
 
   const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      setBorrowAmount('0');
+      return;
+    }
+
     try {
-      const value = e.target.value;
-      if (!value || value === "0") {
-        setBorrowAmount("0");
-        return;
-      }
-
-      // Si c'est un nombre en cours de saisie (avec un point), on le garde tel quel
-      if (value.includes('.')) {
-        setBorrowAmount(value);
-        return;
-      }
-
-      // Sinon on le convertit en wei
-      const valueInWei = parseUnits(value, 18).toString();
-      setBorrowAmount(valueInWei);
+      // Convertir en format décimal standard si nécessaire
+      const formattedValue = formatNumberWithoutExponent(parseFloat(value));
+      setBorrowAmount(formattedValue);
     } catch (error) {
-      console.error('Error converting borrow amount:', error);
+      console.error('Error formatting borrow amount:', error);
+      setBorrowAmount('0');
     }
   };
 
@@ -708,6 +722,7 @@ const App: React.FC = () => {
         );
 
         console.log('Top-up completed successfully.');
+        return true; // Retourner explicitement true pour indiquer le succès
       } else {
         setIsModalOpen(false);
 
@@ -896,7 +911,7 @@ const App: React.FC = () => {
         //  console.log(performTopUp)
 
         console.log('Top-up completed successfully.');
-        // alert('Top-up successful!');
+        return true; // Retourner explicitement true pour indiquer le succès
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -905,7 +920,8 @@ const App: React.FC = () => {
         console.error('An unknown error occurred');
       }
 
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(err instanceof Error ? err : 'An unknown error occurred');
+      return false; // Retourner explicitement false pour indiquer l'échec
     } finally {
       setIsLoading(false);
     }
@@ -923,7 +939,7 @@ const App: React.FC = () => {
         console.error('An unknown error occurred while setting max amount');
       }
 
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(err instanceof Error ? err : 'An unknown error occurred');
     }
   };
 
@@ -968,7 +984,7 @@ const App: React.FC = () => {
         const isValidTag = await validateHolytag(holytag);
         if (!isValidTag) {
           toast.error('Invalid Holytag. Please enter a valid holytag before proceeding.', {
-            ...warn,
+            ...toastConfig,
             icon: <span aria-label="error">❌</span>,
           });
           return;
@@ -976,10 +992,22 @@ const App: React.FC = () => {
       }
 
       const promise = (async () => {
-        if (mode === 'topup') {
-          await handleTopUp(holytag, depositAmount, depositAsset);
-        } else {
-          await handleBorrowOnly();
+        let result;
+        try {
+          if (mode === 'topup') {
+            await handleTopUp(holytag, depositAmount, depositAsset);
+            result = true; // Si handleTopUp ne lance pas d'erreur, c'est un succès
+          } else {
+            result = await handleBorrowOnly();
+          }
+          if (result === false) {
+            throw new Error(`${mode === 'topup' ? 'Top-up' : 'Borrow'} operation failed`);
+          }
+          return result;
+        } catch (err) {
+          // Ensure the error is propagated to the toast
+          console.error(`Error in ${mode} operation:`, err);
+          throw err;
         }
       })();
 
@@ -994,14 +1022,8 @@ const App: React.FC = () => {
         },
         error: {
           render({ data }) {
-            if (data instanceof Error) {
-              return data.message;
-            }
-            const errorData = data as ErrorData | null | undefined;
-            if (errorData?.message === 'Transaction cancelled') {
-              return 'Transaction cancelled';
-            }
-            return `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`;
+            const errorMessage = data instanceof Error ? data.message : `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`;
+            return errorMessage;
           },
           ...toastConfig,
         },
@@ -1017,7 +1039,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      toast.error(error);
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : 'An error occurred'), {
+        ...toastConfig,
+        icon: <span aria-label="error">❌</span>,
+      });
       setError(null); // Clear error after showing toast
     }
   }, [error]);
@@ -1340,9 +1365,10 @@ const App: React.FC = () => {
                   <input
                     type="text"
                     value={borrowAmount ?
-                      typeof borrowAmount === 'string' && borrowAmount.includes('.') ?
+                      typeof borrowAmount === 'string' ?
                         borrowAmount :
-                        formatUnits(borrowAmount, 18)
+                        // Convertir d'abord en chaîne décimale, puis formater
+                        formatUnits(formatNumberWithoutExponent(borrowAmount), 18)
                       : "0"}
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
