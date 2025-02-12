@@ -529,3 +529,13 @@ input.split-input::after {
   outline: none;
   border-color: #f5caa4 !important; /* Ensure focus color */
 }
+
+/* Dans index.css ou un fichier de style global */
+.center-text-hack {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  width: 100%;
+  color: #979ba2; 
+}

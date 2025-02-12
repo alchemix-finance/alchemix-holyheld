@@ -1383,6 +1383,8 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+
+
               {/* Action Button */}
               <div className="card">
                 <Button
@@ -1401,6 +1403,14 @@ const App: React.FC = () => {
                 >
                   {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-Up' : 'Top-Up'}
                 </Button>
+
+                <div className=" ">
+                  <div className="text-gray-700  center-text-hack">
+                    {mode === 'topup'
+                      ? 'You will need to approve five transactions'
+                      : 'You will need to approve three transactions'}
+                  </div>
+                </div>
               </div>
             </main>
           </div>
