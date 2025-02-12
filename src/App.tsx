@@ -31,6 +31,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import { useServerSettings } from './hooks/useServerSettings';
 
 interface ErrorData { message: string; }
 
@@ -44,7 +45,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | Error | null>(null);
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
-  const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
+  const [mode, setMode] = useState<'topup' | 'borrowOnly'>('borrowOnly');
   const [borrowAmount, setBorrowAmount] = useState<string>('');
   const { borrow, isLoading: isBorrowing } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
@@ -96,6 +97,23 @@ const App: React.FC = () => {
   const { calculateMaxAmount, isLoading: maxLoading } = useMaxAmount();
   type SupportedChainId = keyof typeof CONTRACTS;
 
+  const {
+    settings,
+    isTopupEnabled,
+    minTopUpAmountInEUR,
+    maxTopUpAmountInEUR,
+    topUpFeePercent,
+    loading: serverSettingsLoading,
+    error: serverSettingsError
+  } = useServerSettings();
+
+  useEffect(() => {
+    if (serverSettingsError) {
+      console.error('Error fetching server settings:', serverSettingsError);
+    }
+    console.log('Server settings:', settings);
+  }, [serverSettingsError, settings]);
+
   const calculateEstimatedEarnings = (deposit: number, apr: number, periodInDays: number = 365): number => {
     // Convert annual APR to daily rate
     const dailyRate = apr / 36500; // Dividing by 365 * 100 to get daily percentage
@@ -126,6 +144,12 @@ const App: React.FC = () => {
       if (!finalAmount || parseFloat(formatUnits(finalAmount, 18)) <= 0) {
         throw new Error('Please enter a valid borrow amount greater than 0.');
       }
+
+      // Vérification des limites min/max
+      /*       const amountInEth = parseFloat(formatUnits(finalAmount, 18));
+            if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+              throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR `);
+            } */
 
       console.log('=== BORROW ONLY DETAILS ===');
       console.log('1. Final Amount:', finalAmount);
@@ -540,11 +564,15 @@ const App: React.FC = () => {
   };
 
   const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
-    console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
-    console.log('Handle Top-Up initiated.');
-
     try {
-      setIsModalOpen(false);
+      // Vérification des limites min/max avant toute opération
+      /*       const amountInEth = parseFloat(amount);
+            if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+              throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+            } */
+
+      console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
+      console.log('Handle Top-Up initiated.');
 
       // Check if wallet is connected and chain is supported
       if (!publicClient || !walletClient || !chain || !address) {
@@ -614,6 +642,10 @@ const App: React.FC = () => {
       const serverSettings = await sdk.getServerSettings();
       if (!serverSettings.external.isTopupEnabled) {
         throw new Error('Top-up is currently disabled.');
+      }
+
+      if (!isTopupEnabled) {
+        throw new Error('Top-up service is currently unavailable');
       }
 
       // Proceed with the top-up process
@@ -875,22 +907,9 @@ const App: React.FC = () => {
         //  console.log("Type of transferData:", typeof transferData);
         //  console.log('TransferData before top-up:', transferData);
 
-        /*       if (
-                parseFloat(EURAmount) < parseFloat(serverSettings.external.minTopUpAmountInEUR) ||
-                parseFloat(EURAmount) > parseFloat(serverSettings.external.maxTopUpAmountInEUR)
-              ) {
-                throw new Error(
-                  `Amount must be between €${serverSettings.external.minTopUpAmountInEUR} and €${serverSettings.external.maxTopUpAmountInEUR}.`
-                );
-              } */
-
-
-        //  console.log("Token balance:", tokenBalance.toString());
-        //  console.log("alAmount in Wei:", parseUnits(alAmount, decimals).toString());
-
-        /*       if (tokenBalance < parseUnits(alAmount, decimals)) {
-                throw new Error("Insufficient token balance for the requested top-up.");
-              } */
+        if (!transferData) {
+          throw new Error('Failed to get transfer data');
+        }
 
         // Étape 7 : Top-Up
         await performTopUp(
@@ -908,8 +927,6 @@ const App: React.FC = () => {
             onStepChange: (step) => console.log('Current Step:', step),
           }
         );
-        //  console.log(performTopUp)
-
         console.log('Top-up completed successfully.');
         return true; // Retourner explicitement true pour indiquer le succès
       }
@@ -1060,6 +1077,15 @@ const App: React.FC = () => {
     setShowWelcomeModal(false);
     localStorage.setItem('hasSeenWelcome', 'true');
   };
+
+  useEffect(() => {
+    if (!serverSettingsLoading && mode === 'topup' && !isTopupEnabled) {
+      toast.error('Top-up service is currently unavailable', {
+        ...toastConfig,
+        icon: <span aria-label="error">❌</span>,
+      });
+    }
+  }, [mode, isTopupEnabled, serverSettingsLoading]);
 
   return (
     <div className="bg-alchemix">
@@ -1449,6 +1475,7 @@ const App: React.FC = () => {
           />
         </div>
       </MessageProvider>
+
     </div>
   );
 };
