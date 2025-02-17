@@ -50,11 +50,11 @@ const App: React.FC = () => {
   const { borrow, isLoading: isBorrowing } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
   const position = useAlchemistPosition(depositAsset);
-  console.log('Position object:', position);
+  //console.log('Position object:', position);
   // Ne pas formater le montant déposé pour garder la précision
   const depositedAmount = position.collateral.amount;
 
-  console.log('Deposited amount:', depositedAmount);
+  //console.log('Deposited amount:', depositedAmount);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [txDetails, setTxDetails] = useState({
@@ -111,7 +111,7 @@ const App: React.FC = () => {
     if (serverSettingsError) {
       console.error('Error fetching server settings:', serverSettingsError);
     }
-    console.log('Server settings:', settings);
+    // console.log('Server settings:', settings);
   }, [serverSettingsError, settings]);
 
   const calculateEstimatedEarnings = (deposit: number, apr: number, periodInDays: number = 365): number => {
@@ -416,56 +416,36 @@ const App: React.FC = () => {
     }));
   }, [availableStrategies]);
 
-  const [, setIsValidHolytag] = useState(false);
+  const [holytagInput, setHolytagInput] = useState("");
+  const [holytagIsValid, setHolytagIsValid] = useState<boolean | null>(null);
+  const validateLetter = (letter: string): boolean => {
+    return /^[A-Za-z]$/.test(letter);
+  };
+
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (holytag) {
-        validateHolytag(holytag).then((isValid) => {
-          setIsValidHolytag(isValid);
-        });
-      } else {
-        setIsValidHolytag(false);
+      if (holytagInput) {
+        handleValidateHolytag();
       }
-    }, 500);
+    }, 200);
     return () => {
       clearTimeout(handler);
     };
-  }, [holytag]);
-
+  }, [holytagInput]);
 
   const handleValidateHolytag = async () => {
     try {
-      const isValid = await validateHolytag(holytag);
+      const isValid = await validateHolytag(holytagInput);
       if (isValid) {
-        toast.success('Holytag is valid!', {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          ...toastConfig,
-        });
+        setHolytagIsValid(true);
+        setHolytag(holytagInput);
+        toast.success("Holytag valid!", toastConfig);
       } else {
-        toast.error('Invalid Holytag', {
-          ...toastConfig,
-          icon: <span aria-label="error">❌</span>,
-        });
+        setHolytagIsValid(false);
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error('Error during holytag validation:', err.message);
-        toast.error(err.message, {
-          ...toastConfig,
-          icon: <span aria-label="error">❌</span>,
-        });
-      } else {
-        console.error('An unknown error occurred during holytag validation');
-        toast.error('An unknown error occurred during holytag validation', {
-          ...toastConfig,
-          icon: <span aria-label="error">❌</span>,
-        });
-      }
+    } catch (error) {
+      console.error("Erreur lors de la validation du Holytag", error);
+      setHolytagIsValid(false);
     }
   };
 
@@ -569,8 +549,8 @@ const App: React.FC = () => {
               throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
             } */
 
-      console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
-      console.log('Handle Top-Up initiated.');
+      // console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
+      // console.log('Handle Top-Up initiated.');
 
       // Check if wallet is connected and chain is supported
       if (!publicClient || !walletClient || !chain || !address) {
@@ -653,7 +633,7 @@ const App: React.FC = () => {
 
       // Logique différente pour ETH et ERC20
       if (depositAsset === 'ETH') {
-        console.log('Processing ETH deposit...');
+        //  console.log('Processing ETH deposit...');
 
         // Vérifier la vault et le gateway
         const vaults = VAULTS[chainId];
@@ -711,11 +691,11 @@ const App: React.FC = () => {
         // Étape 6 : Conversion en EUR
         const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), 18);
 
-        console.log('Converting to EUR...', {
-          mintedAmount: mintResult.mintedAmount,
-          formattedAmount,
-          synthType
-        });
+        /*         console.log('Converting to EUR...', {
+                  mintedAmount: mintResult.mintedAmount,
+                  formattedAmount,
+                  synthType
+                }); */
 
         const mappedNetwork = mapNetworkName(chain.name);
 
@@ -751,7 +731,7 @@ const App: React.FC = () => {
           }
         );
 
-        console.log('Top-up completed successfully.');
+        // console.log('Top-up completed successfully.');
         return true; // Retourner explicitement true pour indiquer le succès
       } else {
         setIsModalOpen(false);
@@ -790,7 +770,7 @@ const App: React.FC = () => {
         }) as bigint;
 
         if (allowance < depositAmountWei) {
-          console.log(`Current allowance: ${allowance.toString()}, required: ${depositAmountWei.toString()}. Approving...`);
+          // console.log(`Current allowance: ${allowance.toString()}, required: ${depositAmountWei.toString()}. Approving...`);
 
           const approveHash = await walletClient.writeContract({
             address: tokenAddress as `0x${string}`,
@@ -800,7 +780,7 @@ const App: React.FC = () => {
             gas: 100000n,
           });
 
-          console.log('Approve transaction sent, waiting for confirmation...');
+          // console.log('Approve transaction sent, waiting for confirmation...');
           const approveReceipt = await publicClient.waitForTransactionReceipt({
             hash: approveHash,
             confirmations: 1
@@ -1198,7 +1178,7 @@ const App: React.FC = () => {
                       borderTopRightRadius: 0,
                       borderBottomRightRadius: 0,
                       borderColor: '#f5caa4',
-                      '&:hover': { bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245,202,164,0.1)', color: mode === 'topup' ? '#232833' : 'white' },
+                      '&:hover': { bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)', color: mode === 'topup' ? '#232833' : 'white' },
                     }}
                   >
                     Deposit & Top-Up
@@ -1215,7 +1195,7 @@ const App: React.FC = () => {
                       borderTopLeftRadius: 0,
                       borderBottomLeftRadius: 0,
                       borderColor: '#f5caa4',
-                      '&:hover': { bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245,202,164,0.1)', color: mode === 'borrowOnly' ? '#232833' : 'white' },
+                      '&:hover': { bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)', color: mode === 'borrowOnly' ? '#232833' : 'white' },
                     }}
                   >
                     Top-Up
@@ -1246,31 +1226,50 @@ const App: React.FC = () => {
               {/* Holytag */}
               <div className="card holytag-card">
                 <label htmlFor="holytag" style={{ marginBottom: '10px' }}>Holytag</label>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="holytag-container" style={{ position: 'relative', flex: 1 }}>
                   <input
                     id="holytag"
                     type="text"
-                    value={holytag}
-                    onChange={(e) => setHolytag(e.target.value)}
+                    value={holytagInput}
+                    onChange={(e) => setHolytagInput(e.target.value)}
                     placeholder="alchemix"
                     className="input-field"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleValidateHolytag}
-                    sx={{
-                      textTransform: 'none',
-                      bgcolor: '#f5caa4',
-                      color: '#232833',
-                      fontWeight: 'bold',
-                      width: '150px',
-                      marginLeft: '10px',
-                      '&:hover': { bgcolor: '#d4a88c' },
+                    style={{
+                      position: 'relative',
+                      zIndex: 2,
+                      background: 'transparent',
+                      color: 'transparent',
+                      caretColor: 'black',
+                      fontSize: '16px',
+                      fontFamily: 'inherit',
+                      padding: '8px',
+                      boxSizing: 'border-box'
                     }}
-                  >
-                    Validate Holytag
-                  </Button>
+                  />
+                  <div className="holytag-overlay" style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '8px',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                    zIndex: 1
+                  }}>
+                    {holytagInput.split('').map((letter, idx) => {
+                      const color = holytagIsValid === null ? (validateLetter(letter) ? 'green' : 'red') : (holytagIsValid ? 'green' : 'red');
+                      return (
+                        <span key={idx} style={{ color }}>
+                          {letter}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

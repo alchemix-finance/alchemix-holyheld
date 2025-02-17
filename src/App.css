@@ -32,6 +32,7 @@ body {
   padding: 0 24px;
   background-color: rgb(14, 17, 22);
   z-index: 1000;
+  margin-bottom: 25px !important;
 }
 
 .logo-section {
@@ -68,7 +69,7 @@ body {
 /* Card Styles */
 .card { 
     margin: 0 !important;
-    padding: 16px !important;
+    padding: 16px ;
     background: rgba(20, 25, 33, 0.4) !important;
     width: 400px !important;
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -85,41 +86,43 @@ body {
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
-.first-card,
+ .first-card {
+  margin-top: 5% !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+ }
 .card:last-child {
-    background: transparent !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow: none !important;
-}
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-top: none !important;
+} 
 
-.first-card:hover,
+/* .first-card:hover,
 .card:last-child:hover {
     background: transparent !important;
     border-color: rgba(255, 255, 255, 0.3) !important;
     box-shadow: none !important;
-}
+} */
 
-.card:nth-child(1),
-.card:nth-child(2),
+
 .card:last-child {
-    border: none !important;
+    padding-bottom: 30px !important;
+
 }
 
-.deposit-card {
+ .deposit-card {
     border-top: none !important;
     border-bottom: none !important;
     border-radius: 0 !important;
-}
+} 
 
-.holytag-card {
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-}
+ .holytag-card {
+    border-radius: 0 !important;
+    border-top: none !important;
+} 
 
 .yield-strategy-card {
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
+    border-radius: 0 !important;
 }
 
 /* Labels in cards */
@@ -140,7 +143,7 @@ body {
 input {
   border: 1px solid #f5caa4 !important;
   border-radius: 5px;
-  padding: 8px;
+  padding: 8px 12px; /* Increased right padding */
   background-color: transparent !important;
   color: white;
   width: 100%;
@@ -444,7 +447,7 @@ input.split-input::after {
   margin: 0 8px;
 }
 #holytag {
-  width: 95%; /* Ensure holytag takes full width */
+  width: 100% !important; /* Ensure holytag takes full width */
   margin: 0 auto; /* Center the input */
 }
 #deposit-amount {
@@ -458,7 +461,7 @@ input.split-input::after {
 }
 /* IMPORTANT - Holytag Validation Styles */
 .input-field {
-  width: 95.5% !important;
+  width: 93.5% !important;
 }
 .input-field.valid {
   color: green !important;
