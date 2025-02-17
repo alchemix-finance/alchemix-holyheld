@@ -1124,13 +1124,13 @@ const App: React.FC = () => {
                 <li style={{ marginBottom: '15px' }}>
                   <strong>Deposit & Top-up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
-                    Deposit assets into an Alchemix vault and take a loan to your HolyHeld card
+                    Deposit into an Alchemix vault and take a Loan to top-up your HolyHeld card
                   </p>
                 </li>
                 <li style={{ marginBottom: '15px' }}>
                   <strong>Top-up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
-                    Borrow against an existing position to top-up your Holyheld Card.
+                    Borrow against an existing position to top-up your Holyheld card.
                   </p>
                 </li>
               </ul>
