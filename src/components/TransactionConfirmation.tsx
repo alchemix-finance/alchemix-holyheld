@@ -78,7 +78,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
             <span>{transactionDetails.type}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: "bold" }}>Deposit:</span>
+            <span style={{ fontWeight: "bold" }}>{transactionDetails.type === 'Deposit & Top-up' ? 'Deposit:' : 'Borrow:'}</span>
             <span>
               {transactionDetails.amount} {transactionDetails.token}
             </span>
@@ -93,12 +93,6 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: "bold" }}>Collateral:</span>
               <span>{transactionDetails.collateralAmount} {transactionDetails.depositAsset}</span>
-            </div>
-          )}
-          {transactionDetails.type === 'Top-up' && transactionDetails.apr !== undefined && (
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: "bold" }}>APR:</span>
-              <span>{transactionDetails.apr}%</span>
             </div>
           )}
         </div>

@@ -170,8 +170,8 @@ const App: React.FC = () => {
       );
 
       if (!txResponse || txResponse.status !== 'success') {
-        throw new Error(txResponse?.status === 'reverted' 
-          ? 'Transaction was reverted by the network' 
+        throw new Error(txResponse?.status === 'reverted'
+          ? 'Transaction was reverted by the network'
           : 'Transaction failed');
       }
 
@@ -1016,8 +1016,8 @@ const App: React.FC = () => {
           } else {
             const borrowResult = await handleBorrowOnly();
             if (!borrowResult || borrowResult.status !== 'success') {
-              throw new Error(borrowResult?.status === 'reverted' 
-                ? 'Transaction was reverted by the network' 
+              throw new Error(borrowResult?.status === 'reverted'
+                ? 'Transaction was reverted by the network'
                 : 'Transaction failed');
             }
           }
@@ -1456,7 +1456,7 @@ const App: React.FC = () => {
                     '&:hover': { backgroundColor: 'transparent', border: '2px solid green', color: 'green' },
                   }}
                 >
-                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-up' : 'Borrow'}
+                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-Up' : 'Top-Up'}
                 </Button>
 
                 <div className=" ">
