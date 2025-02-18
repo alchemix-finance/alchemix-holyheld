@@ -1309,7 +1309,7 @@ const App: React.FC = () => {
                         variant="outlined"
                         onClick={handleMaxAmount}
                         size="small"
-                        disabled={balanceLoading || maxLoading || !depositAsset || !address}
+                        disabled={balanceLoading || maxLoading || !address}
                         sx={{
                           textTransform: 'none',
                           minWidth: '60px',
@@ -1444,7 +1444,7 @@ const App: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={openConfirmationModal}
-                  disabled={isBorrowing}
+                  disabled={isBorrowing || !depositAsset}
                   fullWidth
                   sx={{
                     textTransform: 'none',
