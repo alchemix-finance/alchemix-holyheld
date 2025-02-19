@@ -63,7 +63,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useServerSettings } from './hooks/useServerSettings';
 
-interface ErrorData { message: string; }
+//interface ErrorData { message: string; }
 
 const App: React.FC = () => {
   const { addMessage } = useMessages();
@@ -132,7 +132,6 @@ const App: React.FC = () => {
     isTopupEnabled,
     minTopUpAmountInEUR,
     maxTopUpAmountInEUR,
-    topUpFeePercent,
     loading: serverSettingsLoading,
     error: serverSettingsError
   } = useServerSettings();
@@ -574,10 +573,10 @@ const App: React.FC = () => {
   const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
     try {
       // Vérification des limites min/max avant toute opération
-      /*       const amountInEth = parseFloat(amount);
-            if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
-              throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
-            } */
+      const amountInEth = parseFloat(amount);
+      if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      }
 
       // console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
       // console.log('Handle Top-Up initiated.');
@@ -775,6 +774,12 @@ const App: React.FC = () => {
 
         if (!tokenInfo) {
           throw new Error(`Token configuration not found for asset: ${depositAsset}`);
+        }
+
+        // Vérification des limites min/max avant toute opération
+        const amountInEth = parseFloat(amount);
+        if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+          throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
         }
 
         const tokenAddress = tokenInfo.token;
