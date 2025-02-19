@@ -62,6 +62,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useServerSettings } from './hooks/useServerSettings';
+import { useConvertTokenToEUR } from './hooks/useConvertToEUR';
+import { TOKENS } from './lib/config/tokens';
 
 //interface ErrorData { message: string; }
 
@@ -136,6 +138,8 @@ const App: React.FC = () => {
     error: serverSettingsError
   } = useServerSettings();
 
+  const { convertTokenToEUR } = useConvertTokenToEUR();
+
   useEffect(() => {
     if (serverSettingsError) {
       console.error('Error fetching server settings:', serverSettingsError);
@@ -170,8 +174,41 @@ const App: React.FC = () => {
       }
 
       // Validation du montant
-      const amountInEth = parseFloat(formatUnits(finalAmount, 18));
-      if (amountInEth <= 0 || amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+      const amountInEth = typeof borrowAmount === 'string' ? parseFloat(borrowAmount) : parseFloat(formatUnits(finalAmount, 18));
+      console.log('Amount in ETH:', amountInEth);
+      if (amountInEth <= 0) {
+        throw new Error('Please enter a valid amount greater than 0.');
+      }
+
+      // Conversion du montant ETH en EUR
+      const wethToken = TOKENS[chain.id]?.WETH;
+      console.log('WETH token:', wethToken);
+      if (!wethToken) {
+        throw new Error('WETH token not found for this network');
+      }
+
+      const mappedNetwork = mapNetworkName(chain.name);
+      console.log('Network:', chain.name, 'Mapped network:', mappedNetwork);
+      console.log('Converting amount:', amountInEth.toString(), 'with decimals:', wethToken.decimals);
+      
+      const conversionResult = await convertTokenToEUR(
+        wethToken.address,
+        wethToken.decimals,
+        amountInEth.toString(),
+        mappedNetwork
+      );
+
+      console.log('Conversion result:', conversionResult);
+      if (!conversionResult) {
+        throw new Error('Failed to convert ETH to EUR');
+      }
+
+      const amountInEUR = parseFloat(conversionResult.EURAmount);
+      console.log('Amount in EUR:', amountInEUR);
+      console.log('Min amount in EUR:', minTopUpAmountInEUR);
+      console.log('Max amount in EUR:', maxTopUpAmountInEUR);
+      
+      if (amountInEUR < parseFloat(minTopUpAmountInEUR) || amountInEUR > parseFloat(maxTopUpAmountInEUR)) {
         throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
       }
 
@@ -573,14 +610,47 @@ const App: React.FC = () => {
 
   const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
     try {
-      // Vérification des limites min/max avant toute opération
+      // Validation du montant
       const amountInEth = parseFloat(amount);
-      if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
-        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      if (amountInEth <= 0) {
+        throw new Error('Please enter a valid amount greater than 0.');
       }
 
-      // console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
-      // console.log('Handle Top-Up initiated.');
+      // Use the calculated borrow amount based on the slider percentage
+      const borrowAmountInEth = parseFloat(borrowAmount);
+      console.log('Using calculated borrow amount:', borrowAmountInEth);
+
+      // Conversion du montant ETH en EUR
+      const wethToken = TOKENS[chain.id]?.WETH;
+      console.log('WETH token:', wethToken);
+      if (!wethToken) {
+        throw new Error('WETH token not found for this network');
+      }
+
+      const mappedNetwork = mapNetworkName(chain.name);
+      console.log('Network:', chain.name, 'Mapped network:', mappedNetwork);
+      console.log('Converting borrow amount:', borrowAmountInEth.toString(), 'with decimals:', wethToken.decimals);
+      
+      const conversionResult = await convertTokenToEUR(
+        wethToken.address,
+        wethToken.decimals,
+        borrowAmountInEth.toString(),
+        mappedNetwork
+      );
+
+      console.log('Conversion result:', conversionResult);
+      if (!conversionResult) {
+        throw new Error('Failed to convert ETH to EUR');
+      }
+
+      const amountInEUR = parseFloat(conversionResult.EURAmount);
+      console.log('Borrow amount in EUR:', amountInEUR);
+      console.log('Min amount in EUR:', minTopUpAmountInEUR);
+      console.log('Max amount in EUR:', maxTopUpAmountInEUR);
+      
+      if (amountInEUR < parseFloat(minTopUpAmountInEUR) || amountInEUR > parseFloat(maxTopUpAmountInEUR)) {
+        throw new Error(`Borrow amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      }
 
       // Check if wallet is connected and chain is supported
       if (!publicClient || !walletClient || !chain || !address) {
@@ -1138,7 +1208,7 @@ const App: React.FC = () => {
               <p>Choose an option:</p>
               <ul style={{ paddingLeft: '20px' }}>
                 <li style={{ marginBottom: '15px' }}>
-                  <strong>Deposit & Top-up</strong>
+                  <strong>Deposit & Top-Up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
                     Deposit into an Alchemix vault and take a Loan to top-up your HolyHeld card
                   </p>
@@ -1146,7 +1216,7 @@ const App: React.FC = () => {
                 <li style={{ marginBottom: '15px' }}>
                   <strong>Top-up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
-                    Borrow against an existing position to top-up your Holyheld card.
+                    Borrow against an existing position to top-up your Holyheld Card.
                   </p>
                 </li>
               </ul>
