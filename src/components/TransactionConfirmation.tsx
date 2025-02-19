@@ -10,6 +10,20 @@ import {
   DialogFooter
 } from "./ui/dialog"
 
+/**
+ * Interface defining transaction details
+ * @interface TransactionDetails
+ * @property {string} type - Transaction type (deposit, borrow, etc.)
+ * @property {string} amount - Transaction amount
+ * @property {string} token - Token involved in the transaction
+ * @property {string} [estimatedFee] - Estimated transaction fee (optional)
+ * @property {string} [collateralAmount] - Collateral amount (optional)
+ * @property {string} [depositAsset] - Deposit asset (optional)
+ * @property {number} [apr] - Annual percentage rate (optional)
+ * @property {Object} [estimatedEarnings] - Estimated earnings (optional)
+ * @property {string} [expectedDebt] - Expected debt (optional)
+ * @property {string} [loanAsset] - Loan asset (optional)
+ */
 interface TransactionConfirmationProps {
   isOpen: boolean
   onClose: () => void
@@ -33,6 +47,34 @@ interface TransactionConfirmationProps {
   }
 }
 
+/**
+ * Transaction confirmation component
+ * 
+ * Displays a modal dialog allowing users to confirm or cancel
+ * a blockchain transaction before execution.
+ * 
+ * @component
+ * @param {Object} props - Component properties
+ * @param {boolean} props.isOpen - Modal open state
+ * @param {Function} props.onClose - Function called on modal close
+ * @param {Function} props.onConfirm - Function called on confirmation
+ * @param {TransactionDetails} props.transactionDetails - Transaction details
+ * 
+ * @example
+ * ```tsx
+ * <TransactionConfirmation
+ *   isOpen={true}
+ *   onClose={() => setIsOpen(false)}
+ *   onConfirm={handleTransaction}
+ *   transactionDetails={{
+ *     type: "deposit",
+ *     amount: "1.0",
+ *     token: "ETH",
+ *     estimatedFee: "0.001"
+ *   }}
+ * />
+ * ```
+ */
 export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = ({
   isOpen,
   onClose,

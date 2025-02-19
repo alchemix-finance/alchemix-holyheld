@@ -4,12 +4,26 @@ import { useMemo } from "react";
 import { wagmiConfig } from "../lib/wagmi/wagmiConfig";
 import { tenderlyForkChain } from "../lib/wagmi/tenderly";
 
+/**
+ * Default chain to use when no chain is connected or when connected to an unsupported chain
+ */
 const defaultChain = tenderlyForkChain ?? mainnet;
 
 /**
- * Hook to get the current chain.
- * If the connected chain is unsupported, returns the default chain.
- * @returns The currently connected chain or the default chain if unsupported.
+ * Hook to get the current blockchain network
+ * 
+ * This hook provides information about the currently connected blockchain network.
+ * If the user is connected to an unsupported chain, it returns the default chain
+ * (mainnet or tenderly fork if configured).
+ * 
+ * @returns {Chain} The currently connected chain or the default chain
+ * 
+ * @example
+ * ```typescript
+ * const chain = useChain();
+ * console.log(`Connected to chain ID: ${chain.id}`);
+ * console.log(`Network name: ${chain.name}`);
+ * ```
  */
 export const useChain = () => {
   const { chain } = useAccount(); // Retrieve the connected chain
@@ -22,8 +36,21 @@ export const useChain = () => {
 };
 
 /**
- * Hook to determine if the current chain is unsupported.
- * @returns `true` if the connected chain is unsupported, otherwise `false`.
+ * Hook to check if the current blockchain network is supported
+ * 
+ * This hook determines whether the currently connected blockchain network
+ * is supported by the application. It checks against the list of chains
+ * configured in the wagmi config.
+ * 
+ * @returns {boolean} True if the current chain is not in the supported chains list
+ * 
+ * @example
+ * ```typescript
+ * const isUnsupported = useChainUnsupported();
+ * if (isUnsupported) {
+ *   console.log('Please switch to a supported network');
+ * }
+ * ```
  */
 export const useChainUnsupported = () => {
   const { chain } = useAccount(); // Retrieve the connected chain

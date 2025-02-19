@@ -4,6 +4,9 @@ import { formatUnits } from 'ethers';
 import { useChain } from './useChain';
 import { alchemistV2Abi } from '../abi/alchemistV2';
 
+/**
+ * Type definition for Alchemist contract addresses by chain
+ */
 type AlchemistAddresses = {
     [chainId: number]: {
         alETH: `0x${string}`;
@@ -11,6 +14,9 @@ type AlchemistAddresses = {
     };
 };
 
+/**
+ * Mapping of chain IDs to Alchemist contract addresses
+ */
 const ALCHEMIST_ADDRESSES: AlchemistAddresses = {
     1: {
         alETH: '0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c' as `0x${string}`,
@@ -22,11 +28,34 @@ const ALCHEMIST_ADDRESSES: AlchemistAddresses = {
     }
 } as const;
 
-// Type guard to check if a chain ID is supported
+/**
+ * Type guard to check if a chain ID is supported by the Alchemist protocol
+ * @param {number} chainId - The chain ID to check
+ * @returns {boolean} True if the chain ID is supported
+ */
 const isSupportedChainId = (chainId: number): chainId is keyof typeof ALCHEMIST_ADDRESSES => {
     return chainId in ALCHEMIST_ADDRESSES;
 };
 
+/**
+ * Interface representing a user's position in the Alchemist protocol
+ * @interface Position
+ * @property {Object} collateral - Information about deposited collateral
+ * @property {string} collateral.amount - Amount of collateral deposited
+ * @property {string} collateral.asset - Address of collateral asset
+ * @property {string} collateral.symbol - Symbol of collateral asset
+ * @property {Object} debt - Information about borrowed debt
+ * @property {string} debt.amount - Amount of debt
+ * @property {string} debt.asset - Address of debt asset
+ * @property {string} debt.symbol - Symbol of debt asset
+ * @property {string} shares - Number of vault shares owned
+ * @property {string} lastAccruedWeight - Last accrued weight for yield calculation
+ * @property {string} collateralization - Current collateralization ratio
+ * @property {string} [subscriptions] - Active subscriptions (optional)
+ * @property {string} [renewalTask] - Renewal task identifier (optional)
+ * @property {boolean} isLoading - Loading state of position data
+ * @property {string|null} error - Error message if fetching failed
+ */
 interface Position {
     collateral: {
         amount: string;
@@ -47,6 +76,9 @@ interface Position {
     error: string | null;
 }
 
+/**
+ * Supported deposit assets in the Alchemist protocol
+ */
 type DepositAsset = 'ETH' | 'WETH' | 'USDC' | 'USDT' | 'DAI';
 
 const TOKEN_ADDRESSES: { [key: string]: { [chainId: number]: `0x${string}` } } = {
