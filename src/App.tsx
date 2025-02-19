@@ -170,8 +170,9 @@ const App: React.FC = () => {
       }
 
       // Validation du montant
-      if (!finalAmount || parseFloat(formatUnits(finalAmount, 18)) <= 0) {
-        throw new Error('Please enter a valid borrow amount greater than 0.');
+      const amountInEth = parseFloat(formatUnits(finalAmount, 18));
+      if (amountInEth <= 0 || amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
       }
 
       console.log('=== BORROW ONLY DETAILS ===');
