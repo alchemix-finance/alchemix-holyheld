@@ -9,58 +9,17 @@ import { Buffer } from 'buffer';
 import App from './App';
 import '@rainbow-me/rainbowkit/styles.css';
 import { theme } from './theme';
+import { MessageProvider } from './context/MessageContext';
 
 // Polyfill Buffer for mobile
 window.Buffer = window.Buffer || Buffer;
 
-// Configuration de la chaîne Ganache
-/* const ganacheChain: Chain = {
-  id: 1337,
-  name: 'Ganache',
-  rpcUrls: {
-    default: {
-      http: ['http://127.0.0.1:8545'],
-    },
-    public: {
-      http: ['http://127.0.0.1:8545'],
-    }
-  },
-  nativeCurrency: {
-    name: 'Ether',
-    symbol: 'ETH',
-    decimals: 18,
-  },
-  testnet: true
-}; */
+
 
 const projectId = import.meta.env.VITE_WC_PROJECT_ID;
 if (!projectId) {
   throw new Error('Missing VITE_WC_PROJECT_ID environment variable');
 }
-
-//const chains = [optimism] as const;
-
-// Configuration des wallets
-/* const { wallets } = getDefaultWallets({
-  appName,
-  projectId,
-  chains,
-});
-
-const connectors = connectorsForWallets([
-  ...wallets
-], {
-  projectId,
-  appName,
-  initialChain: chains[0],
-  metadata: {
-    name: appName,
-    description: 'Alchemix loan to card application',
-    url: window.location.origin,
-    icons: []
-  }
-}); */
-
 
 
 const alchemixTheme = {
@@ -107,7 +66,9 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <RainbowKitProvider theme={alchemixTheme} showRecentTransactions={true}>
-            <App />
+            <MessageProvider>
+              <App />
+            </MessageProvider>
           </RainbowKitProvider>
         </ThemeProvider>
       </QueryClientProvider>

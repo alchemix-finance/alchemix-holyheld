@@ -4,6 +4,9 @@ import { parseUnits } from 'viem';
 import { alchemistV2Abi } from '../abi/alchemistV2';
 import { arbitrum, mainnet, optimism } from 'wagmi/chains';
 
+/**
+ * Contract addresses for Alchemist on different chains
+ */
 const ALCHEMIST_CONTRACTS = {
   [mainnet.id]: {
     alETH: "0x062Bf725dC4cDF947aa79Ca2aaCCD4F385b13b5c" as `0x${string}`,
@@ -19,6 +22,13 @@ const ALCHEMIST_CONTRACTS = {
   },
 } as const;
 
+/**
+ * Return type for the useMintAl hook
+ * @interface UseMintAlReturn
+ * @property {Function} mint - Function to mint synthetic assets
+ * @property {boolean} isLoading - Loading state of the minting process
+ * @property {string|null} error - Error message if minting fails
+ */
 interface UseMintAlReturn {
   mint: (
     shares: string,
@@ -33,6 +43,29 @@ interface UseMintAlReturn {
   error: string | null;
 }
 
+/**
+ * Hook for minting Alchemix synthetic assets (alETH or alUSD)
+ * 
+ * This hook provides functionality to mint synthetic assets against deposited collateral.
+ * It handles the interaction with the Alchemist contract across different supported chains.
+ * 
+ * @returns {UseMintAlReturn} Object containing minting function and state
+ * @property {Function} mint - Async function to perform minting
+ * @property {boolean} isLoading - Indicates if a minting operation is in progress
+ * @property {string|null} error - Error message if the last operation failed
+ * 
+ * @example
+ * ```typescript
+ * const { mint, isLoading, error } = useMintAl();
+ * 
+ * // Mint 1 alETH
+ * await mint(
+ *   parseUnits("1", 18),
+ *   "0x...", // recipient address
+ *   "alETH"
+ * );
+ * ```
+ */
 export const useMintAl = (): UseMintAlReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +100,7 @@ export const useMintAl = (): UseMintAlReturn => {
 
       let sharesToMint: bigint;
       try {
+        console.log('Input shares amount:', shares);
         sharesToMint = parseUnits(shares, 18);
         console.log('Amount details:', {
           input: shares,

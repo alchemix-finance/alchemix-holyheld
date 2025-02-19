@@ -1,11 +1,18 @@
 import { useState } from 'react';
 import { useHolyheldSDK } from './useHolyheld';
-import { useAlchemixDeposit } from './useAlchemixLoan'; // Hook pour gérer le dépôt
+import { useAlchemixDeposit } from './useAlchemixLoan';
 import { useChain } from './useChain';
-import { useAccount } from 'wagmi'; // Pour récupérer l'adresse du wallet connecté
+import { useAccount } from 'wagmi';
 import { isSupported } from '../lib/wagmi/chains';
 import type { Network, TopUpCallbackConfig } from '@holyheld/sdk';
 
+/**
+ * Interface for the useHandleTopUp hook return value
+ * @interface UseHandleTopUpReturn
+ * @property {Function} handleTopUp - Function to process a top-up transaction
+ * @property {boolean} isLoading - Whether a transaction is being processed
+ * @property {string|null} error - Error message if the transaction fails
+ */
 interface UseHandleTopUpReturn {
   handleTopUp: (
     holytag: string,
@@ -16,6 +23,38 @@ interface UseHandleTopUpReturn {
   error: string | null;
 }
 
+/**
+ * Hook for handling top-up operations in the Alchemix protocol
+ * 
+ * This hook combines functionality from Holyheld SDK and Alchemix deposit
+ * to process top-up transactions. It handles validation, EUR conversion,
+ * and execution of the top-up operation.
+ * 
+ * The process includes:
+ * 1. Validating the chain and wallet connection
+ * 2. Checking server settings and Holytag validity
+ * 3. Converting token amounts to EUR
+ * 4. Executing the deposit transaction
+ * 5. Performing the top-up operation
+ * 
+ * @returns {UseHandleTopUpReturn} Object containing top-up function and state
+ * 
+ * @example
+ * ```typescript
+ * const { handleTopUp, isLoading, error } = useHandleTopUp();
+ * 
+ * // Process a top-up
+ * try {
+ *   await handleTopUp(
+ *     'username',           // Holyheld tag
+ *     '1.0',               // Amount to deposit
+ *     '0x1234...5678'      // Token address
+ *   );
+ * } catch (err) {
+ *   console.error('Top-up failed:', err);
+ * }
+ * ```
+ */
 export const useHandleTopUp = (): UseHandleTopUpReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +62,7 @@ export const useHandleTopUp = (): UseHandleTopUpReturn => {
   const { validateHolytag, convertToEUR, performTopUp, getServerSettings } = useHolyheldSDK();
   const { deposit } = useAlchemixDeposit();
   const currentChain = useChain();
-  const { address: walletAddress } = useAccount(); // Récupérer l'adresse du wallet connecté
+  const { address: walletAddress } = useAccount();
 
   const handleTopUp = async (holytag: string, depositAmount: string, depositAsset: string) => {
     if (!currentChain || !isSupported(currentChain.id)) {
@@ -40,48 +79,46 @@ export const useHandleTopUp = (): UseHandleTopUpReturn => {
       setIsLoading(true);
       setError(null);
 
-      // Valider que depositAsset est une adresse Ethereum valide
+      // Validate deposit asset address format
       if (!/^0x[a-fA-F0-9]{40}$/.test(depositAsset)) {
         throw new Error('Invalid deposit asset address format.');
       }
 
-      // Étape 1: Vérifier les paramètres du serveur
+      // Step 1: Check server settings
       const serverSettings = await getServerSettings();
       if (!serverSettings.external.isTopupEnabled) {
         throw new Error('Top-up is currently disabled. Please try again later.');
       }
 
-      // Étape 2: Valider le Holytag
+      // Step 2: Validate Holytag
       const isValidTag = await validateHolytag(holytag);
       if (!isValidTag) {
         throw new Error('Invalid Holytag.');
       }
 
-      const percentage = 0.90; // Tolérance de 5% de perte
+      const percentage = 0.90; // 5% tolerance for loss
       const minimumAmountOut = BigInt(depositAmount) * BigInt(Math.floor(percentage * 100)) / BigInt(100);
 
-
-      // Étape 3: Effectuer le dépôt via Alchemix
+      // Step 3: Execute deposit transaction via Alchemix
       const depositResult = await deposit(
-        depositAsset as `0x${string}`, // Conversion explicite pour TypeScript
+        depositAsset as `0x${string}`,
         depositAmount,
-        walletAddress as `0x${string}`, // Conversion explicite pour TypeScript
+        walletAddress as `0x${string}`,
         minimumAmountOut.toString()
-
       );
       if (!depositResult) {
         throw new Error('Deposit transaction failed.');
       }
 
-      // Étape 4: Convertir les fonds empruntés en EUR
+      // Step 4: Convert borrowed funds to EUR
       const { EURAmount, transferData } = await convertToEUR(
-        "0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A", // Conversion explicite pour TypeScript
-        18, // Décimales du token emprunté
+        "0xCB8FA9a76b8e203D8C3797bF438d8FB81Ea3326A",
+        18,
         depositAmount,
         currentChain.name.toLowerCase() as Network
       );
 
-      // Vérification des limites (min/max) pour la conversion
+      // Check conversion limits (min/max)
       if (
         parseFloat(EURAmount) < parseFloat(serverSettings.external.minTopUpAmountInEUR) ||
         parseFloat(EURAmount) > parseFloat(serverSettings.external.maxTopUpAmountInEUR)
@@ -91,23 +128,23 @@ export const useHandleTopUp = (): UseHandleTopUpReturn => {
         );
       }
 
-      // Étape 5: Effectuer le Top-Up
+      // Step 5: Perform top-up operation
       const callbacks: TopUpCallbackConfig = {
         onHashGenerate: (hash) => console.log('Transaction Hash:', hash),
         onStepChange: (step) => console.log('Current Step:', step),
       };
 
       await performTopUp(
-        {}, // Placeholder pour le public client (à configurer si nécessaire)
-        null, // Placeholder pour le wallet client
-        walletAddress as `0x${string}`, // Conversion explicite pour TypeScript
-        depositAsset as `0x${string}`, // Conversion explicite pour TypeScript
+        {}, 
+        null, 
+        walletAddress as `0x${string}`,
+        depositAsset as `0x${string}`,
         currentChain.name.toLowerCase() as Network,
         depositAmount,
         transferData,
         holytag,
-        true, // Assure que les données typées sont supportées
-        callbacks // Ajout des callbacks
+        true,
+        callbacks
       );
 
       alert('Top-up successful!');

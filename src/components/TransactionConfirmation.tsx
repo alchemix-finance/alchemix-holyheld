@@ -10,6 +10,20 @@ import {
   DialogFooter
 } from "./ui/dialog"
 
+/**
+ * Interface defining transaction details
+ * @interface TransactionDetails
+ * @property {string} type - Transaction type (deposit, borrow, etc.)
+ * @property {string} amount - Transaction amount
+ * @property {string} token - Token involved in the transaction
+ * @property {string} [estimatedFee] - Estimated transaction fee (optional)
+ * @property {string} [collateralAmount] - Collateral amount (optional)
+ * @property {string} [depositAsset] - Deposit asset (optional)
+ * @property {number} [apr] - Annual percentage rate (optional)
+ * @property {Object} [estimatedEarnings] - Estimated earnings (optional)
+ * @property {string} [expectedDebt] - Expected debt (optional)
+ * @property {string} [loanAsset] - Loan asset (optional)
+ */
 interface TransactionConfirmationProps {
   isOpen: boolean
   onClose: () => void
@@ -33,6 +47,34 @@ interface TransactionConfirmationProps {
   }
 }
 
+/**
+ * Transaction confirmation component
+ * 
+ * Displays a modal dialog allowing users to confirm or cancel
+ * a blockchain transaction before execution.
+ * 
+ * @component
+ * @param {Object} props - Component properties
+ * @param {boolean} props.isOpen - Modal open state
+ * @param {Function} props.onClose - Function called on modal close
+ * @param {Function} props.onConfirm - Function called on confirmation
+ * @param {TransactionDetails} props.transactionDetails - Transaction details
+ * 
+ * @example
+ * ```tsx
+ * <TransactionConfirmation
+ *   isOpen={true}
+ *   onClose={() => setIsOpen(false)}
+ *   onConfirm={handleTransaction}
+ *   transactionDetails={{
+ *     type: "deposit",
+ *     amount: "1.0",
+ *     token: "ETH",
+ *     estimatedFee: "0.001"
+ *   }}
+ * />
+ * ```
+ */
 export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = ({
   isOpen,
   onClose,
@@ -78,7 +120,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
             <span>{transactionDetails.type}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: "bold" }}>Amount:</span>
+            <span style={{ fontWeight: "bold" }}>{transactionDetails.type === 'Deposit & Top-up' ? 'Deposit:' : 'Borrow:'}</span>
             <span>
               {transactionDetails.amount} {transactionDetails.token}
             </span>
@@ -92,34 +134,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           {transactionDetails.type === 'Top-up' && transactionDetails.collateralAmount && transactionDetails.depositAsset && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: "bold" }}>Collateral:</span>
-              <span>
-                {transactionDetails.collateralAmount} {transactionDetails.depositAsset}
-              </span>
-            </div>
-          )}
-          {transactionDetails.type === 'Top-up' && transactionDetails.apr !== undefined && (
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: "bold" }}>APR:</span>
-              <span>{transactionDetails.apr}%</span>
-            </div>
-          )}
-          {transactionDetails.type === 'Top-up' && transactionDetails.estimatedEarnings && (
-            <div>
-              <span style={{ fontWeight: "bold" }}>Estimated Earnings:</span>
-              <div style={{ marginLeft: "1rem", marginTop: "0.5rem" }}>
-                <p>Daily: {transactionDetails.estimatedEarnings.daily} {transactionDetails.depositAsset}</p>
-                <p>Weekly: {transactionDetails.estimatedEarnings.weekly} {transactionDetails.depositAsset}</p>
-                <p>Monthly: {transactionDetails.estimatedEarnings.monthly} {transactionDetails.depositAsset}</p>
-                <p>Yearly: {transactionDetails.estimatedEarnings.yearly} {transactionDetails.depositAsset}</p>
-              </div>
-            </div>
-          )}
-          {transactionDetails.expectedDebt && transactionDetails.loanAsset && (
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: "bold" }}>Expected Debt:</span>
-              <span>
-                {transactionDetails.expectedDebt} {transactionDetails.loanAsset}
-              </span>
+              <span>{transactionDetails.collateralAmount} {transactionDetails.depositAsset}</span>
             </div>
           )}
         </div>
@@ -128,7 +143,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           <Button
             onClick={onClose}
             sx={{
-              backgroundColor: "#0d0d0d",
+              backgroundColor: "#141921",
               color: "#ffffff",
               padding: "0.5rem 1rem",
               borderRadius: "6px",

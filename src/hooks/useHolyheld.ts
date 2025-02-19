@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
 import HolyheldSDK, { Network, TransferData, TopUpCallbackConfig } from '@holyheld/sdk';
 
+/**
+ * Interface for the Holyheld SDK hook return value
+ * @interface UseHolyheldSDKReturn
+ * @property {Function} validateHolytag - Validates a Holyheld tag
+ * @property {Function} convertToEUR - Converts token amount to EUR
+ * @property {Function} performTopUp - Executes a top-up transaction
+ * @property {Function} getServerSettings - Retrieves server configuration
+ * @property {boolean} isInitialized - Whether SDK is initialized
+ * @property {boolean} isProcessing - Whether a transaction is processing
+ * @property {string|null} error - Error message if any
+ * @property {HolyheldSDK} sdk - Instance of the Holyheld SDK
+ */
 interface UseHolyheldSDKReturn {
   validateHolytag: (holytag: string) => Promise<boolean>;
   convertToEUR: (
@@ -28,6 +40,37 @@ interface UseHolyheldSDKReturn {
   sdk: HolyheldSDK;
 }
 
+/**
+ * Hook for interacting with the Holyheld SDK
+ * 
+ * This hook provides functionality to interact with Holyheld's services,
+ * including tag validation, currency conversion, and top-up operations.
+ * It automatically initializes the SDK on mount.
+ * 
+ * @returns {UseHolyheldSDKReturn} Object containing SDK functions and state
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   validateHolytag,
+ *   convertToEUR,
+ *   performTopUp,
+ *   isInitialized,
+ *   error
+ * } = useHolyheldSDK();
+ * 
+ * // Validate a Holyheld tag
+ * const isValid = await validateHolytag('username');
+ * 
+ * // Convert token amount to EUR
+ * const { EURAmount, transferData } = await convertToEUR(
+ *   tokenAddress,
+ *   18,
+ *   '1.0',
+ *   Network.Ethereum
+ * );
+ * ```
+ */
 export const useHolyheldSDK = (): UseHolyheldSDKReturn => {
   const [sdk, setSDK] = useState<HolyheldSDK | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);

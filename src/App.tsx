@@ -1,3 +1,33 @@
+/**
+ * App.tsx - Main Application Component
+ *
+ * Overview:
+ *   This file defines the main component (App) for the Alchemix Self-Repaying Loans dApp.
+ *   It orchestrates functionalities including deposits, borrowing, top-up operations, and user notifications.
+ *
+ * Key functionalities:
+ *   - State management for deposit amounts, borrow amounts, selected strategies, and operation modes (e.g., 'topup' vs 'borrowOnly').
+ *   - Integration with custom hooks:
+ *       * useAlchemistPosition: Retrieves user position details related to collateral.
+ *       * useTokenBalance: Fetches token balances for the connected wallet.
+ *       * useMaxAmount: Calculates the maximum available amount for transactions.
+ *       * useHolyheldSDK: Provides methods for tag validation, currency conversion, and top-up operations.
+ *       * useBorrow: Manages the borrowing process.
+ *       * useAlchemixDeposit: Handles deposit operations related to Alchemix loans.
+ *       * useMintAl: Manages minting of synthetic tokens (alETH, etc.).
+ *   - UI Components:
+ *       * ConnectButton from RainbowKit for wallet connections.
+ *       * Material UI components (Button, Dialog, etc.) for interactive elements.
+ *       * Custom components for transaction confirmations and message displays.
+ *   - Error handling and notifications:
+ *       * Utilizes react-toastify and a global MessageContext to handle and display errors and notifications.
+ *   - Utility functions for financial calculations:
+ *       * For example, calculating estimated earnings based on deposits and APR.
+ *
+ * Note:
+ *   Debug logs (console.log) are present throughout the component to assist during development and troubleshooting.
+ */
+
 import { useState, useEffect, useMemo } from 'react';
 import * as React from "react";
 import { formatUnits, parseUnits } from 'ethers';
@@ -14,7 +44,6 @@ import { useBorrow } from './hooks/useBorrow';
 import { useAlchemistPosition } from './hooks/useAlchemistPosition';
 import logo from './assets/ALCX_Std_logo.png';
 import './App.css';
-import Select from 'react-select';
 import { Network } from '@holyheld/sdk';
 import { useAlchemixDeposit, DepositAsset, DEPOSIT_ASSETS } from './hooks/useAlchemixLoan';
 import { useMintAl } from './hooks/UseMintAlETH';
@@ -23,27 +52,39 @@ import type { SynthAsset } from "@/lib/config/synths";
 import { CONTRACTS } from './lib/wagmi/chains';
 import { useAlchemists } from "@/lib/queries/useAlchemists";
 import { TransactionConfirmation } from './components/TransactionConfirmation';
-import { MessageProvider } from './context/MessageContext';
+import { MessageProvider, useMessages } from './context/MessageContext';
 import MessageDisplay from './components/MessageDisplay';
-import { useMessages } from './context/MessageContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { toastConfig, warn } from './utils/toast';
+import { toastConfig } from './utils/toast';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import { useServerSettings } from './hooks/useServerSettings';
 
-interface ErrorData { message: string; }
+//interface ErrorData { message: string; }
 
 const App: React.FC = () => {
+  const { addMessage } = useMessages();
+
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [loanAsset, setLoanAsset] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | Error | null>(null);
   const [holytag, setHolytag] = useState<string>('');
   const [availableStrategies, setAvailableStrategies] = useState<any[]>([]);
-  const [mode, setMode] = useState<'topup' | 'borrowOnly'>('topup');
+  const [mode, setMode] = useState<'topup' | 'borrowOnly'>('borrowOnly');
+  const [borrowAmount, setBorrowAmount] = useState<string>('');
   const { borrow, isLoading: isBorrowing } = useBorrow();
   const [depositAsset, setDepositAsset] = useState<DepositAsset | `0x${string}` | ''>('');
   const position = useAlchemistPosition(depositAsset);
+  //console.log('Position object:', position);
+  // Ne pas formater le montant déposé pour garder la précision
+  const depositedAmount = position.collateral.amount;
+
+  //console.log('Deposited amount:', depositedAmount);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [txDetails, setTxDetails] = useState({
@@ -67,10 +108,9 @@ const App: React.FC = () => {
   const { data: walletClient } = useWalletClient();
   const chain = useChain();
   const publicClient = usePublicClient();
-  const [selectKey, setSelectKey] = useState(0);
 
-  const [collateralAmount, setCollateralAmount] = useState<string>('0.00');
-  const [estimatedEarnings, setEstimatedEarnings] = useState<string>('0.00');
+  const [, setCollateralAmount] = useState<string>('0.00');
+  const [, setEstimatedEarnings] = useState<string>('0.00');
   const [expectedDebt, setExpectedDebt] = useState<string>('0.00');
   const [apr, setApr] = useState<number>(0);
 
@@ -87,6 +127,22 @@ const App: React.FC = () => {
   const { calculateMaxAmount, isLoading: maxLoading } = useMaxAmount();
   type SupportedChainId = keyof typeof CONTRACTS;
 
+  const {
+    settings,
+    isTopupEnabled,
+    minTopUpAmountInEUR,
+    maxTopUpAmountInEUR,
+    loading: serverSettingsLoading,
+    error: serverSettingsError
+  } = useServerSettings();
+
+  useEffect(() => {
+    if (serverSettingsError) {
+      console.error('Error fetching server settings:', serverSettingsError);
+    }
+    // console.log('Server settings:', settings);
+  }, [serverSettingsError, settings]);
+
   const calculateEstimatedEarnings = (deposit: number, apr: number, periodInDays: number = 365): number => {
     // Convert annual APR to daily rate
     const dailyRate = apr / 36500; // Dividing by 365 * 100 to get daily percentage
@@ -102,55 +158,120 @@ const App: React.FC = () => {
 
     return earnings;
   };
+
   const handleBorrowOnly = async () => {
     try {
       setIsModalOpen(false);
-      // Vérifiez si publicClient est défini
-      if (!publicClient) {
-        throw new Error('Public client is not initialized. Please connect your wallet and ensure the network is configured correctly.');
+
+      // Si c'est un nombre décimal en cours de saisie, on le convertit en wei
+      let finalAmount = borrowAmount;
+      if (typeof borrowAmount === 'string' && borrowAmount.includes('.')) {
+        finalAmount = parseUnits(parseFloat(borrowAmount).toFixed(18), 18).toString();
       }
 
-      // Soumettez la transaction
-      const txResponse = await borrow(depositAsset, depositAmount, selectedStrategy);
-
-      // Vérifiez que la réponse contient un hash de transaction
-      if (!txResponse || !txResponse.transactionHash) {
-        throw new Error('Transaction submission failed: No transaction hash returned.');
+      // Validation du montant
+      const amountInEth = parseFloat(formatUnits(finalAmount, 18));
+      if (amountInEth <= 0 || amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
       }
 
-      // Attendez la confirmation de la transaction
-      const txReceipt = await publicClient.waitForTransactionReceipt({
-        hash: txResponse.transactionHash as `0x${string}`,
-      });
+      console.log('=== BORROW ONLY DETAILS ===');
+      console.log('1. Final Amount:', finalAmount);
+      console.log('2. In ETH:', formatUnits(finalAmount, 18));
+      console.log('3. Deposit Asset:', depositAsset);
+      console.log('4. Strategy:', selectedStrategy);
+      console.log('========================');
 
-      // Vérifiez le statut de la transaction
-      if (txReceipt.status !== 'success') {
-        throw new Error('Borrow transaction failed on-chain.');
+      if (!depositAsset) {
+        throw new Error('Please select an asset.');
       }
 
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error('Error during borrow:', err.message);
-      } else {
-        console.error('An unknown error occurred during borrow');
+      // Determine the deposit amount based on the mode
+      const depositAmountToUse = mode === 'borrowOnly' ? '0' : depositAmount;
+
+      // Call borrow function with the appropriate deposit amount
+      const txResponse = await borrow(
+        depositAsset,
+        depositAmountToUse,
+        selectedStrategy,
+        mode === 'borrowOnly',
+        holytag,
+        borrowAmount
+      );
+
+      if (!txResponse || txResponse.status !== 'success') {
+        throw new Error(txResponse?.status === 'reverted'
+          ? 'Transaction was reverted by the network'
+          : 'Transaction failed');
       }
-      throw err; // Re-throw the error for the toast.promise to catch it
+
+      return txResponse;
+    } catch (err) {
+      console.error('Error during borrow:', err);
+      throw err;
     }
   };
 
-
-  const getStrategyImplications = (apr: string | number): string => {
-    const aprValue = typeof apr === 'string' ? parseFloat(apr) : apr;
-
-    if (aprValue <= 5) {
-      return "This strategy offers low returns with minimal risk. Suitable for conservative investors.";
-    } else if (aprValue <= 10) {
-      return "This strategy provides balanced returns and moderate risk. Ideal for steady growth.";
-    } else if (aprValue <= 15) {
-      return "This strategy offers high returns but comes with increased risk. Suitable for bold investors.";
-    } else {
-      return "Invalid APR value.";
+  const formatNumberWithoutExponent = (num: number | string): string => {
+    // Si c'est déjà une chaîne, vérifier si elle contient un point décimal
+    if (typeof num === 'string') {
+      return num.includes('.') ? num : num;
     }
+
+    // Pour les nombres
+    const str = num.toString();
+    if (str.includes('e')) {
+      const [base, exponent] = str.split('e');
+      const exp = parseInt(exponent);
+      if (exp < 0) {
+        const baseWithoutDot = base.replace('.', '');
+        return '0.' + '0'.repeat(-exp - 1) + baseWithoutDot;
+      } else {
+        const baseWithoutDot = base.replace('.', '');
+        return baseWithoutDot + '0'.repeat(exp - (baseWithoutDot.length - 1));
+      }
+    }
+    return str;
+  };
+
+  const handleBorrowPercentage = (percentage: number) => {
+    // Validate depositAmount for all modes
+    if (!depositAmount && mode !== 'borrowOnly') {
+      console.error('Deposit amount is required for this mode.');
+      return;
+    }
+    // For borrow-only mode, validate deposited amount
+    if (mode === 'borrowOnly' && (!depositedAmount || parseFloat(depositedAmount) <= 0)) {
+      console.error('Invalid deposited amount for borrow-only mode.');
+      return;
+    }
+
+    let amount;
+    if (mode === 'borrowOnly') {
+      const depositedAmountInEth = parseFloat(formatUnits(depositedAmount, 18));
+      const maxBorrowableAmount = depositedAmountInEth * 0.5;
+      amount = maxBorrowableAmount * (percentage / 100);
+      console.log('Borrow only calculation:', {
+        depositedAmount: formatNumberWithoutExponent(parseFloat(depositedAmount)),
+        depositedAmountInEth: formatNumberWithoutExponent(depositedAmountInEth),
+        maxBorrowableAmount: formatNumberWithoutExponent(maxBorrowableAmount),
+        percentage,
+        finalAmount: formatNumberWithoutExponent(amount)
+      });
+    } else {
+      const maxBorrowableAmount = parseFloat(depositAmount) * 0.5;
+      amount = maxBorrowableAmount * (percentage / 100);
+    }
+
+    // Limite à 5000 ETH dans tous les cas
+    amount = Math.min(amount, 5000);
+    console.log('Calculated borrow amount:', {
+      mode,
+      depositedAmount: mode === 'borrowOnly' ? formatNumberWithoutExponent(parseFloat(depositedAmount)) : depositAmount,
+      percentage,
+      calculatedAmount: formatNumberWithoutExponent(amount)
+    });
+    setBorrowAmount(amount.toString());
   };
 
   useEffect(() => {
@@ -202,15 +323,26 @@ const App: React.FC = () => {
   }, [chain.id]);
 
   const handleDepositAssetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Selected deposit asset:', e.target.value);
     const value = e.target.value;
     if (value === '' || DEPOSIT_ASSETS.includes(value as DepositAsset)) {
       setDepositAsset(value as DepositAsset | '');
+      addMessage(`Selected deposit asset: ${value}`, 'info');
     }
-    // Réinitialiser la stratégie
-    setSelectedStrategy('');
-    setSelectKey(prev => prev + 1);
-    const { addMessage } = useMessages();
-    addMessage(`Selected deposit asset: ${value}`, 'info');
+
+    // Check if the current strategy is valid for the new asset
+    const isCurrentStrategyValid = availableStrategies.some(strategy => {
+      console.log('Checking strategy:', strategy);
+      return strategy.address === selectedStrategy && strategy.asset === value;
+    });
+    console.log('Is current strategy valid:', isCurrentStrategyValid);
+    console.log('Current selectedStrategy:', selectedStrategy);
+    console.log('Available strategies:', availableStrategies);
+
+    if (!isCurrentStrategyValid && selectedStrategy) {
+      console.log('Resetting strategy selection');
+      setSelectedStrategy('');
+    }
   };
 
   const synthMapping: Record<string, string> = {
@@ -247,7 +379,7 @@ const App: React.FC = () => {
           const tokenKey = asset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
           const tokenAddress = CONTRACTS[supportedChainId]?.TOKENS[tokenKey]?.token;
           if (!tokenAddress) toast.error(`No token address found for ${tokenKey}`, {
-            ...warn,
+            ...toastConfig,
             icon: <span aria-label="error">❌</span>,
           });
 
@@ -258,7 +390,7 @@ const App: React.FC = () => {
           return apr;
         } catch (err) {
           toast.error(`Error fetching APR for asset ${asset}:`, {
-            ...warn,
+            ...toastConfig,
             icon: <span aria-label="error">❌</span>,
           });
           return 'N/A';
@@ -314,39 +446,36 @@ const App: React.FC = () => {
     }));
   }, [availableStrategies]);
 
+  const [holytagInput, setHolytagInput] = useState("");
+  const [holytagIsValid, setHolytagIsValid] = useState<boolean | null>(null);
+  const validateLetter = (letter: string): boolean => {
+    return /^[A-Za-z]$/.test(letter);
+  };
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (holytagInput) {
+        handleValidateHolytag();
+      }
+    }, 200);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [holytagInput]);
+
   const handleValidateHolytag = async () => {
     try {
-      const isValid = await validateHolytag(holytag);
+      const isValid = await validateHolytag(holytagInput);
       if (isValid) {
-        toast.success('Holytag is valid!', {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          ...toastConfig,
-        });
+        setHolytagIsValid(true);
+        setHolytag(holytagInput);
+        toast.success("Holytag valid!", toastConfig);
       } else {
-        toast.error('Invalid Holytag', {
-          ...warn,
-          icon: <span aria-label="error">❌</span>,
-        });
+        setHolytagIsValid(false);
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error('Error during holytag validation:', err.message);
-        toast.error(err.message, {
-          ...warn,
-          icon: <span aria-label="error">❌</span>,
-        });
-      } else {
-        console.error('An unknown error occurred during holytag validation');
-        toast.error('An unknown error occurred during holytag validation', {
-          ...warn,
-          icon: <span aria-label="error">❌</span>,
-        });
-      }
+    } catch (error) {
+      console.error("Erreur lors de la validation du Holytag", error);
+      setHolytagIsValid(false);
     }
   };
 
@@ -355,9 +484,25 @@ const App: React.FC = () => {
     if (regex.test(value)) {
       setDepositAmount(value);
     }
-    const { addMessage } = useMessages();
     if (value && parseFloat(value) > 0) {
       addMessage(`Set deposit amount to ${value}`, 'info');
+    }
+  };
+
+  const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      setBorrowAmount('0');
+      return;
+    }
+
+    try {
+      // Convertir en format décimal standard si nécessaire
+      const formattedValue = formatNumberWithoutExponent(parseFloat(value));
+      setBorrowAmount(formattedValue);
+    } catch (error) {
+      console.error('Error formatting borrow amount:', error);
+      setBorrowAmount('0');
     }
   };
 
@@ -377,7 +522,24 @@ const App: React.FC = () => {
       throw new Error(`Unsupported chain ID: ${chainId}`);
     }
 
+    // Handle direct synth assets
+    if (assetUpper === 'ALETH') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
+      return {
+        type: SYNTH_ASSETS.ALETH,
+        address
+      };
+    }
 
+    if (assetUpper === 'ALUSD') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
+      return {
+        type: SYNTH_ASSETS.ALUSD,
+        address
+      };
+    }
+
+    // Handle deposit assets
     if (assetUpper === 'WETH' || assetUpper === 'ETH') {
       const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
       return {
@@ -409,28 +571,36 @@ const App: React.FC = () => {
     return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
   };
 
-  const handleTopUp = async () => {
-    console.log('Handle Top-Up initiated.');
-
+  const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
     try {
-      setIsModalOpen(false);
+      // Vérification des limites min/max avant toute opération
+      const amountInEth = parseFloat(amount);
+      if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      }
+
+      // console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
+      // console.log('Handle Top-Up initiated.');
 
       // Check if wallet is connected and chain is supported
       if (!publicClient || !walletClient || !chain || !address) {
         throw new Error('Please connect your wallet and select a valid chain.');
       }
 
-      // Validate holytag first
+      // Validation du holytag
       const isValidTag = await validateHolytag(holytag);
       if (!isValidTag) {
         throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
       }
 
-      if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      if (!amount || parseFloat(amount) <= 0) {
         throw new Error('Please enter a valid deposit amount.');
       }
       if (!depositAsset) {
         throw new Error('Please select a deposit asset.');
+      }
+      if (!selectedStrategy) {
+        throw new Error('Please select a yield strategy.');
       }
       if (alchemistsLoading) {
         throw new Error('Loading alchemists data...');
@@ -482,6 +652,10 @@ const App: React.FC = () => {
         throw new Error('Top-up is currently disabled.');
       }
 
+      if (!isTopupEnabled) {
+        throw new Error('Top-up service is currently unavailable');
+      }
+
       // Proceed with the top-up process
       type SupportedChainId = keyof typeof CONTRACTS;
 
@@ -489,7 +663,7 @@ const App: React.FC = () => {
 
       // Logique différente pour ETH et ERC20
       if (depositAsset === 'ETH') {
-        console.log('Processing ETH deposit...');
+        //  console.log('Processing ETH deposit...');
 
         // Vérifier la vault et le gateway
         const vaults = VAULTS[chainId];
@@ -502,7 +676,7 @@ const App: React.FC = () => {
         // Dépôt ETH avec valeur attachée
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
-          depositAmount,
+          amount,
           address as `0x${string}`,
           depositAsset
         );
@@ -519,12 +693,11 @@ const App: React.FC = () => {
 
         await new Promise(resolve => setTimeout(resolve, 15000));
 
-        // Processus de mint
-        const mintAmount = (parseFloat(depositAmount) / 2).toString();
+        // Utiliser le borrowAmount pour le mint au lieu de 50% du dépôt
         const { type: synthType } = getSynthToken(depositAsset);
 
         const mintResult = await mint(
-          mintAmount.toString(),
+          borrowAmount,
           address,
           synthType
         );
@@ -538,6 +711,58 @@ const App: React.FC = () => {
         if (mintReceipt.status !== 'success') {
           throw new Error('Minting transaction failed');
         }
+
+        // Top-up pour ETH
+        const synthTokenAddress = SYNTH_ASSETS_ADDRESSES[chainId][synthType];
+        if (!synthTokenAddress) {
+          throw new Error(`Synthetic token address not found for ${synthType}`);
+        }
+
+        // Étape 6 : Conversion en EUR
+        const formattedAmount = formatUnits(BigInt(mintResult.mintedAmount), 18);
+
+        /*         console.log('Converting to EUR...', {
+                  mintedAmount: mintResult.mintedAmount,
+                  formattedAmount,
+                  synthType
+                }); */
+
+        const mappedNetwork = mapNetworkName(chain.name);
+
+        const decimals = await publicClient.readContract({
+          address: synthTokenAddress as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'decimals',
+        }) as number;
+
+        const alAmount = formatUnits(BigInt(mintResult.mintedAmount), decimals);
+
+        const { transferData } = await convertToEUR(
+          synthTokenAddress,
+          decimals,
+          formattedAmount,
+          mappedNetwork
+        );
+
+        // Étape 7 : Top-Up
+        await performTopUp(
+          publicClient,
+          walletClient,
+          address,
+          synthTokenAddress,
+          mappedNetwork,
+          alAmount,
+          transferData,
+          holytag,
+          true,
+          {
+            onHashGenerate: (hash) => console.log('Transaction Hash:', hash),
+            onStepChange: (step) => console.log('Current Step:', step),
+          }
+        );
+
+        // console.log('Top-up completed successfully.');
+        return true; // Retourner explicitement true pour indiquer le succès
       } else {
         setIsModalOpen(false);
 
@@ -552,10 +777,16 @@ const App: React.FC = () => {
           throw new Error(`Token configuration not found for asset: ${depositAsset}`);
         }
 
+        // Vérification des limites min/max avant toute opération
+        const amountInEth = parseFloat(amount);
+        if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
+          throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+        }
+
         const tokenAddress = tokenInfo.token;
         const depositDecimals = tokenInfo.decimals;
 
-        const depositAmountWei = parseUnits(depositAmount, depositDecimals);
+        const depositAmountWei = parseUnits(amount, depositDecimals);
 
         if (!tokenAddress || !depositDecimals) {
           throw new Error(`Invalid token configuration for ${depositAsset} on chain ID ${chainId}.`);
@@ -575,7 +806,7 @@ const App: React.FC = () => {
         }) as bigint;
 
         if (allowance < depositAmountWei) {
-          console.log(`Current allowance: ${allowance.toString()}, required: ${depositAmountWei.toString()}. Approving...`);
+          // console.log(`Current allowance: ${allowance.toString()}, required: ${depositAmountWei.toString()}. Approving...`);
 
           const approveHash = await walletClient.writeContract({
             address: tokenAddress as `0x${string}`,
@@ -585,7 +816,7 @@ const App: React.FC = () => {
             gas: 100000n,
           });
 
-          console.log('Approve transaction sent, waiting for confirmation...');
+          // console.log('Approve transaction sent, waiting for confirmation...');
           const approveReceipt = await publicClient.waitForTransactionReceipt({
             hash: approveHash,
             confirmations: 1
@@ -600,10 +831,14 @@ const App: React.FC = () => {
           console.log(`Sufficient allowance: ${allowance.toString()} (no need to approve).`);
         }
 
+        console.log('handleTopUp: selectedStrategy =', selectedStrategy);
+        if (!selectedStrategy) {
+          throw new Error('Aucune stratégie sélectionnée');
+        }
         // Étape 3 : Dépôt
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
-          depositAmount,
+          amount,
           address as `0x${string}`,
           depositAsset as DepositAsset
         );
@@ -618,14 +853,10 @@ const App: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 15000));
 
         // Étape 4 : Mint
-        const depositFloat = parseFloat(depositAmount);
-        const mintAmountFloat = depositFloat / 2;
-        const mintAmount = mintAmountFloat.toString();
-
         const { type: synthType } = getSynthToken(depositAsset);
 
         const mintResult = await mint(
-          mintAmount.toString(),
+          borrowAmount,
           address as `0x${string}`,
           synthType
         );
@@ -690,22 +921,9 @@ const App: React.FC = () => {
         //  console.log("Type of transferData:", typeof transferData);
         //  console.log('TransferData before top-up:', transferData);
 
-        /*       if (
-                parseFloat(EURAmount) < parseFloat(serverSettings.external.minTopUpAmountInEUR) ||
-                parseFloat(EURAmount) > parseFloat(serverSettings.external.maxTopUpAmountInEUR)
-              ) {
-                throw new Error(
-                  `Amount must be between €${serverSettings.external.minTopUpAmountInEUR} and €${serverSettings.external.maxTopUpAmountInEUR}.`
-                );
-              } */
-
-
-        //  console.log("Token balance:", tokenBalance.toString());
-        //  console.log("alAmount in Wei:", parseUnits(alAmount, decimals).toString());
-
-        /*       if (tokenBalance < parseUnits(alAmount, decimals)) {
-                throw new Error("Insufficient token balance for the requested top-up.");
-              } */
+        if (!transferData) {
+          throw new Error('Failed to get transfer data');
+        }
 
         // Étape 7 : Top-Up
         await performTopUp(
@@ -723,10 +941,8 @@ const App: React.FC = () => {
             onStepChange: (step) => console.log('Current Step:', step),
           }
         );
-        //  console.log(performTopUp)
-
         console.log('Top-up completed successfully.');
-        // alert('Top-up successful!');
+        return true; // Retourner explicitement true pour indiquer le succès
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -735,7 +951,8 @@ const App: React.FC = () => {
         console.error('An unknown error occurred');
       }
 
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(err instanceof Error ? err : 'An unknown error occurred');
+      return false; // Retourner explicitement false pour indiquer l'échec
     } finally {
       setIsLoading(false);
     }
@@ -753,7 +970,7 @@ const App: React.FC = () => {
         console.error('An unknown error occurred while setting max amount');
       }
 
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(err instanceof Error ? err : 'An unknown error occurred');
     }
   };
 
@@ -761,8 +978,8 @@ const App: React.FC = () => {
     // Construire l'objet de détails à afficher dans le pop-up
     const deposit = parseFloat(depositAmount || '0');
     const txDetails = {
-      type: mode === 'topup' ? 'Top-up' : 'Borrow',
-      amount: depositAmount,
+      type: mode === 'topup' ? 'Deposit & Top-up' : 'Top-up',
+      amount: mode === 'topup' ? depositAmount : borrowAmount,
       token: depositAsset || '',
       collateralAmount: mode === 'topup' ? depositAmount : '',
       depositAsset: depositAsset || '',
@@ -798,7 +1015,7 @@ const App: React.FC = () => {
         const isValidTag = await validateHolytag(holytag);
         if (!isValidTag) {
           toast.error('Invalid Holytag. Please enter a valid holytag before proceeding.', {
-            ...warn,
+            ...toastConfig,
             icon: <span aria-label="error">❌</span>,
           });
           return;
@@ -806,32 +1023,43 @@ const App: React.FC = () => {
       }
 
       const promise = (async () => {
-        if (mode === 'topup') {
-          await handleTopUp();
-        } else {
-          await handleBorrowOnly();
+        try {
+          if (mode === 'topup') {
+            const result = await handleTopUp(holytag, depositAmount, depositAsset);
+            if (!result) {
+              throw new Error('Top-up operation failed');
+            }
+          } else {
+            const borrowResult = await handleBorrowOnly();
+            if (!borrowResult || borrowResult.status !== 'success') {
+              throw new Error(borrowResult?.status === 'reverted'
+                ? 'Transaction was reverted by the network'
+                : 'Transaction failed');
+            }
+          }
+          return true;
+        } catch (err) {
+          console.error(`Error in ${mode} operation:`, err);
+          if (err instanceof Error) {
+            throw err;
+          } else {
+            throw new Error('Transaction failed');
+          }
         }
       })();
 
       await toast.promise(promise, {
         pending: {
-          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} transaction in progress...`,
+          render: `${mode === 'topup' ? 'Deposit & Top-up' : 'Top-up'} transaction in progress...`,
           ...toastConfig,
         },
         success: {
-          render: `${mode === 'topup' ? 'Top-up' : 'Borrow'} completed successfully!`,
+          render: `${mode === 'topup' ? 'Deposit & Top-up' : 'Top-up'} completed successfully!`,
           ...toastConfig,
         },
         error: {
           render({ data }) {
-            if (data instanceof Error) {
-              return data.message;
-            }
-            const errorData = data as ErrorData | null | undefined;
-            if (errorData?.message === 'Transaction cancelled') {
-              return 'Transaction cancelled';
-            }
-            return `${mode === 'topup' ? 'Top-up' : 'Borrow'} failed`;
+            return data instanceof Error ? data.message : 'Transaction failed';
           },
           ...toastConfig,
         },
@@ -847,10 +1075,36 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      toast.error(error);
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : 'An error occurred'), {
+        ...toastConfig,
+        icon: <span aria-label="error">❌</span>,
+      });
       setError(null); // Clear error after showing toast
     }
   }, [error]);
+
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    if (!hasSeenWelcome) {
+      setShowWelcomeModal(true);
+    }
+  }, []);
+
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    localStorage.setItem('hasSeenWelcome', 'true');
+  };
+
+  useEffect(() => {
+    if (!serverSettingsLoading && mode === 'topup' && !isTopupEnabled) {
+      toast.error('Top-up service is currently unavailable', {
+        ...toastConfig,
+        icon: <span aria-label="error">❌</span>,
+      });
+    }
+  }, [mode, isTopupEnabled, serverSettingsLoading]);
 
   return (
     <div className="bg-alchemix">
@@ -858,6 +1112,67 @@ const App: React.FC = () => {
       <MessageProvider>
         <div className="app-container" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <MessageDisplay />
+
+          {/* Welcome Modal */}
+          <Dialog
+            open={showWelcomeModal}
+            onClose={handleCloseWelcomeModal}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+              style: {
+                background: 'rgba(20, 25, 33, 0.95)',
+                color: 'white',
+                border: '1px solid #2d2f36',
+                borderRadius: '8px',
+              },
+            }}
+          >
+            <DialogTitle sx={{
+              borderBottom: '1px solid #2d2f36',
+              color: '#f5caa4'
+            }}>
+              Welcome to Alchemix Self-Repaying Loans
+            </DialogTitle>
+            <DialogContent sx={{ mt: 2 }}>
+              <p>Choose an option:</p>
+              <ul style={{ paddingLeft: '20px' }}>
+                <li style={{ marginBottom: '15px' }}>
+                  <strong>Deposit & Top-up</strong>
+                  <p style={{ margin: '5px 0', color: '#979BA2' }}>
+                    Deposit into an Alchemix vault and take a Loan to top-up your HolyHeld card
+                  </p>
+                </li>
+                <li style={{ marginBottom: '15px' }}>
+                  <strong>Top-up</strong>
+                  <p style={{ margin: '5px 0', color: '#979BA2' }}>
+                    Borrow against an existing position to top-up your Holyheld card.
+                  </p>
+                </li>
+              </ul>
+            </DialogContent>
+            <DialogActions sx={{
+              borderTop: '1px solid #2d2f36',
+              padding: '16px 24px'
+            }}>
+              <Button
+                onClick={handleCloseWelcomeModal}
+                variant="contained"
+                sx={{
+                  textTransform: 'none',
+                  bgcolor: '#f5caa4',
+                  color: '#232833',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    bgcolor: '#d4a88c',
+                  },
+                }}
+              >
+                Get Started
+              </Button>
+            </DialogActions>
+          </Dialog>
+
           <div className="main-content">
             {/* Header */}
             <header className="header">
@@ -878,11 +1193,12 @@ const App: React.FC = () => {
                 </div>
               )}
 
+
               {/* Mode Selection */}
-              <div className="card">
+              <div className="card first-card">
                 <div className="mode-selection" style={{
                   display: 'flex',
-                  gap: '10px',
+                  gap: '0px',
                   marginBottom: '20px',
                   justifyContent: 'center'
                 }}>
@@ -890,61 +1206,119 @@ const App: React.FC = () => {
                     variant={mode === 'topup' ? 'contained' : 'outlined'}
                     onClick={() => setMode('topup')}
                     sx={{
-                      bgcolor: mode === 'topup' ? 'gray' : 'transparent',
+                      textTransform: 'none',
+                      bgcolor: mode === 'topup' ? '#f5caa4' : 'transparent',
+                      color: mode === 'topup' ? '#232833' : 'white',
+                      fontWeight: mode === 'topup' ? 'bold' : 'normal',
                       flex: 1,
-                      '&:hover': {
-                        bgcolor: mode === 'topup' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
-                      },
+                      borderTopRightRadius: 0,
+                      borderBottomRightRadius: 0,
+                      borderColor: '#f5caa4',
+                      '&:hover': { bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)', color: mode === 'topup' ? '#232833' : 'white' },
                     }}
                   >
-                    Top-Up
+                    Deposit & Top-Up
                   </Button>
                   <Button
                     variant={mode === 'borrowOnly' ? 'contained' : 'outlined'}
                     onClick={() => setMode('borrowOnly')}
                     sx={{
-                      bgcolor: mode === 'borrowOnly' ? 'gray' : 'transparent',
+                      textTransform: 'none',
+                      bgcolor: mode === 'borrowOnly' ? '#f5caa4' : 'transparent',
+                      color: mode === 'borrowOnly' ? '#232833' : 'white',
+                      fontWeight: mode === 'borrowOnly' ? 'bold' : 'normal',
                       flex: 1,
-                      '&:hover': {
-                        bgcolor: mode === 'borrowOnly' ? 'gray' : 'rgba(128, 128, 128, 0.2)',
-                      },
+                      borderTopLeftRadius: 0,
+                      borderBottomLeftRadius: 0,
+                      borderColor: '#f5caa4',
+                      '&:hover': { bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)', color: mode === 'borrowOnly' ? '#232833' : 'white' },
                     }}
                   >
-                    Borrow Only
+                    Top-Up
                   </Button>
                 </div>
+                {mode === 'topup' && (
+                  <div style={{ textAlign: 'left', marginTop: '12px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }}>
+                    Deposit into an Alchemix vault and take a loan to top-up your Holyheld Card.<br />
+                    <br />
+                    1. Tag your HolyHeld card.<br />
+                    2. Select your deposit asset and amount.<br />
+                    3. Choose your Yield Strategy to deposit into.<br />
+                    4. Borrow and top-up your card.
+                  </div>
+                )}
+                {mode === 'borrowOnly' && (
+                  <div style={{ textAlign: 'left', marginTop: '12px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }}>
+                    Borrow against an existing position to top-up your Holyheld Card .<br />
+                    <br />
+                    1. Tag your HolyHeld Card.<br />
+                    2. Select your asset .<br />
+                    3. Choose your Yield Strategy to deposit into.<br />
+                    4. Borrow and top-up your card.
+                  </div>
+                )}
               </div>
 
-              {/* Holytag Section - Visible only in Top-Up mode */}
-              {mode === 'topup' && (
-                <div className="card">
-                  <label htmlFor="holytag"></label>
+              {/* Holytag */}
+              <div className="card holytag-card">
+                <label htmlFor="holytag" style={{ marginBottom: '10px' }}>Holytag</label>
+                <div className="holytag-container" style={{ position: 'relative', flex: 1 }}>
                   <input
                     id="holytag"
                     type="text"
-                    value={holytag}
-                    onChange={(e) => setHolytag(e.target.value)}
-                    placeholder="Enter Holytag"
+                    value={holytagInput}
+                    onChange={(e) => setHolytagInput(e.target.value)}
+                    placeholder="alchemix"
                     className="input-field"
+                    style={{
+                      position: 'relative',
+                      zIndex: 2,
+                      background: 'transparent',
+                      color: 'transparent',
+                      caretColor: 'black',
+                      fontSize: '16px',
+                      fontFamily: 'inherit',
+                      padding: '8px',
+                      boxSizing: 'border-box'
+                    }}
                   />
-                  <Button
-                    variant="contained"
-                    onClick={handleValidateHolytag}
-                    sx={{ bgcolor: 'gray' }}
-                  >
-                    Validate Holytag
-                  </Button>
+                  <div className="holytag-overlay" style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '8px',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                    zIndex: 1
+                  }}>
+                    {holytagInput.split('').map((letter, idx) => {
+                      const color = holytagIsValid === null ? (validateLetter(letter) ? 'green' : 'red') : (holytagIsValid ? 'green' : 'red');
+                      return (
+                        <span key={idx} style={{ color }}>
+                          {letter}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
+              </div>
+
 
               {/* Deposit Asset Selection */}
-              <div className="card">
-                <label htmlFor="deposit-asset">Select deposit asset</label>
+              <div className="card deposit-card">
+                <label htmlFor="deposit-asset" style={{ marginBottom: '0px' }}>{mode === 'borrowOnly' ? 'Select your asset' : 'Deposit asset'}</label>
                 <select
                   id="deposit-asset"
                   className="dropdown"
                   value={depositAsset}
                   onChange={handleDepositAssetChange}
+                  style={{ margin: '10px 0', backgroundColor: '#1a1b1f' }}
                 >
                   <option value="">Select asset</option>
                   {availableDepositAssets.map((asset) => (
@@ -954,60 +1328,69 @@ const App: React.FC = () => {
                   ))}
                 </select>
 
-                {/* Deposit Amount Input */}
-                <label htmlFor="deposit-amount">Enter deposit amount</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    id="deposit-amount"
-                    type="text"
-                    value={depositAmount}
-                    onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder="0.00"
-                    className="input-field"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={handleMaxAmount}
-                    size="small"
-                    disabled={balanceLoading || maxLoading || !depositAsset || !address}
-                    sx={{
-                      minWidth: '60px',
-                      height: '32px',
-                      color: 'gray',
-                      borderColor: 'gray',
-                      '&:hover': {
-                        borderColor: 'white',
-                        color: 'white',
-                      },
-                    }}
-                  >
-                    MAX
-                  </Button>
-                </div>
-
+                {mode !== 'borrowOnly' && (
+                  <>
+                    <label htmlFor="deposit-amount" style={{ marginBottom: '10px' }}>Deposit amount</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
+                      <input
+                        id="deposit-amount"
+                        type="text"
+                        value={depositAmount}
+                        onChange={(e) => handleInputChange(e.target.value)}
+                        placeholder="$100"
+                        className="input-field"
+                        style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                      />
+                      <Button
+                        variant="outlined"
+                        onClick={handleMaxAmount}
+                        size="small"
+                        disabled={balanceLoading || maxLoading || !address}
+                        sx={{
+                          textTransform: 'none',
+                          minWidth: '60px',
+                          height: '33px',
+                          color: 'white',
+                          borderColor: '#f5caa4',
+                          fontWeight: 'normal',
+                          margin: 0,
+                          borderTopLeftRadius: 0,
+                          borderBottomLeftRadius: 0,
+                          '&:hover': {
+                            borderColor: 'white',
+                            color: 'white',
+                          },
+                        }}
+                      >
+                        MAX
+                      </Button>
+                    </div>
+                  </>
+                )}
                 {/* Balance Display */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '4px'
-                }}>
-                  <p className="balance-text">
-                    {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
-                  </p>
-                  {balanceError && (
-                    <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
-                      {balanceError}
+                {mode !== 'borrowOnly' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '4px'
+                  }}>
+                    <p className="balance-text">
+                      {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
                     </p>
-                  )}
-                </div>
+                    {balanceError && (
+                      <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
+                        {balanceError}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Yield Strategy Selection */}
-              <div className="card">
-                <label htmlFor="yield-strategy">
-                  Select yield strategy
+              {/* Yield Strategy and Borrow Amount */}
+              <div className="card yield-strategy-card">
+                <label htmlFor="yield-strategy" style={{ marginBottom: '0px' }}>
+                  Yield strategy
                   <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
                     ⓘ
                   </span>
@@ -1016,162 +1399,110 @@ const App: React.FC = () => {
                 {isLoading ? (
                   <p>Waiting for Strategies...</p>
                 ) : (
-                  <Select
-                    key={selectKey}
-                    options={formattedStrategies}
-                    value={formattedStrategies.find((s) => s.value === selectedStrategy)}
-                    onChange={(option) => setSelectedStrategy(option?.value || '')}
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        backgroundColor: '#000',
-                        border: '1px solid #444',
-                        color: '#fff',
-                      }),
-                      option: (base, { isFocused }) => ({
-                        ...base,
-                        backgroundColor: isFocused ? '#333' : '#000',
-                        color: '#fff',
-                      }),
-                      singleValue: (base) => ({
-                        ...base,
-                        color: '#fff',
-                      }),
+                  <select
+                    id="yield-strategy"
+                    className="dropdown"
+                    value={selectedStrategy}
+                    onChange={(e) => {
+                      console.log('Strategy selected:', e.target.value);
+                      setSelectedStrategy(e.target.value);
+                      addMessage(`Selected strategy: ${e.target.value}`, 'info');
                     }}
+                    style={{ margin: '10px 0', backgroundColor: '#1a1b1f' }}
+                  >
+                    <option value="">Select strategy</option>
+                    {formattedStrategies.map((strategy) => (
+                      <option key={strategy.value} value={strategy.value}>
+                        {strategy.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <div style={{ marginTop: '0px' }}>
+                  <label htmlFor="borrow-amount" style={{ marginBottom: '0px' }}>
+                    Borrow amount
+                    <span className="tooltip-icon" data-tooltip="Amount you want to borrow">
+                      ⓘ
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={borrowAmount ?
+                      typeof borrowAmount === 'string' ?
+                        borrowAmount :
+                        // Convertir d'abord en chaîne décimale, puis formater
+                        formatUnits(formatNumberWithoutExponent(borrowAmount), 18)
+                      : "0"}
+                    onChange={handleBorrowAmountChange}
+                    placeholder="$100"
+                    className="input-field"
+                    style={{ margin: '10px 0', width: '500px' }}
                   />
-                )}
 
-                {/* Strategy Implications */}
-                {selectedStrategy && (
-                  <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
-                    <h3>Implications of Selected Strategy:</h3>
-                    <p>
-                      {getStrategyImplications(
-                        availableStrategies.find((strategy) => strategy.address === selectedStrategy)?.apr || 0
-                      )}
-                    </p>
+                  <div style={{ display: 'flex', gap: '0', marginTop: '10px' }}>
+                    {[25, 50, 75, 100].map((percentage, index, array) => (
+                      <button
+                        key={percentage}
+                        onClick={() => handleBorrowPercentage(percentage)}
+                        style={{
+                          flex: 1,
+                          padding: '3px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #f5caa4',
+                          color: '#ccc',
+                          cursor: 'pointer',
+                          margin: 0,
+                          borderRadius: index === 0
+                            ? '4px 0 0 4px'
+                            : index === array.length - 1
+                              ? '0 4px 4px 0'
+                              : '0',
+                          borderRight: index === array.length - 1 ? '1px solid #f5caa4' : 'none',
+                          transition: 'background-color 0.3s, color 0.3s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 202, 164, 0.2)'; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#ccc'; }}
+                        onMouseDown={(e) => { e.currentTarget.style.backgroundColor = '#d4a88c'; e.currentTarget.style.color = 'white'; }}
+                        onMouseUp={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 202, 164, 0.2)'; e.currentTarget.style.color = 'white'; }}
+                      >
+                        {percentage}%
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Loan Asset Display */}
-              <div className="card">
-                <label htmlFor="loan-asset">Loan asset</label>
-                <input
-                  id="loan-asset"
-                  type="text"
-                  value={loanAsset}
-                  readOnly
-                  placeholder="Enter loan asset"
-                  className="input-field"
-                />
-              </div>
+
 
               {/* Action Button */}
               <div className="card">
                 <Button
                   variant="contained"
                   onClick={openConfirmationModal}
-                  disabled={isBorrowing}
+                  disabled={isBorrowing || !depositAsset}
                   fullWidth
-                  sx={{ bgcolor: 'Gray' }}
+                  sx={{
+                    textTransform: 'none',
+                    backgroundColor: 'transparent',
+                    border: '2px solid green',
+                    color: 'green',
+                    fontWeight: 'bold',
+                    '&:hover': { backgroundColor: 'transparent', border: '2px solid green', color: 'green' },
+                  }}
                 >
-                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Perform Top-Up' : 'Borrow'}
+                  {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-Up' : 'Top-Up'}
                 </Button>
+
+                <div className=" ">
+                  <div className="text-gray-700  center-text-hack">
+                    {mode === 'topup'
+                      ? 'You will need to approve five transactions'
+                      : 'You will need to approve three transactions'}
+                  </div>
+                </div>
               </div>
             </main>
-          </div>
-          <div className="right-panel">
-            <div className="position-summary">
-              <h3>Your Position</h3>
-              <div className="position-details">
-                <p>Debt: {parseFloat(position.debt.amount).toFixed(6)} {position.debt.symbol}</p>
-              </div>
-            </div>
-
-            <div className="position-summary">
-              <h2>Summary</h2>
-              {selectedStrategy ? (
-                <>
-                  <p>
-                    <strong>Collateral Amount:</strong> {collateralAmount} {depositAsset}
-                  </p>
-                  <div className="earnings-breakdown">
-                    <p>
-                      <strong>Estimated Earnings (APR: {apr}%):</strong>
-                    </p>
-                    <p>
-                      Daily: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 1).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Weekly: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 7).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Monthly: {parseFloat(depositAmount || '0') > 0 ?
-                        calculateEstimatedEarnings(parseFloat(depositAmount), apr, 30).toFixed(8) : '0.00'} {depositAsset}
-                    </p>
-                    <p>
-                      Yearly: {estimatedEarnings} {depositAsset}
-                    </p>
-                  </div>
-                  <p>
-                    <strong>Expected Debt:</strong> {expectedDebt} {loanAsset}
-                  </p>
-                </>
-              ) : (
-                <p>Please select a strategy to see the summary.</p>
-              )}
-            </div>
-
-            <div className="position-summary">
-              <a
-                href="https://alchemix.fi/vaults"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '12px',
-                  backgroundColor: '#1a1b1f',
-                  color: '#fff',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  transition: 'all 0.2s ease',
-                  border: '1px solid #444',
-                  fontSize: '14px'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#2d2f36';
-                  e.currentTarget.style.borderColor = '#666';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1a1b1f';
-                  e.currentTarget.style.borderColor = '#444';
-                }}
-              >
-                Manage your position on Alchemix
-                <span style={{ fontSize: '20px' }}>↗</span>
-              </a>
-            </div>
-
-            <div className="position-summary">
-            </div>
-          </div>
-
-          <div style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            background: '#1a1b1f',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-          }}>
-
           </div>
 
           <TransactionConfirmation
@@ -1182,6 +1513,7 @@ const App: React.FC = () => {
           />
         </div>
       </MessageProvider>
+
     </div>
   );
 };
