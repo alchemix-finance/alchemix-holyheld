@@ -208,8 +208,23 @@ const App: React.FC = () => {
       console.log('Min amount in EUR:', minTopUpAmountInEUR);
       console.log('Max amount in EUR:', maxTopUpAmountInEUR);
       
-      if (amountInEUR < parseFloat(minTopUpAmountInEUR) || amountInEUR > parseFloat(maxTopUpAmountInEUR)) {
-        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      if (serverSettingsLoading) {
+        throw new Error('Loading server settings...');
+      }
+
+      if (serverSettingsError) {
+        throw new Error('Failed to load server settings. Please try again.');
+      }
+
+      const minAmount = parseFloat(minTopUpAmountInEUR);
+      const maxAmount = parseFloat(maxTopUpAmountInEUR);
+
+      if (isNaN(minAmount) || isNaN(maxAmount)) {
+        throw new Error('Invalid server settings. Please try again later.');
+      }
+
+      if (amountInEUR < minAmount || amountInEUR > maxAmount) {
+        throw new Error(`Amount must be between ${minAmount} and ${maxAmount} EUR`);
       }
 
       console.log('=== BORROW ONLY DETAILS ===');
@@ -538,23 +553,13 @@ const App: React.FC = () => {
 
   const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
     try {
-      // Validation du montant
-      const amountInEth = parseFloat(amount);
-      if (amountInEth <= 0) {
-        throw new Error('Please enter a valid amount greater than 0.');
-      }
-
       // Use the calculated borrow amount based on the slider percentage
       const borrowAmountInEth = parseFloat(borrowAmount);
       console.log('Using calculated borrow amount:', borrowAmountInEth);
 
       // Obtenir le bon token en fonction du type de dépôt
-      let token;
-      if (depositAsset.toUpperCase() === 'ETH') {
-        token = TOKENS[chain.id]?.WETH;
-      } else {
-        token = TOKENS[chain.id]?.[depositAsset.toUpperCase()];
-      }
+      const tokenSymbol = depositAsset.toUpperCase() === 'ETH' ? 'WETH' : depositAsset.toUpperCase();
+      const token = TOKENS[chain.id]?.[tokenSymbol];
 
       console.log('Token for conversion:', token);
       if (!token) {
@@ -582,8 +587,23 @@ const App: React.FC = () => {
       console.log('Min amount in EUR:', minTopUpAmountInEUR);
       console.log('Max amount in EUR:', maxTopUpAmountInEUR);
       
-      if (amountInEUR < parseFloat(minTopUpAmountInEUR) || amountInEUR > parseFloat(maxTopUpAmountInEUR)) {
-        throw new Error(`Borrow amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      if (serverSettingsLoading) {
+        throw new Error('Loading server settings...');
+      }
+
+      if (serverSettingsError) {
+        throw new Error('Failed to load server settings. Please try again.');
+      }
+
+      const minAmount = parseFloat(minTopUpAmountInEUR);
+      const maxAmount = parseFloat(maxTopUpAmountInEUR);
+
+      if (isNaN(minAmount) || isNaN(maxAmount)) {
+        throw new Error('Invalid server settings. Please try again later.');
+      }
+
+      if (amountInEUR < minAmount || amountInEUR > maxAmount) {
+        throw new Error(`Amount must be between ${minAmount} and ${maxAmount} EUR`);
       }
 
       // Check if wallet is connected and chain is supported
@@ -592,38 +612,47 @@ const App: React.FC = () => {
       }
 
       // Validation du holytag
+      console.log('Validating holytag:', holytag);
       const isValidTag = await validateHolytag(holytag);
+      console.log('Holytag validation result:', isValidTag);
       if (!isValidTag) {
         throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
       }
 
-      if (!amount || parseFloat(amount) <= 0) {
+      // Utiliser le montant calculé au lieu du montant initial
+      if (!borrowAmountInEth || borrowAmountInEth <= 0) {
         throw new Error('Please enter a valid deposit amount.');
       }
+      console.log('Deposit amount validation passed:', borrowAmountInEth);
+
       if (!depositAsset) {
         throw new Error('Please select a deposit asset.');
       }
+      console.log('Deposit asset validation passed:', depositAsset);
+
       if (!selectedStrategy) {
         throw new Error('Please select a yield strategy.');
       }
-      if (alchemistsLoading) {
-        throw new Error('Loading alchemists data...');
-      }
+      console.log('Selected strategy validation passed:', selectedStrategy);
+
       if (!DEPOSIT_ASSETS.includes(depositAsset as DepositAsset)) {
         throw new Error(`Invalid deposit asset: ${depositAsset}`);
       }
+      console.log('Deposit asset type validation passed');
+
+      if (alchemistsLoading) {
+        throw new Error('Loading alchemists data...');
+      }
 
       if (alchemistsError) {
-        console.error("alchemists:", alchemists)
-
-        console.error("synth:", synthMapping)
-        console.log(alchemistsError)
+        console.error("Error with alchemists:", alchemistsError);
+        console.error("Current alchemists:", alchemists);
+        console.error("Current synth mapping:", synthMapping);
         throw new Error('Failed to fetch alchemists data.');
       }
-      //console.log("Available alchemists:", alchemists);
-      //console.log("Deposit asset:", depositAsset.toUpperCase());
 
       const mappedSynthType = synthMapping[depositAsset.toUpperCase()] || depositAsset.toUpperCase();
+      console.log('Mapped synth type:', mappedSynthType);
       if (!mappedSynthType) {
         throw new Error(`No synth mapping found for asset: ${depositAsset}`);
       }
@@ -632,26 +661,34 @@ const App: React.FC = () => {
       if (!alchemists || alchemists.length === 0) {
         throw new Error('No alchemists data available');
       }
+      console.log('Available alchemists:', alchemists.map(al => ({
+        type: al.synthType,
+        address: al.address
+      })));
 
       // Trouver l'alchemist correspondant
       const alchemist = alchemists.find((al: { synthType: string; }) => {
-        //console.log("Checking alchemist:", al.synthType, "against", mappedSynthType);
+        console.log("Checking alchemist:", al.synthType, "against", mappedSynthType);
         return al.synthType === mappedSynthType;
       });
 
       if (!alchemist) {
+        console.error("No matching alchemist found for", mappedSynthType);
         console.error("Available alchemists:", alchemists.map((a: { synthType: any; address: any; }) => ({
           type: a.synthType,
           address: a.address
         })));
         throw new Error(`No alchemist found for asset: ${depositAsset} (${mappedSynthType})`);
       }
+      console.log('Found matching alchemist:', alchemist);
 
       const alchemistAddress = alchemist.address;
 
       // Étape 1 : Vérification des paramètres
-      //console.log('Fetching server settings...');
+      console.log('Fetching server settings...');
       const serverSettings = await sdk.getServerSettings();
+      console.log('Server settings:', serverSettings);
+      
       if (!serverSettings.external.isTopupEnabled) {
         throw new Error('Top-up is currently disabled.');
       }
@@ -661,6 +698,15 @@ const App: React.FC = () => {
       }
 
       // Proceed with the top-up process
+      console.log('Starting top-up process with:', {
+        holytag,
+        amount,
+        depositAsset,
+        selectedStrategy,
+        chain: chain.name,
+        alchemistAddress
+      });
+
       type SupportedChainId = keyof typeof CONTRACTS;
 
       const chainId = chain.id as SupportedChainId;
@@ -774,34 +820,20 @@ const App: React.FC = () => {
         const tokenKey = depositAsset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
         const tokenInfo = CONTRACTS[chainId]?.TOKENS[tokenKey];
 
-        // console.log("Token Key:", tokenKey);
-        //console.log("Token Info:", tokenInfo);
-
         if (!tokenInfo) {
           throw new Error(`Token configuration not found for asset: ${depositAsset}`);
-        }
-
-        // Vérification des limites min/max avant toute opération
-        const amountInEth = parseFloat(amount);
-        if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
-          throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
         }
 
         const tokenAddress = tokenInfo.token;
         const depositDecimals = tokenInfo.decimals;
 
-        const depositAmountWei = parseUnits(amount, depositDecimals);
+        const depositAmountWei = parseUnits(borrowAmount, depositDecimals);
 
         if (!tokenAddress || !depositDecimals) {
           throw new Error(`Invalid token configuration for ${depositAsset} on chain ID ${chainId}.`);
         }
 
-        //  console.log("Token Address:", tokenAddress);
-        // console.log("Deposit Amount (Wei):", depositAmountWei.toString());
-
         // Étape 2 : Approve
-
-        // Vérifier l'allocation avant d'approuver
         const allowance = await publicClient.readContract({
           address: tokenAddress,
           abi: erc20Abi,
@@ -810,8 +842,6 @@ const App: React.FC = () => {
         }) as bigint;
 
         if (allowance < depositAmountWei) {
-          // console.log(`Current allowance: ${allowance.toString()}, required: ${depositAmountWei.toString()}. Approving...`);
-
           const approveHash = await walletClient.writeContract({
             address: tokenAddress as `0x${string}`,
             abi: erc20Abi,
@@ -820,7 +850,6 @@ const App: React.FC = () => {
             gas: 100000n,
           });
 
-          // console.log('Approve transaction sent, waiting for confirmation...');
           const approveReceipt = await publicClient.waitForTransactionReceipt({
             hash: approveHash,
             confirmations: 1
@@ -842,7 +871,7 @@ const App: React.FC = () => {
         // Étape 3 : Dépôt
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
-          amount,
+          borrowAmount,
           address as `0x${string}`,
           depositAsset as DepositAsset
         );
