@@ -548,27 +548,33 @@ const App: React.FC = () => {
       const borrowAmountInEth = parseFloat(borrowAmount);
       console.log('Using calculated borrow amount:', borrowAmountInEth);
 
-      // Conversion du montant ETH en EUR
-      const wethToken = TOKENS[chain.id]?.WETH;
-      console.log('WETH token:', wethToken);
-      if (!wethToken) {
-        throw new Error('WETH token not found for this network');
+      // Obtenir le bon token en fonction du type de dépôt
+      let token;
+      if (depositAsset.toUpperCase() === 'ETH') {
+        token = TOKENS[chain.id]?.WETH;
+      } else {
+        token = TOKENS[chain.id]?.[depositAsset.toUpperCase()];
+      }
+
+      console.log('Token for conversion:', token);
+      if (!token) {
+        throw new Error(`Token not found for ${depositAsset} on this network`);
       }
 
       const mappedNetwork = mapNetworkName(chain.name);
       console.log('Network:', chain.name, 'Mapped network:', mappedNetwork);
-      console.log('Converting borrow amount:', borrowAmountInEth.toString(), 'with decimals:', wethToken.decimals);
+      console.log('Converting borrow amount:', borrowAmountInEth.toString(), 'with decimals:', token.decimals);
       
       const conversionResult = await convertTokenToEUR(
-        wethToken.address,
-        wethToken.decimals,
+        token.address,
+        token.decimals,
         borrowAmountInEth.toString(),
         mappedNetwork
       );
 
       console.log('Conversion result:', conversionResult);
       if (!conversionResult) {
-        throw new Error('Failed to convert ETH to EUR');
+        throw new Error('Failed to convert to EUR');
       }
 
       const amountInEUR = parseFloat(conversionResult.EURAmount);
