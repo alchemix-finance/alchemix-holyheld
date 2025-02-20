@@ -528,84 +528,12 @@ const App: React.FC = () => {
 
   const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '') {
-      setBorrowAmount('0');
-      return;
+    
+    // Utiliser la même validation que handleInputChange
+    const regex = /^[0-9]*[.]?[0-9]*$/;
+    if (regex.test(value)) {
+      setBorrowAmount(value);
     }
-
-    try {
-      // Convertir en format décimal standard si nécessaire
-      const formattedValue = formatNumberWithoutExponent(parseFloat(value));
-      setBorrowAmount(formattedValue);
-    } catch (error) {
-      console.error('Error formatting borrow amount:', error);
-      setBorrowAmount('0');
-    }
-  };
-
-  // useEffect pour mettre à jour automatiquement le loanAsset
-  useEffect(() => {
-    if (depositAsset) {
-      const mappedAsset = synthMapping[depositAsset.toUpperCase()];
-      setLoanAsset(mappedAsset || '');
-    }
-  }, [depositAsset]);
-
-  const getSynthToken = (asset: string): { type: SynthAsset; address: string } => {
-    const assetUpper = asset.toUpperCase();
-    const chainId = chain?.id;
-
-    if (!chainId || !(chainId in CONTRACTS)) {
-      throw new Error(`Unsupported chain ID: ${chainId}`);
-    }
-
-    // Handle direct synth assets
-    if (assetUpper === 'ALETH') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
-      return {
-        type: SYNTH_ASSETS.ALETH,
-        address
-      };
-    }
-
-    if (assetUpper === 'ALUSD') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
-      return {
-        type: SYNTH_ASSETS.ALUSD,
-        address
-      };
-    }
-
-    // Handle deposit assets
-    if (assetUpper === 'WETH' || assetUpper === 'ETH') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
-      return {
-        type: SYNTH_ASSETS.ALETH,
-        address
-      };
-    }
-
-    if (assetUpper === 'USDC' || assetUpper === 'DAI' || assetUpper === 'USDT') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
-      return {
-        type: SYNTH_ASSETS.ALUSD,
-        address
-      };
-    }
-
-    throw new Error(`Unsupported deposit asset: ${asset}`);
-  };
-
-  const mapNetworkName = (networkName: string): Network => {
-    const networkMapping: Record<string, Network> = {
-      'arbitrum one': Network.arbitrum,
-      arbitrum: Network.arbitrum,
-      polygon: Network.polygon,
-      ethereum: Network.ethereum,
-      optimism: Network.optimism,
-      'op mainnet': Network.optimism,
-    };
-    return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
   };
 
   const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
@@ -1176,6 +1104,70 @@ const App: React.FC = () => {
     }
   }, [mode, isTopupEnabled, serverSettingsLoading]);
 
+  useEffect(() => {
+    if (depositAsset) {
+      const mappedAsset = synthMapping[depositAsset.toUpperCase()];
+      setLoanAsset(mappedAsset || '');
+    }
+  }, [depositAsset]);
+
+  const getSynthToken = (asset: string): { type: SynthAsset; address: string } => {
+    const assetUpper = asset.toUpperCase();
+    const chainId = chain?.id;
+
+    if (!chainId || !(chainId in CONTRACTS)) {
+      throw new Error(`Unsupported chain ID: ${chainId}`);
+    }
+
+    // Handle direct synth assets
+    if (assetUpper === 'ALETH') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
+      return {
+        type: SYNTH_ASSETS.ALETH,
+        address
+      };
+    }
+
+    if (assetUpper === 'ALUSD') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
+      return {
+        type: SYNTH_ASSETS.ALUSD,
+        address
+      };
+    }
+
+    // Handle deposit assets
+    if (assetUpper === 'WETH' || assetUpper === 'ETH') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
+      return {
+        type: SYNTH_ASSETS.ALETH,
+        address
+      };
+    }
+
+    if (assetUpper === 'USDC' || assetUpper === 'DAI' || assetUpper === 'USDT') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
+      return {
+        type: SYNTH_ASSETS.ALUSD,
+        address
+      };
+    }
+
+    throw new Error(`Unsupported deposit asset: ${asset}`);
+  };
+
+  const mapNetworkName = (networkName: string): Network => {
+    const networkMapping: Record<string, Network> = {
+      'arbitrum one': Network.arbitrum,
+      arbitrum: Network.arbitrum,
+      polygon: Network.polygon,
+      ethereum: Network.ethereum,
+      optimism: Network.optimism,
+      'op mainnet': Network.optimism,
+    };
+    return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
+  };
+
   return (
     <div className="bg-alchemix">
       <ToastContainer />
@@ -1498,12 +1490,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={borrowAmount ?
-                      typeof borrowAmount === 'string' ?
-                        borrowAmount :
-                        // Convertir d'abord en chaîne décimale, puis formater
-                        formatUnits(formatNumberWithoutExponent(borrowAmount), 18)
-                      : "0"}
+                    value={borrowAmount}
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
                     className="input-field"
