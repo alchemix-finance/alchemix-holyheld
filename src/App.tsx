@@ -62,6 +62,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useServerSettings } from './hooks/useServerSettings';
+import { useConvertTokenToEUR } from './hooks/useConvertToEUR';
+import { TOKENS } from './lib/config/tokens';
 
 //interface ErrorData { message: string; }
 
@@ -136,6 +138,8 @@ const App: React.FC = () => {
     error: serverSettingsError
   } = useServerSettings();
 
+  const { convertTokenToEUR } = useConvertTokenToEUR();
+
   useEffect(() => {
     if (serverSettingsError) {
       console.error('Error fetching server settings:', serverSettingsError);
@@ -170,9 +174,57 @@ const App: React.FC = () => {
       }
 
       // Validation du montant
-      const amountInEth = parseFloat(formatUnits(finalAmount, 18));
-      if (amountInEth <= 0 || amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
-        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      const amountInEth = typeof borrowAmount === 'string' ? parseFloat(borrowAmount) : parseFloat(formatUnits(finalAmount, 18));
+      console.log('Amount in ETH:', amountInEth);
+      if (amountInEth <= 0) {
+        throw new Error('Please enter a valid amount greater than 0.');
+      }
+
+      // Conversion du montant ETH en EUR
+      const wethToken = TOKENS[chain.id]?.WETH;
+      console.log('WETH token:', wethToken);
+      if (!wethToken) {
+        throw new Error('WETH token not found for this network');
+      }
+
+      const mappedNetwork = mapNetworkName(chain.name);
+      console.log('Network:', chain.name, 'Mapped network:', mappedNetwork);
+      console.log('Converting amount:', amountInEth.toString(), 'with decimals:', wethToken.decimals);
+      
+      const conversionResult = await convertTokenToEUR(
+        wethToken.address,
+        wethToken.decimals,
+        amountInEth.toString(),
+        mappedNetwork
+      );
+
+      console.log('Conversion result:', conversionResult);
+      if (!conversionResult) {
+        throw new Error('Failed to convert ETH to EUR');
+      }
+
+      const amountInEUR = parseFloat(conversionResult.EURAmount);
+      console.log('Amount in EUR:', amountInEUR);
+      console.log('Min amount in EUR:', minTopUpAmountInEUR);
+      console.log('Max amount in EUR:', maxTopUpAmountInEUR);
+      
+      if (serverSettingsLoading) {
+        throw new Error('Loading server settings...');
+      }
+
+      if (serverSettingsError) {
+        throw new Error('Failed to load server settings. Please try again.');
+      }
+
+      const minAmount = parseFloat(minTopUpAmountInEUR);
+      const maxAmount = parseFloat(maxTopUpAmountInEUR);
+
+      if (isNaN(minAmount) || isNaN(maxAmount)) {
+        throw new Error('Invalid server settings. Please try again later.');
+      }
+
+      if (amountInEUR < minAmount || amountInEUR > maxAmount) {
+        throw new Error(`Amount must be between ${minAmount} and ${maxAmount} EUR`);
       }
 
       console.log('=== BORROW ONLY DETAILS ===');
@@ -491,96 +543,68 @@ const App: React.FC = () => {
 
   const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '') {
-      setBorrowAmount('0');
-      return;
+    
+    // Utiliser la même validation que handleInputChange
+    const regex = /^[0-9]*[.]?[0-9]*$/;
+    if (regex.test(value)) {
+      setBorrowAmount(value);
     }
-
-    try {
-      // Convertir en format décimal standard si nécessaire
-      const formattedValue = formatNumberWithoutExponent(parseFloat(value));
-      setBorrowAmount(formattedValue);
-    } catch (error) {
-      console.error('Error formatting borrow amount:', error);
-      setBorrowAmount('0');
-    }
-  };
-
-  // useEffect pour mettre à jour automatiquement le loanAsset
-  useEffect(() => {
-    if (depositAsset) {
-      const mappedAsset = synthMapping[depositAsset.toUpperCase()];
-      setLoanAsset(mappedAsset || '');
-    }
-  }, [depositAsset]);
-
-  const getSynthToken = (asset: string): { type: SynthAsset; address: string } => {
-    const assetUpper = asset.toUpperCase();
-    const chainId = chain?.id;
-
-    if (!chainId || !(chainId in CONTRACTS)) {
-      throw new Error(`Unsupported chain ID: ${chainId}`);
-    }
-
-    // Handle direct synth assets
-    if (assetUpper === 'ALETH') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
-      return {
-        type: SYNTH_ASSETS.ALETH,
-        address
-      };
-    }
-
-    if (assetUpper === 'ALUSD') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
-      return {
-        type: SYNTH_ASSETS.ALUSD,
-        address
-      };
-    }
-
-    // Handle deposit assets
-    if (assetUpper === 'WETH' || assetUpper === 'ETH') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
-      return {
-        type: SYNTH_ASSETS.ALETH,
-        address
-      };
-    }
-
-    if (assetUpper === 'USDC' || assetUpper === 'DAI' || assetUpper === 'USDT') {
-      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
-      return {
-        type: SYNTH_ASSETS.ALUSD,
-        address
-      };
-    }
-
-    throw new Error(`Unsupported deposit asset: ${asset}`);
-  };
-
-  const mapNetworkName = (networkName: string): Network => {
-    const networkMapping: Record<string, Network> = {
-      'arbitrum one': Network.arbitrum,
-      arbitrum: Network.arbitrum,
-      polygon: Network.polygon,
-      ethereum: Network.ethereum,
-      optimism: Network.optimism,
-      'op mainnet': Network.optimism,
-    };
-    return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
   };
 
   const handleTopUp = async (holytag: string, amount: string, depositAsset: string) => {
     try {
-      // Vérification des limites min/max avant toute opération
-      const amountInEth = parseFloat(amount);
-      if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
-        throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
+      // Use the calculated borrow amount based on the slider percentage
+      const borrowAmountInEth = parseFloat(borrowAmount);
+      console.log('Using calculated borrow amount:', borrowAmountInEth);
+
+      // Obtenir le bon token en fonction du type de dépôt
+      const tokenSymbol = depositAsset.toUpperCase() === 'ETH' ? 'WETH' : depositAsset.toUpperCase();
+      const token = TOKENS[chain.id]?.[tokenSymbol];
+
+      console.log('Token for conversion:', token);
+      if (!token) {
+        throw new Error(`Token not found for ${depositAsset} on this network`);
       }
 
-      // console.log('handleTopUp: depositAsset =', depositAsset, 'selectedStrategy =', selectedStrategy);
-      // console.log('Handle Top-Up initiated.');
+      const mappedNetwork = mapNetworkName(chain.name);
+      console.log('Network:', chain.name, 'Mapped network:', mappedNetwork);
+      console.log('Converting borrow amount:', borrowAmountInEth.toString(), 'with decimals:', token.decimals);
+      
+      const conversionResult = await convertTokenToEUR(
+        token.address,
+        token.decimals,
+        borrowAmountInEth.toString(),
+        mappedNetwork
+      );
+
+      console.log('Conversion result:', conversionResult);
+      if (!conversionResult) {
+        throw new Error('Failed to convert to EUR');
+      }
+
+      const amountInEUR = parseFloat(conversionResult.EURAmount);
+      console.log('Borrow amount in EUR:', amountInEUR);
+      console.log('Min amount in EUR:', minTopUpAmountInEUR);
+      console.log('Max amount in EUR:', maxTopUpAmountInEUR);
+      
+      if (serverSettingsLoading) {
+        throw new Error('Loading server settings...');
+      }
+
+      if (serverSettingsError) {
+        throw new Error('Failed to load server settings. Please try again.');
+      }
+
+      const minAmount = parseFloat(minTopUpAmountInEUR);
+      const maxAmount = parseFloat(maxTopUpAmountInEUR);
+
+      if (isNaN(minAmount) || isNaN(maxAmount)) {
+        throw new Error('Invalid server settings. Please try again later.');
+      }
+
+      if (amountInEUR < minAmount || amountInEUR > maxAmount) {
+        throw new Error(`Amount must be between ${minAmount} and ${maxAmount} EUR`);
+      }
 
       // Check if wallet is connected and chain is supported
       if (!publicClient || !walletClient || !chain || !address) {
@@ -588,38 +612,47 @@ const App: React.FC = () => {
       }
 
       // Validation du holytag
+      console.log('Validating holytag:', holytag);
       const isValidTag = await validateHolytag(holytag);
+      console.log('Holytag validation result:', isValidTag);
       if (!isValidTag) {
         throw new Error('Invalid Holytag. Please enter a valid holytag before proceeding.');
       }
 
-      if (!amount || parseFloat(amount) <= 0) {
+      // Utiliser le montant calculé au lieu du montant initial
+      if (!borrowAmountInEth || borrowAmountInEth <= 0) {
         throw new Error('Please enter a valid deposit amount.');
       }
+      console.log('Deposit amount validation passed:', borrowAmountInEth);
+
       if (!depositAsset) {
         throw new Error('Please select a deposit asset.');
       }
+      console.log('Deposit asset validation passed:', depositAsset);
+
       if (!selectedStrategy) {
         throw new Error('Please select a yield strategy.');
       }
-      if (alchemistsLoading) {
-        throw new Error('Loading alchemists data...');
-      }
+      console.log('Selected strategy validation passed:', selectedStrategy);
+
       if (!DEPOSIT_ASSETS.includes(depositAsset as DepositAsset)) {
         throw new Error(`Invalid deposit asset: ${depositAsset}`);
       }
+      console.log('Deposit asset type validation passed');
+
+      if (alchemistsLoading) {
+        throw new Error('Loading alchemists data...');
+      }
 
       if (alchemistsError) {
-        console.error("alchemists:", alchemists)
-
-        console.error("synth:", synthMapping)
-        console.log(alchemistsError)
+        console.error("Error with alchemists:", alchemistsError);
+        console.error("Current alchemists:", alchemists);
+        console.error("Current synth mapping:", synthMapping);
         throw new Error('Failed to fetch alchemists data.');
       }
-      //console.log("Available alchemists:", alchemists);
-      //console.log("Deposit asset:", depositAsset.toUpperCase());
 
       const mappedSynthType = synthMapping[depositAsset.toUpperCase()] || depositAsset.toUpperCase();
+      console.log('Mapped synth type:', mappedSynthType);
       if (!mappedSynthType) {
         throw new Error(`No synth mapping found for asset: ${depositAsset}`);
       }
@@ -628,26 +661,34 @@ const App: React.FC = () => {
       if (!alchemists || alchemists.length === 0) {
         throw new Error('No alchemists data available');
       }
+      console.log('Available alchemists:', alchemists.map(al => ({
+        type: al.synthType,
+        address: al.address
+      })));
 
       // Trouver l'alchemist correspondant
       const alchemist = alchemists.find((al: { synthType: string; }) => {
-        //console.log("Checking alchemist:", al.synthType, "against", mappedSynthType);
+        console.log("Checking alchemist:", al.synthType, "against", mappedSynthType);
         return al.synthType === mappedSynthType;
       });
 
       if (!alchemist) {
+        console.error("No matching alchemist found for", mappedSynthType);
         console.error("Available alchemists:", alchemists.map((a: { synthType: any; address: any; }) => ({
           type: a.synthType,
           address: a.address
         })));
         throw new Error(`No alchemist found for asset: ${depositAsset} (${mappedSynthType})`);
       }
+      console.log('Found matching alchemist:', alchemist);
 
       const alchemistAddress = alchemist.address;
 
       // Étape 1 : Vérification des paramètres
-      //console.log('Fetching server settings...');
+      console.log('Fetching server settings...');
       const serverSettings = await sdk.getServerSettings();
+      console.log('Server settings:', serverSettings);
+      
       if (!serverSettings.external.isTopupEnabled) {
         throw new Error('Top-up is currently disabled.');
       }
@@ -657,6 +698,15 @@ const App: React.FC = () => {
       }
 
       // Proceed with the top-up process
+      console.log('Starting top-up process with:', {
+        holytag,
+        amount,
+        depositAsset,
+        selectedStrategy,
+        chain: chain.name,
+        alchemistAddress
+      });
+
       type SupportedChainId = keyof typeof CONTRACTS;
 
       const chainId = chain.id as SupportedChainId;
@@ -770,34 +820,20 @@ const App: React.FC = () => {
         const tokenKey = depositAsset.toUpperCase() as keyof typeof CONTRACTS[SupportedChainId]["TOKENS"];
         const tokenInfo = CONTRACTS[chainId]?.TOKENS[tokenKey];
 
-        // console.log("Token Key:", tokenKey);
-        //console.log("Token Info:", tokenInfo);
-
         if (!tokenInfo) {
           throw new Error(`Token configuration not found for asset: ${depositAsset}`);
-        }
-
-        // Vérification des limites min/max avant toute opération
-        const amountInEth = parseFloat(amount);
-        if (amountInEth < parseFloat(minTopUpAmountInEUR) || amountInEth > parseFloat(maxTopUpAmountInEUR)) {
-          throw new Error(`Amount must be between ${minTopUpAmountInEUR} and ${maxTopUpAmountInEUR} EUR`);
         }
 
         const tokenAddress = tokenInfo.token;
         const depositDecimals = tokenInfo.decimals;
 
-        const depositAmountWei = parseUnits(amount, depositDecimals);
+        const depositAmountWei = parseUnits(borrowAmount, depositDecimals);
 
         if (!tokenAddress || !depositDecimals) {
           throw new Error(`Invalid token configuration for ${depositAsset} on chain ID ${chainId}.`);
         }
 
-        //  console.log("Token Address:", tokenAddress);
-        // console.log("Deposit Amount (Wei):", depositAmountWei.toString());
-
         // Étape 2 : Approve
-
-        // Vérifier l'allocation avant d'approuver
         const allowance = await publicClient.readContract({
           address: tokenAddress,
           abi: erc20Abi,
@@ -806,8 +842,6 @@ const App: React.FC = () => {
         }) as bigint;
 
         if (allowance < depositAmountWei) {
-          // console.log(`Current allowance: ${allowance.toString()}, required: ${depositAmountWei.toString()}. Approving...`);
-
           const approveHash = await walletClient.writeContract({
             address: tokenAddress as `0x${string}`,
             abi: erc20Abi,
@@ -816,7 +850,6 @@ const App: React.FC = () => {
             gas: 100000n,
           });
 
-          // console.log('Approve transaction sent, waiting for confirmation...');
           const approveReceipt = await publicClient.waitForTransactionReceipt({
             hash: approveHash,
             confirmations: 1
@@ -838,7 +871,7 @@ const App: React.FC = () => {
         // Étape 3 : Dépôt
         const depositResult = await deposit(
           selectedStrategy as `0x${string}`,
-          amount,
+          borrowAmount,
           address as `0x${string}`,
           depositAsset as DepositAsset
         );
@@ -1106,6 +1139,70 @@ const App: React.FC = () => {
     }
   }, [mode, isTopupEnabled, serverSettingsLoading]);
 
+  useEffect(() => {
+    if (depositAsset) {
+      const mappedAsset = synthMapping[depositAsset.toUpperCase()];
+      setLoanAsset(mappedAsset || '');
+    }
+  }, [depositAsset]);
+
+  const getSynthToken = (asset: string): { type: SynthAsset; address: string } => {
+    const assetUpper = asset.toUpperCase();
+    const chainId = chain?.id;
+
+    if (!chainId || !(chainId in CONTRACTS)) {
+      throw new Error(`Unsupported chain ID: ${chainId}`);
+    }
+
+    // Handle direct synth assets
+    if (assetUpper === 'ALETH') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
+      return {
+        type: SYNTH_ASSETS.ALETH,
+        address
+      };
+    }
+
+    if (assetUpper === 'ALUSD') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
+      return {
+        type: SYNTH_ASSETS.ALUSD,
+        address
+      };
+    }
+
+    // Handle deposit assets
+    if (assetUpper === 'WETH' || assetUpper === 'ETH') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALETH];
+      return {
+        type: SYNTH_ASSETS.ALETH,
+        address
+      };
+    }
+
+    if (assetUpper === 'USDC' || assetUpper === 'DAI' || assetUpper === 'USDT') {
+      const address = SYNTH_ASSETS_ADDRESSES[chainId][SYNTH_ASSETS.ALUSD];
+      return {
+        type: SYNTH_ASSETS.ALUSD,
+        address
+      };
+    }
+
+    throw new Error(`Unsupported deposit asset: ${asset}`);
+  };
+
+  const mapNetworkName = (networkName: string): Network => {
+    const networkMapping: Record<string, Network> = {
+      'arbitrum one': Network.arbitrum,
+      arbitrum: Network.arbitrum,
+      polygon: Network.polygon,
+      ethereum: Network.ethereum,
+      optimism: Network.optimism,
+      'op mainnet': Network.optimism,
+    };
+    return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
+  };
+
   return (
     <div className="bg-alchemix">
       <ToastContainer />
@@ -1138,7 +1235,7 @@ const App: React.FC = () => {
               <p>Choose an option:</p>
               <ul style={{ paddingLeft: '20px' }}>
                 <li style={{ marginBottom: '15px' }}>
-                  <strong>Deposit & Top-up</strong>
+                  <strong>Deposit & Top-Up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
                     Deposit into an Alchemix vault and take a Loan to top-up your HolyHeld card
                   </p>
@@ -1146,7 +1243,7 @@ const App: React.FC = () => {
                 <li style={{ marginBottom: '15px' }}>
                   <strong>Top-up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
-                    Borrow against an existing position to top-up your Holyheld card.
+                    Borrow against an existing position to top-up your Holyheld Card.
                   </p>
                 </li>
               </ul>
@@ -1428,12 +1525,7 @@ const App: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={borrowAmount ?
-                      typeof borrowAmount === 'string' ?
-                        borrowAmount :
-                        // Convertir d'abord en chaîne décimale, puis formater
-                        formatUnits(formatNumberWithoutExponent(borrowAmount), 18)
-                      : "0"}
+                    value={borrowAmount}
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
                     className="input-field"
