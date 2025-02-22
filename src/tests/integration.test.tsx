@@ -221,10 +221,10 @@ describe('Frontend-Backend Integration Tests', () => {
   describe('4. Holyheld SDK Integration', () => {
     it('should validate holytags', async () => {
       const { result } = renderHook(() => useHolyheldSDK(), { wrapper });
-      
+
       // Wait for SDK to initialize
       await waitFor(() => expect(result.current.isInitialized).toBe(true));
-      
+
       const isValid = await result.current.validateHolytag('test-tag');
       expect(isValid).toBe(true);
     });
