@@ -190,7 +190,7 @@ const App: React.FC = () => {
       const mappedNetwork = mapNetworkName(chain.name);
       console.log('Network:', chain.name, 'Mapped network:', mappedNetwork);
       console.log('Converting amount:', amountInEth.toString(), 'with decimals:', wethToken.decimals);
-      
+
       const conversionResult = await convertTokenToEUR(
         wethToken.address,
         wethToken.decimals,
@@ -207,7 +207,7 @@ const App: React.FC = () => {
       console.log('Amount in EUR:', amountInEUR);
       console.log('Min amount in EUR:', minTopUpAmountInEUR);
       console.log('Max amount in EUR:', maxTopUpAmountInEUR);
-      
+
       if (serverSettingsLoading) {
         throw new Error('Loading server settings...');
       }
@@ -543,7 +543,7 @@ const App: React.FC = () => {
 
   const handleBorrowAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
+
     // Utiliser la même validation que handleInputChange
     const regex = /^[0-9]*[.]?[0-9]*$/;
     if (regex.test(value)) {
@@ -569,7 +569,7 @@ const App: React.FC = () => {
       const mappedNetwork = mapNetworkName(chain.name);
       console.log('Network:', chain.name, 'Mapped network:', mappedNetwork);
       console.log('Converting borrow amount:', borrowAmountInEth.toString(), 'with decimals:', token.decimals);
-      
+
       const conversionResult = await convertTokenToEUR(
         token.address,
         token.decimals,
@@ -586,7 +586,7 @@ const App: React.FC = () => {
       console.log('Borrow amount in EUR:', amountInEUR);
       console.log('Min amount in EUR:', minTopUpAmountInEUR);
       console.log('Max amount in EUR:', maxTopUpAmountInEUR);
-      
+
       if (serverSettingsLoading) {
         throw new Error('Loading server settings...');
       }
@@ -688,7 +688,7 @@ const App: React.FC = () => {
       console.log('Fetching server settings...');
       const serverSettings = await sdk.getServerSettings();
       console.log('Server settings:', serverSettings);
-      
+
       if (!serverSettings.external.isTopupEnabled) {
         throw new Error('Top-up is currently disabled.');
       }
@@ -1409,7 +1409,23 @@ const App: React.FC = () => {
 
               {/* Deposit Asset Selection */}
               <div className="card deposit-card">
-                <label htmlFor="deposit-asset" style={{ marginBottom: '0px' }}>{mode === 'borrowOnly' ? 'Select your asset' : 'Deposit asset'}</label>
+                <label htmlFor="deposit-asset">
+                  {mode === 'borrowOnly' ? (
+                    <>
+                      Select Your Existing Collateral Type
+                      <span className="tooltip-icon" data-tooltip="Choose which of your existing collateral assets you want to borrow against. This should match the asset type you previously deposited .">
+                        ⓘ
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Select Collateral Asset for Top-up
+                      <span className="tooltip-icon" data-tooltip="Choose which asset you want to use as collateral. This is what you'll deposit to secure your loan.">
+                        ⓘ
+                      </span>
+                    </>
+                  )}
+                </label>
                 <select
                   id="deposit-asset"
                   className="dropdown"
