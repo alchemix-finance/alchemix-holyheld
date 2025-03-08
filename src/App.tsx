@@ -1204,7 +1204,13 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // Crée une feuille de style pour forcer l'application des polices
+    // Vérification des polices
+    document.fonts.ready.then(() => {
+      console.log('Toutes les polices sont chargées');
+      const allFonts = document.fonts.check('1em "Neue Kabel"');
+      console.log('Neue Kabel disponible:', allFonts);
+    });
+
     const styleEl = document.createElement('style');
     styleEl.textContent = `
       /* Toast initial en Kabel */
@@ -1234,9 +1240,21 @@ const App: React.FC = () => {
       .card-body, .card-text, .content {
         font-family: 'Montserrat', sans-serif !important;
       }
+      
+      /* Forcer Neue Kabel sur la première modale */
+      .MuiDialog-root:first-of-type .MuiDialogTitle-root,
+      .MuiDialog-root:first-of-type .MuiDialogContent-root,
+      .MuiDialog-root:first-of-type .MuiDialogContent-root *,
+      .MuiDialog-root:first-of-type .MuiDialogActions-root,
+      .MuiDialog-root:first-of-type .MuiDialogActions-root *,
+      .MuiDialog-root:first-of-type .css-phvc0p-MuiDialogActions-root,
+      .MuiDialog-root:first-of-type .css-phvc0p-MuiDialogActions-root *,
+      .MuiDialog-root:first-of-type button {
+        font-family: 'Neue Kabel', sans-serif !important;
+      }
     `;
     document.head.appendChild(styleEl);
-    
+
     // Applique également Montserrat à certains éléments spécifiques par défaut
     document.addEventListener('DOMContentLoaded', () => {
       // Force Montserrat sur tous les éléments qui ne sont pas explicitement des titres
@@ -1251,12 +1269,12 @@ const App: React.FC = () => {
         }
       });
     });
-    
+
     return () => {
       document.head.removeChild(styleEl);
     };
   }, []);
-  
+
   return (
     <div className="bg-alchemix">
       <ToastContainer />
@@ -1276,27 +1294,37 @@ const App: React.FC = () => {
                 color: 'white',
                 border: '1px solid #2d2f36',
                 borderRadius: '8px',
+                fontFamily: 'Neue Kabel, sans-serif', // Appliquer directement au conteneur
               },
+            }}
+            sx={{
+              '& .MuiDialogTitle-root': { fontFamily: 'Neue Kabel, sans-serif !important' },
+              '& .MuiDialogContent-root': { fontFamily: 'Neue Kabel, sans-serif !important' },
+              '& .MuiDialogContent-root *': { fontFamily: 'Neue Kabel, sans-serif !important' },
+              '& .MuiDialogActions-root': { fontFamily: 'Neue Kabel, sans-serif !important' },
+              '& .MuiButton-root': { fontFamily: 'Neue Kabel, sans-serif !important' },
+              '& p, & li, & strong, & span': { fontFamily: 'Neue Kabel, sans-serif !important' },
             }}
           >
             <DialogTitle sx={{
               borderBottom: '1px solid #2d2f36',
-              color: '#f5caa4'
+              color: '#f5caa4',
+              fontFamily: 'Neue Kabel, sans-serif'
             }}>
               Welcome to Alchemix Self-Repaying Loans
             </DialogTitle>
-            <DialogContent sx={{ mt: 2 }}>
-              <p>Choose an option:</p>
-              <ul style={{ paddingLeft: '20px' }}>
-                <li style={{ marginBottom: '15px' }}>
-                  <strong>Deposit & Top-Up</strong>
-                  <p style={{ margin: '5px 0', color: '#979BA2' }}>
+            <DialogContent sx={{ mt: 2, fontFamily: 'Neue Kabel, sans-serif' }}>
+              <p style={{ fontFamily: 'Neue Kabel, sans-serif' }}>Choose an option:</p>
+              <ul style={{ paddingLeft: '20px', fontFamily: 'Neue Kabel, sans-serif' }}>
+                <li style={{ marginBottom: '15px', fontFamily: 'Neue Kabel, sans-serif' }}>
+                  <strong style={{ fontFamily: 'Neue Kabel, sans-serif' }}>Deposit & Top-Up</strong>
+                  <p style={{ margin: '5px 0', color: '#979BA2', fontFamily: 'Neue Kabel, sans-serif' }}>
                     Deposit into an Alchemix vault and take a Loan to top-up your Holyheld card
                   </p>
                 </li>
-                <li style={{ marginBottom: '15px' }}>
-                  <strong>Top-up</strong>
-                  <p style={{ margin: '5px 0', color: '#979BA2' }}>
+                <li style={{ marginBottom: '15px', fontFamily: 'Neue Kabel, sans-serif' }}>
+                  <strong style={{ fontFamily: 'Neue Kabel, sans-serif' }}>Top-Up</strong>
+                  <p style={{ margin: '5px 0', color: '#979BA2', fontFamily: 'Neue Kabel, sans-serif' }}>
                     Borrow against an existing position to top-up your Holyheld Card.
                   </p>
                 </li>
@@ -1314,6 +1342,7 @@ const App: React.FC = () => {
                   bgcolor: '#f5caa4',
                   color: '#232833',
                   fontWeight: 'bold',
+                  fontFamily: 'Neue Kabel, sans-serif',
                   '&:hover': {
                     bgcolor: '#d4a88c',
                   },
@@ -1365,7 +1394,10 @@ const App: React.FC = () => {
                       borderTopRightRadius: 0,
                       borderBottomRightRadius: 0,
                       borderColor: '#f5caa4',
-                      '&:hover': { bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)', color: mode === 'topup' ? '#232833' : 'white' },
+                      '&:hover': {
+                        bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)',
+                        color: mode === 'topup' ? '#232833' : 'white'
+                      },
                     }}
                   >
                     Deposit & Top-Up
@@ -1382,7 +1414,10 @@ const App: React.FC = () => {
                       borderTopLeftRadius: 0,
                       borderBottomLeftRadius: 0,
                       borderColor: '#f5caa4',
-                      '&:hover': { bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)', color: mode === 'borrowOnly' ? '#232833' : 'white' },
+                      '&:hover': {
+                        bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)',
+                        color: mode === 'borrowOnly' ? '#232833' : 'white'
+                      },
                     }}
                   >
                     Top-Up
@@ -1412,7 +1447,7 @@ const App: React.FC = () => {
 
               {/* Holytag */}
               <div className="card holytag-card">
-                <label htmlFor="holytag" style={{ marginBottom: '10px' }}>Holytag</label>
+                <label htmlFor="holytag" style={{ marginBottom: '10px' }}>Enter your Holytag</label>
                 <div className="holytag-container" style={{ position: 'relative', flex: 1 }}>
                   <input
                     id="holytag"
@@ -1467,16 +1502,10 @@ const App: React.FC = () => {
                   {mode === 'borrowOnly' ? (
                     <>
                       Select Your Existing Collateral Type
-                      <span className="tooltip-icon" data-tooltip="Choose which of your existing collateral assets you want to borrow against. This should match the asset type you previously deposited .">
-                        ⓘ
-                      </span>
                     </>
                   ) : (
                     <>
                       Select Collateral Asset for Top-up
-                      <span className="tooltip-icon" data-tooltip="Choose which asset you want to use as collateral. This is what you'll deposit to secure your loan.">
-                        ⓘ
-                      </span>
                     </>
                   )}
                 </label>
@@ -1650,7 +1679,16 @@ const App: React.FC = () => {
                     border: '2px solid green',
                     color: 'green',
                     fontWeight: 'bold',
-                    '&:hover': { backgroundColor: 'transparent', border: '2px solid green', color: 'green' },
+                    opacity: depositAsset ? 1 : 0.8,
+                    '&:hover': {
+                      backgroundColor: 'transparent',
+                      border: '2px solid #00a000',
+                      color: '#00a000'
+                    },
+                    '&.Mui-disabled': {
+                      border: '2px solid rgba(0, 128, 0, 0.4)',
+                      color: 'rgba(0, 128, 0, 0.7)',
+                    }
                   }}
                 >
                   {isBorrowing ? 'Processing...' : mode === 'topup' ? 'Deposit & Top-Up' : 'Top-Up'}

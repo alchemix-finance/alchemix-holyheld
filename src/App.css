@@ -1,7 +1,22 @@
+/* Importation des polices */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --alchemix-green: #1beaa5;
+}
+
+@font-face {
+  font-family: 'Neue Kabel';
+  src: url('/fonts/Neue_Kabel/NeueKabel.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* General Reset */
 body {
   margin: 0;
-  font-family: 'Montserrat';
+  font-family: 'Montserrat', sans-serif;
   background: linear-gradient(171.08deg, #010101 -11.16%, #141921 6.1%, #0a0d11 49.05%, #000000 93.22%) no-repeat fixed;
   color: rgba(255, 255, 255, 0.9); /* Light beige text */
   min-height: 100vh;
@@ -416,14 +431,6 @@ select:focus {
   width: 100%;
 }
 
-@font-face {
-  font-family: 'neu_kabel';
-  src: url('/fonts/neu_kabel.woff2') format('woff2'),
-       url('/fonts/neu_kabel.woff') format('woff');
-  font-weight: normal;
-  font-style: normal;
-}
-
 /* Divider Styles */
 .divider {
   background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent); /* Gradient effect */
@@ -607,4 +614,60 @@ td, .form-control, .form-text, .card-text, .card-body,
 /* Priorité plus faible pour éviter de surcharger les titres */
 .MuiTypography-body1, .MuiTypography-body2, .MuiTypography-caption {
   font-family: 'Montserrat', sans-serif !important;
+}
+
+/* Style pour la modale de bienvenue */
+.MuiDialog-root:first-of-type .MuiPaper-root,
+.MuiDialog-root:first-of-type .MuiDialogContent-root,
+.MuiDialog-root:first-of-type .MuiDialogContent-root *,
+.MuiDialog-root:first-of-type .MuiDialogActions-root,
+.MuiDialog-root:first-of-type .MuiDialogActions-root * {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Style spécifique pour le conteneur des actions du dialogue */
+.MuiDialogActions-root.MuiDialogActions-spacing {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+.MuiDialogActions-root.MuiDialogActions-spacing .MuiButton-root {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Ciblage direct avec la classe spécifique */
+.css-phvc0p-MuiDialogActions-root,
+.css-phvc0p-MuiDialogActions-root * {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Style très spécifique pour le bouton dans les actions du dialogue */
+.MuiDialog-root:first-of-type .css-phvc0p-MuiDialogActions-root,
+.MuiDialog-root:first-of-type .css-phvc0p-MuiDialogActions-root button,
+.MuiDialog-root:first-of-type .MuiDialogActions-root,
+.MuiDialog-root:first-of-type .MuiDialogActions-root button {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Style global pour toutes les actions de dialogue */
+.MuiDialogActions-root {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+.MuiDialogActions-root button,
+.MuiDialogActions-root .MuiButton-root,
+button.MuiButton-root {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Règle spécifique pour tous les boutons de la première modale */
+.MuiDialog-root:first-of-type button,
+.MuiDialog-root:first-of-type .MuiButton-root,
+.MuiDialog-root:first-of-type .MuiButtonBase-root {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Forcer Neue Kabel sur le bouton "Get Started" */
+.MuiDialog-root:first-of-type button.MuiButton-containedPrimary,
+.MuiDialog-root:first-of-type button.MuiButton-contained {
+  font-family: 'Neue Kabel', sans-serif !important;
 }
