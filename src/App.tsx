@@ -1203,6 +1203,60 @@ const App: React.FC = () => {
     return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
   };
 
+  useEffect(() => {
+    // Crée une feuille de style pour forcer l'application des polices
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      /* Toast initial en Kabel */
+      .Toastify__toast--info, 
+      .Toastify__toast--info *, 
+      .Toastify__toast--info .Toastify__toast-body, 
+      .Toastify__toast--info .Toastify__toast-body > div {
+        font-family: 'Neue Kabel', sans-serif !important;
+      }
+      
+      /* Tous les titres en Kabel */
+      h1, h2, h3, h4, h5, h6,
+      .MuiDialogTitle-root,
+      .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3, 
+      .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6,
+      .MuiCardHeader-title,
+      .title, .card-title, .modal-title, .dialog-title {
+        font-family: 'Neue Kabel', sans-serif !important;
+      }
+
+      /* Tout le reste en Montserrat (priorité plus faible que les règles ci-dessus) */
+      body, 
+      p, span, div:not(.title):not(.MuiDialogTitle-root),
+      button, input, select, textarea,
+      .MuiButton-root, .MuiInputBase-root,
+      .MuiTypography-body1, .MuiTypography-body2,
+      .card-body, .card-text, .content {
+        font-family: 'Montserrat', sans-serif !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+    
+    // Applique également Montserrat à certains éléments spécifiques par défaut
+    document.addEventListener('DOMContentLoaded', () => {
+      // Force Montserrat sur tous les éléments qui ne sont pas explicitement des titres
+      const allElements = document.querySelectorAll('body *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.title):not(.MuiDialogTitle-root)');
+      allElements.forEach(element => {
+        if (element instanceof HTMLElement) {
+          // Ne change pas la police des éléments qui ont déjà Neue Kabel explicitement défini
+          const computedFont = window.getComputedStyle(element).fontFamily;
+          if (!computedFont.includes('Neue Kabel')) {
+            element.style.fontFamily = 'Montserrat, sans-serif';
+          }
+        }
+      });
+    });
+    
+    return () => {
+      document.head.removeChild(styleEl);
+    };
+  }, []);
+  
   return (
     <div className="bg-alchemix">
       <ToastContainer />
@@ -1237,7 +1291,7 @@ const App: React.FC = () => {
                 <li style={{ marginBottom: '15px' }}>
                   <strong>Deposit & Top-Up</strong>
                   <p style={{ margin: '5px 0', color: '#979BA2' }}>
-                    Deposit into an Alchemix vault and take a Loan to top-up your HolyHeld card
+                    Deposit into an Alchemix vault and take a Loan to top-up your Holyheld card
                   </p>
                 </li>
                 <li style={{ marginBottom: '15px' }}>

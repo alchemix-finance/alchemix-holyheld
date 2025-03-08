@@ -1,7 +1,7 @@
 /* General Reset */
 body {
   margin: 0;
-  font-family: 'Neue Kabel', Josefin Sans, sans-serif;
+  font-family: 'Montserrat';
   background: linear-gradient(171.08deg, #010101 -11.16%, #141921 6.1%, #0a0d11 49.05%, #000000 93.22%) no-repeat fixed;
   color: rgba(255, 255, 255, 0.9); /* Light beige text */
   min-height: 100vh;
@@ -330,7 +330,7 @@ select:focus {
   color: white;
   padding: 8px 16px;
   cursor: pointer;
-  font-family: 'Neue Kabel', Josefin Sans, sans-serif;
+  font-family: 'Montserrat';
 }
 
 .black-button:hover {
@@ -541,4 +541,70 @@ input.split-input::after {
   text-align: center;
   width: 100%;
   color: #979ba2; 
+}
+
+/* Styles pour les toasts - Titres en Kabel */
+.center-text-hack {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  width: 100%;
+  color: #979ba2; 
+}
+
+/* Styles spécifiques pour les toasts */
+/* Toast initial (info) en Kabel avec sélecteurs plus spécifiques */
+.Toastify__toast--info,
+.Toastify__toast--info *,
+.Toastify__toast--info .Toastify__toast-body,
+.Toastify__toast--info .Toastify__toast-body > div {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Les autres toasts (success, error) restent en Montserrat */
+.Toastify__toast--success,
+.Toastify__toast--error,
+.Toastify__toast--success .Toastify__toast-body,
+.Toastify__toast--error .Toastify__toast-body {
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+/* On s'assure que le style de l'animation du toast ne contrecarre pas nos polices */
+@keyframes Toastify__trackProgress {
+  0% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+/* Tous les titres en Neue Kabel */
+h1, h2, h3, h4, h5, h6, 
+.MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3, 
+.MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6,
+.MuiTypography-subtitle1, .MuiTypography-subtitle2,
+.title, .subtitle, .header, .heading, 
+.card-title, .dialog-title, .section-title,
+.accordion-title, .panel-title, .modal-title,
+label.form-label, legend, caption, th,
+.form-title, .input-label, .select-label,
+.card-header, .tab-label, .nav-link {
+  font-family: 'Neue Kabel', sans-serif !important;
+}
+
+/* Corps du texte en Montserrat (tout ce qui n'est pas explicitement en Neue Kabel) */
+body, 
+body *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.title):not(.subtitle):not(.header):not(.heading):not(.MuiTypography-h1):not(.MuiTypography-h2):not(.MuiTypography-h3):not(.MuiTypography-h4):not(.MuiTypography-h5):not(.MuiTypography-h6):not(.MuiTypography-subtitle1):not(.MuiTypography-subtitle2):not(.MuiDialogTitle-root):not(.Toastify__toast--info),
+p, span, div, li, input, textarea, button,
+td, .form-control, .form-text, .card-text, .card-body,
+.description, .details, .info, .message, .content,
+.MuiButton-root, .MuiInputBase-root, .MuiChip-root {
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+/* Priorité plus faible pour éviter de surcharger les titres */
+.MuiTypography-body1, .MuiTypography-body2, .MuiTypography-caption {
+  font-family: 'Montserrat', sans-serif !important;
 }
