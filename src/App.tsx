@@ -1424,7 +1424,7 @@ const App: React.FC = () => {
                   </Button>
                 </div>
                 {mode === 'topup' && (
-                  <div style={{ textAlign: 'left', marginTop: '12px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }}>
+                  <div style={{ textAlign: 'left', marginTop: '10px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }}>
                     Deposit into an Alchemix vault and take a loan to top-up your Holyheld Card.<br />
                     <br />
                     1. Tag your HolyHeld card.<br />
@@ -1514,7 +1514,7 @@ const App: React.FC = () => {
                   className="dropdown"
                   value={depositAsset}
                   onChange={handleDepositAssetChange}
-                  style={{ margin: '10px 0', backgroundColor: '#1a1b1f' }}
+                  style={{ marginBottom: '0px', backgroundColor: '#1a1b1f' }}
                 >
                   <option value="">Select asset</option>
                   {availableDepositAssets.map((asset) => (
@@ -1535,26 +1535,38 @@ const App: React.FC = () => {
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="$100"
                         className="input-field"
-                        style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                        style={{
+                          flex: 1,
+                          borderTopRightRadius: 0,
+                          borderBottomRightRadius: 0,
+                          borderRight: 'none',
+                        }}
                       />
                       <Button
                         variant="outlined"
                         onClick={handleMaxAmount}
                         size="small"
-                        disabled={balanceLoading || maxLoading || !address}
                         sx={{
                           textTransform: 'none',
                           minWidth: '60px',
                           height: '33px',
-                          color: 'white',
+                          color: '#f5caa4',
                           borderColor: '#f5caa4',
                           fontWeight: 'normal',
                           margin: 0,
                           borderTopLeftRadius: 0,
                           borderBottomLeftRadius: 0,
+                          borderLeft: 'none',
                           '&:hover': {
-                            borderColor: 'white',
+                            borderColor: '#f5caa4',
                             color: 'white',
+                            backgroundColor: 'rgba(245, 202, 164, 0.1)',
+                            borderLeft: '1px solid #f5caa4',
+                          },
+                          '&:disabled': {
+                            borderColor: '#f5caa4',
+                            color: '#f5caa4',
+                            opacity: 0.7,
                           },
                         }}
                       >
@@ -1569,13 +1581,13 @@ const App: React.FC = () => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginTop: '4px'
+                    marginTop: '0px'
                   }}>
                     <p className="balance-text">
                       {balanceLoading ? 'Loading...' : `Balance: ${Tbalance.toFixed(8)} ${depositAsset || ''}`}
                     </p>
                     {balanceError && (
-                      <p className="error-text" style={{ color: 'red', fontSize: '12px' }}>
+                      <p className="error-text" style={{ color: 'red', fontSize: '10px' }}>
                         {balanceError}
                       </p>
                     )}
@@ -1587,9 +1599,7 @@ const App: React.FC = () => {
               <div className="card yield-strategy-card">
                 <label htmlFor="yield-strategy" style={{ marginBottom: '0px' }}>
                   Yield strategy
-                  <span className="tooltip-icon" data-tooltip="Your strategy shapes how your funds and loans work.">
-                    ⓘ
-                  </span>
+
                 </label>
 
                 {isLoading ? (
@@ -1604,7 +1614,7 @@ const App: React.FC = () => {
                       setSelectedStrategy(e.target.value);
                       addMessage(`Selected strategy: ${e.target.value}`, 'info');
                     }}
-                    style={{ margin: '10px 0', backgroundColor: '#1a1b1f' }}
+                    style={{ marginTop: '10px', marginBottom: '10px', backgroundColor: '#1a1b1f' }}
                   >
                     <option value="">Select strategy</option>
                     {formattedStrategies.map((strategy) => (
@@ -1618,9 +1628,7 @@ const App: React.FC = () => {
                 <div style={{ marginTop: '0px' }}>
                   <label htmlFor="borrow-amount" style={{ marginBottom: '0px' }}>
                     Borrow amount
-                    <span className="tooltip-icon" data-tooltip="Amount you want to borrow">
-                      ⓘ
-                    </span>
+
                   </label>
                   <input
                     type="text"
@@ -1628,7 +1636,7 @@ const App: React.FC = () => {
                     onChange={handleBorrowAmountChange}
                     placeholder="$100"
                     className="input-field"
-                    style={{ margin: '10px 0', width: '500px' }}
+                    style={{ marginTop: '10px', marginBottom: '10px', width: '500px' }}
                   />
 
                   <div style={{ display: 'flex', gap: '0', marginTop: '10px' }}>
