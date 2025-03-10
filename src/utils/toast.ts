@@ -7,7 +7,13 @@ const baseToastStyle = {
   borderRadius: '8px',
   border: '1px solid rgba(255, 255, 255, 0.1)',
   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-  fontFamily: 'Neue Kabel, Montserrat, sans-serif',
+  fontFamily: 'Montserrat, sans-serif',
+};
+
+// Style spécifique pour le toast initial (info/pending)
+const infoToastStyle = {
+  ...baseToastStyle,
+  fontFamily: 'Neue Kabel, sans-serif',
 };
 
 // Configuration pour les toasts d'erreur
@@ -36,13 +42,45 @@ export const errorToastConfig: ToastOptions = {
   style: errorToastStyle,
 };
 
+// Configuration spécifique pour les toasts info/pending
+export const infoToastConfig: ToastOptions = {
+  ...toastConfig,
+  style: infoToastStyle,
+};
+
 // Transaction status toasts
 export const showTransactionToast = {
-  pending: (message: string = 'Transaction in progress...') =>
-    toast.info(message, {
+  pending: (message: string = 'Transaction in progress...') => {
+    // Personnalisation du toast initial avec Kabel
+    const id = toast.info(message, {
       ...toastConfig,
-      autoClose: false, // Keep the toast visible until updated
-    }),
+      autoClose: false,
+      style: {
+        ...baseToastStyle,
+        fontFamily: 'Neue Kabel, sans-serif',
+      },
+      onOpen: () => {
+        // Manipulation DOM directe plus agressive
+        setTimeout(() => {
+          const infoToasts = document.querySelectorAll('.Toastify__toast--info .Toastify__toast-body');
+          infoToasts.forEach(toast => {
+            if (toast instanceof HTMLElement) {
+              toast.style.fontFamily = 'Neue Kabel, sans-serif';
+              
+              // Parcourir tous les enfants et appliquer le style
+              const allChildren = toast.querySelectorAll('*');
+              allChildren.forEach(child => {
+                if (child instanceof HTMLElement) {
+                  child.style.fontFamily = 'Neue Kabel, sans-serif';
+                }
+              });
+            }
+          });
+        }, 10); // Petit délai pour s'assurer que le DOM est mis à jour
+      }
+    });
+    return id;
+  },
 
   success: (message: string = 'Transaction successful!') =>
     toast.success(message, {
@@ -52,7 +90,7 @@ export const showTransactionToast = {
   error: (error: Error | string) => {
     const message = error instanceof Error ? error.message : error;
     return toast.error(`Transaction failed: ${message}`, {
-      ...errorToastConfig,
+      ...toastConfig,
     });
   },
 };
@@ -70,7 +108,8 @@ export const withToast = async <T,>(
     error?: string;
   } = {}
 ): Promise<T> => {
-  const toastId = showTransactionToast.pending(pending); // Show "pending" toast
+  // Show "pending" toast with Kabel font
+  const toastId = showTransactionToast.pending(pending);
 
   try {
     const result = await promise; // Await the async transaction
@@ -80,6 +119,7 @@ export const withToast = async <T,>(
       render: success,
       type: 'success',
       autoClose: 5000,
+      style: baseToastStyle, // Appliquer le style Montserrat lors du passage à "success"
     });
 
     return result;
@@ -91,6 +131,7 @@ export const withToast = async <T,>(
       render: `${error}: ${message}`,
       type: 'error',
       autoClose: 5000,
+      style: baseToastStyle, // Appliquer le style Montserrat lors du passage à "error"
     });
 
     throw err; // Re-throw the error for further handling

@@ -99,7 +99,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           maxWidth: "400px",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
-          fontFamily: "Neue Kabel, Montserrat, sans-serif"
+          fontFamily: "Neue Kabel, sans-serif"
         }}
       >
         <div style={{ position: "absolute", right: "1rem", top: "1rem", display: "none" }}>
