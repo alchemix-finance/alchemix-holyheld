@@ -1501,11 +1501,11 @@ const App: React.FC = () => {
                 <label htmlFor="deposit-asset">
                   {mode === 'borrowOnly' ? (
                     <>
-                      Select Your Existing Collateral Type
+                      Deposit Collateral Type
                     </>
                   ) : (
                     <>
-                      Select Collateral Asset for Top-up
+                      Collateral Asset for Top-up
                     </>
                   )}
                 </label>
@@ -1526,7 +1526,7 @@ const App: React.FC = () => {
 
                 {mode !== 'borrowOnly' && (
                   <>
-                    <label htmlFor="deposit-amount" style={{ marginBottom: '10px' }}>Deposit amount</label>
+                    <label htmlFor="deposit-amount" style={{ marginBottom: '10px', marginTop: '10px' }}>Deposit amount</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
                       <input
                         id="deposit-amount"
@@ -1549,7 +1549,7 @@ const App: React.FC = () => {
                         sx={{
                           textTransform: 'none',
                           minWidth: '60px',
-                          height: '33px',
+                          height: '35px',
                           color: '#f5caa4',
                           borderColor: '#f5caa4',
                           fontWeight: 'normal',
