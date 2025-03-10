@@ -1203,78 +1203,6 @@ const App: React.FC = () => {
     return networkMapping[networkName.toLowerCase()] || networkName.toLowerCase();
   };
 
-  useEffect(() => {
-    // Vérification des polices
-    document.fonts.ready.then(() => {
-      console.log('Toutes les polices sont chargées');
-      const allFonts = document.fonts.check('1em "Neue Kabel"');
-      console.log('Neue Kabel disponible:', allFonts);
-    });
-
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-      /* Toast initial en Kabel */
-      .Toastify__toast--info, 
-      .Toastify__toast--info *, 
-      .Toastify__toast--info .Toastify__toast-body, 
-      .Toastify__toast--info .Toastify__toast-body > div {
-        font-family: 'Neue Kabel', sans-serif !important;
-      }
-      
-      /* Tous les titres en Kabel */
-      h1, h2, h3, h4, h5, h6,
-      .MuiDialogTitle-root,
-      .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3, 
-      .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6,
-      .MuiCardHeader-title,
-      .title, .card-title, .modal-title, .dialog-title {
-        font-family: 'Neue Kabel', sans-serif !important;
-      }
-
-      /* Tout le reste en Montserrat (priorité plus faible que les règles ci-dessus) */
-      body, 
-      p, span, div:not(.title):not(.MuiDialogTitle-root),
-      button, input, select, textarea,
-      .MuiButton-root, .MuiInputBase-root,
-      .MuiTypography-body1, .MuiTypography-body2,
-      .card-body, .card-text, .content {
-        font-family: 'Montserrat', sans-serif !important;
-      }
-      
-      /* Forcer Neue Kabel sur la première modale */
-      .MuiDialog-root:first-of-type .MuiDialogTitle-root,
-      .MuiDialog-root:first-of-type .MuiDialogContent-root,
-      .MuiDialog-root:first-of-type .MuiDialogContent-root *,
-      .MuiDialog-root:first-of-type .MuiDialogActions-root,
-      .MuiDialog-root:first-of-type .MuiDialogActions-root *,
-      .MuiDialog-root:first-of-type .css-phvc0p-MuiDialogActions-root,
-      .MuiDialog-root:first-of-type .css-phvc0p-MuiDialogActions-root *,
-      .MuiDialog-root:first-of-type button {
-        font-family: 'Neue Kabel', sans-serif !important;
-      }
-    `;
-    document.head.appendChild(styleEl);
-
-    // Applique également Montserrat à certains éléments spécifiques par défaut
-    document.addEventListener('DOMContentLoaded', () => {
-      // Force Montserrat sur tous les éléments qui ne sont pas explicitement des titres
-      const allElements = document.querySelectorAll('body *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.title):not(.MuiDialogTitle-root)');
-      allElements.forEach(element => {
-        if (element instanceof HTMLElement) {
-          // Ne change pas la police des éléments qui ont déjà Neue Kabel explicitement défini
-          const computedFont = window.getComputedStyle(element).fontFamily;
-          if (!computedFont.includes('Neue Kabel')) {
-            element.style.fontFamily = 'Montserrat, sans-serif';
-          }
-        }
-      });
-    });
-
-    return () => {
-      document.head.removeChild(styleEl);
-    };
-  }, []);
-
   return (
     <div className="bg-alchemix">
       <ToastContainer />
@@ -1393,7 +1321,7 @@ const App: React.FC = () => {
                       flex: 1,
                       borderTopRightRadius: 0,
                       borderBottomRightRadius: 0,
-                      borderColor: '#f5caa4',
+                      border: `1px solid ${mode === 'topup' ? '#f5caa4' : '#f5caa4'}`,
                       '&:hover': {
                         bgcolor: mode === 'topup' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)',
                         color: mode === 'topup' ? '#232833' : 'white'
@@ -1413,7 +1341,7 @@ const App: React.FC = () => {
                       flex: 1,
                       borderTopLeftRadius: 0,
                       borderBottomLeftRadius: 0,
-                      borderColor: '#f5caa4',
+                      border: `1px solid ${mode === 'borrowOnly' ? '#f5caa4' : '#f5caa4'}`,
                       '&:hover': {
                         bgcolor: mode === 'borrowOnly' ? '#d4a88c' : 'rgba(245, 202, 164, 0.1)',
                         color: mode === 'borrowOnly' ? '#232833' : 'white'
@@ -1460,8 +1388,8 @@ const App: React.FC = () => {
                       position: 'relative',
                       zIndex: 2,
                       background: 'transparent',
-                      color: 'transparent',
-                      caretColor: 'black',
+                      color: 'transparent !important',
+                      caretColor: 'white',
                       fontSize: '16px',
                       fontFamily: 'inherit',
                       padding: '8px',
@@ -1484,9 +1412,11 @@ const App: React.FC = () => {
                     zIndex: 1
                   }}>
                     {holytagInput.split('').map((letter, idx) => {
-                      const color = holytagIsValid === null ? (validateLetter(letter) ? 'green' : 'red') : (holytagIsValid ? 'green' : 'red');
+                      const colorClass = holytagIsValid === null
+                        ? (validateLetter(letter) ? 'holytag-letter-green' : 'holytag-letter-red')
+                        : (holytagIsValid ? 'holytag-letter-green' : 'holytag-letter-red');
                       return (
-                        <span key={idx} style={{ color }}>
+                        <span key={idx} className={colorClass}>
                           {letter}
                         </span>
                       );
@@ -1683,19 +1613,20 @@ const App: React.FC = () => {
                   fullWidth
                   sx={{
                     textTransform: 'none',
-                    backgroundColor: 'transparent',
-                    border: '2px solid green',
-                    color: 'green',
-                    fontWeight: 'bold',
+                    backgroundColor: 'rgba(27, 234, 165, 0.03)',
+                    border: '2px solid var(--alchemix-green)',
+                    color: 'var(--alchemix-green)',
+                    fontWeight: 'normal',
                     opacity: depositAsset ? 1 : 0.8,
                     '&:hover': {
-                      backgroundColor: 'transparent',
-                      border: '2px solid #00a000',
-                      color: '#00a000'
+                      backgroundColor: 'var(--alchemix-green-bg-hover)',
+                      border: '2px solid var(--alchemix-green-hover)',
+                      color: 'var(--alchemix-green-hover)'
                     },
                     '&.Mui-disabled': {
-                      border: '2px solid rgba(0, 128, 0, 0.4)',
-                      color: 'rgba(0, 128, 0, 0.7)',
+                      border: '2px solid var(--alchemix-green-disabled)',
+                      color: 'var(--alchemix-green-disabled)',
+                      backgroundColor: 'rgba(27, 234, 165, 0.05)',
                     }
                   }}
                 >

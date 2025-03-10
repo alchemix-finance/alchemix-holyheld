@@ -1,16 +1,21 @@
 /* Importation des polices */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
-:root {
-  --alchemix-green: #1beaa5;
-}
-
 @font-face {
   font-family: 'Neue Kabel';
   src: url('/fonts/Neue_Kabel/NeueKabel.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+}
+
+:root {
+  --alchemix-green: #1beaa5;
+  --alchemix-green-hover: #18d090;
+  --alchemix-green-disabled: rgba(27, 234, 165, 0.4);
+  --alchemix-green-bg: rgba(27, 234, 165, 0.1);
+  --alchemix-green-bg-hover: rgba(27, 234, 165, 0.2);
+  --alchemix-red: #ff6666;
 }
 
 /* General Reset */
@@ -160,8 +165,7 @@ select {
   border: 1px solid #f5caa4 !important;
   border-radius: 5px;
   padding: 6px 12px;
-  background-color: transparent !important;
-  color: white;
+  background-color: transparent;
   width: 100%;
   height: 35px;
   box-sizing: border-box;
@@ -180,9 +184,10 @@ input[type="number"],
 input[type="email"],
 input[type="password"],
 select {
-  background-color: #0f131a !important;
+  background-color:transparent !important;
   color: rgb(255, 255, 255) !important;
 }
+
 
 /* Override any browser default styles */
 input:-webkit-autofill,
@@ -242,7 +247,7 @@ input.split-input::after {
   width: 400px !important;
 }
 .input-field.valid {
-  color: green !important;
+  color: #1beaa5 !important;
 }
 .input-field.invalid {
   color: red !important;
@@ -303,7 +308,7 @@ input.split-input::after {
   border-radius: 5px;
   padding: 8px;
   background-color: transparent !important; /* Fully transparent background */
-  color: white !important;
+  color: white ;
 }
 
 .react-select__menu:focus {
@@ -337,7 +342,7 @@ input.split-input::after {
 .Toastify__toast--info *,
 .Toastify__toast--info .Toastify__toast-body,
 .Toastify__toast--info .Toastify__toast-body > div {
-  font-family: 'Neue Kabel', sans-serif !important;
+  font-family: 'montserrat', sans-serif !important;
 }
 
 /* Les autres toasts (success, error) restent en Montserrat */
@@ -358,7 +363,7 @@ input.split-input::after {
   }
 }
 
-/* Tous les titres en Neue Kabel */
+/* Tous les titres en Montserrat */
 h1, h2, h3, h4, h5, h6, 
 .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3, 
 .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6,
@@ -369,7 +374,7 @@ h1, h2, h3, h4, h5, h6,
 label.form-label, legend, caption, th,
 .form-title, .input-label, .select-label,
 .card-header, .tab-label, .nav-link {
-  font-family: 'Neue Kabel', sans-serif !important;
+  font-family: 'Montserrat', sans-serif !important;
 }
 
 /* Corps du texte en Montserrat (tout ce qui n'est pas explicitement en Neue Kabel) */
@@ -673,4 +678,19 @@ button.MuiButton-root {
   color: rgb(245, 245, 245);
   font-size: 1.2rem;
   margin-bottom: 1rem;
+}
+
+/* Classe avec haute spécificité pour les lettres du holytag */
+.holytag-letter-green {
+  color: var(--alchemix-green) !important;
+}
+
+.holytag-letter-red {
+  color: var(--alchemix-red) !important;
+}
+
+/* S'assurer que le texte de l'input du holytag est transparent */
+.holytag-container input {
+  color: transparent !important;
+  caret-color: white !important;
 }
