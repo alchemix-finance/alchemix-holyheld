@@ -9,7 +9,7 @@ const MessageDisplay: React.FC = () => {
       case 'error':
         return 'bg-red-500 text-white';
       case 'success':
-        return 'bg-green-500 text-white';
+        return 'bg-[#1beaa5] text-white';
       case 'warning':
         return 'bg-yellow-500 text-white';
       case 'status':
@@ -24,7 +24,7 @@ const MessageDisplay: React.FC = () => {
       {messages.map((message) => (
         <div
           key={message.id}
-          className={`p-4 rounded-lg shadow-lg max-w-sm animate-fade-in ${getMessageClass(message.type)}`}
+          className={`p-4 rounded-lg shadow-lg max-w-sm animate-fade-in ${getMessageClass(message.type)} font-['Neue_Kabel']`}
         >
           <div className="flex justify-between items-start">
             <div className="flex-1">
