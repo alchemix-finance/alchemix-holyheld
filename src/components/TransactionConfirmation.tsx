@@ -99,13 +99,17 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           maxWidth: "400px",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
-          fontFamily: "Neue Kabel, Montserrat, sans-serif"
+          fontFamily: "Neue Kabel, sans-serif"
         }}
       >
         <div style={{ position: "absolute", right: "1rem", top: "1rem", display: "none" }}>
         </div>
         <DialogHeader>
-          <DialogTitle style={{ fontSize: "1.25rem", fontWeight: "bold", marginBottom: "0.25rem" }}>
+          <DialogTitle style={{
+            fontSize: "1.25rem",
+            marginBottom: "0.25rem",
+            fontFamily: "Montserrat, sans-serif"
+          }}>
             Confirm Transaction
           </DialogTitle>
           <DialogDescription style={{ fontSize: "0.95rem", color: "rgba(255, 255, 255, 0.7)" }}>
@@ -116,24 +120,24 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
         {/* Corps de la modale */}
         <div style={{ display: "grid", gap: "0.75rem", padding: "1rem 0", fontSize: "0.95rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: "bold" }}>Type:</span>
+            <span style={{ fontWeight: "normal" }}>Type:</span>
             <span>{transactionDetails.type}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: "bold" }}>{transactionDetails.type === 'Deposit & Top-up' ? 'Deposit:' : 'Borrow:'}</span>
+            <span style={{ fontWeight: "normal" }}>{transactionDetails.type === 'Deposit & Top-up' ? 'Deposit:' : 'Borrow:'}</span>
             <span>
               {transactionDetails.amount} {transactionDetails.token}
             </span>
           </div>
           {transactionDetails.estimatedFee && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: "bold" }}>Estimated Fee:</span>
+              <span style={{ fontWeight: "normal" }}>Estimated Fee:</span>
               <span>{transactionDetails.estimatedFee}</span>
             </div>
           )}
           {transactionDetails.type === 'Top-up' && transactionDetails.collateralAmount && transactionDetails.depositAsset && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: "bold" }}>Collateral:</span>
+              <span style={{ fontWeight: "normal" }}>Collateral:</span>
               <span>{transactionDetails.collateralAmount} {transactionDetails.depositAsset}</span>
             </div>
           )}
@@ -147,7 +151,7 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
               color: "#ffffff",
               padding: "0.5rem 1rem",
               borderRadius: "6px",
-              fontWeight: "bold",
+              fontWeight: "normal",
               textTransform: "none",
               border: "1px solid #333",
               "&:hover": {
@@ -161,14 +165,17 @@ export const TransactionConfirmation: React.FC<TransactionConfirmationProps> = (
           <Button
             onClick={onConfirm}
             sx={{
-              backgroundColor: "#4caf50",
-              color: "#fff",
+              backgroundColor: "var(--alchemix-green-bg, rgba(27, 234, 165, 0.03))",
+              color: "var(--alchemix-green, #1beaa5)",
               padding: "0.5rem 1rem",
               borderRadius: "6px",
-              fontWeight: "bold",
+              fontWeight: "normal",
               textTransform: "none",
+              border: "2px solid var(--alchemix-green, #1beaa5)",
               "&:hover": {
-                backgroundColor: "#43a047"
+                backgroundColor: "var(--alchemix-green-bg-hover, rgba(27, 234, 165, 0.04))",
+                color: "var(--alchemix-green-hover, #18d090)",
+                border: "2px solid var(--alchemix-green-hover, #18d090)"
               }
             }}
           >
