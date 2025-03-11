@@ -126,7 +126,7 @@ const App: React.FC = () => {
     depositAsset
   );
 
-  const { calculateMaxAmount, isLoading: maxLoading } = useMaxAmount();
+  const { calculateMaxAmount } = useMaxAmount();
   type SupportedChainId = keyof typeof CONTRACTS;
 
   const {
