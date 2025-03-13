@@ -51,7 +51,7 @@ alchemixTheme.colors.connectButtonTextError = '##f5caa4';
 
 // Configuration Wagmi
 const config = getDefaultConfig({
-  appName: 'ALchemix Loan to Card',
+  appName: 'ALchemix Holyheld Top-Up',
   projectId: import.meta.env.VITE_WC_PROJECT_ID,
   chains: [optimism]
 });
