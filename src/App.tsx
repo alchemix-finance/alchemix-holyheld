@@ -1289,7 +1289,7 @@ const App: React.FC = () => {
                 <div className="logo-section">
                   <img src={logo} alt="Alchemix Logo" className="logo" />
                 </div>
-                <Link href='https://alchemix-holyheld-doc.netlify.app/' 
+                <Link href='https://holyheld-docs.alchemix.fi/' 
                 target='_blank'
                 rel='noreferrer'
                 sx={{
