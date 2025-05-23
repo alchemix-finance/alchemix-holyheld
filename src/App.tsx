@@ -1301,6 +1301,7 @@ const App: React.FC = () => {
                     color: '#d4a88c',
                   },
                 }}
+                className='desktop-docs'
                 >
                   Docs
                 </Link>
@@ -1368,6 +1369,19 @@ const App: React.FC = () => {
                   >
                     Top-Up
                   </Button>
+                </div>
+                <div style={{ textAlign: 'left', marginTop: '10px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }} className='mobile-docs'>
+                <Link href='https://holyheld-docs.alchemix.fi/' 
+                target='_blank'
+                rel='noreferrer'
+                sx={{
+                  color: '#f5caa4',
+                  fontSize: '1em',                  
+                  textDecoration: 'underline',
+                }}
+                >
+                  Docs
+                </Link>
                 </div>
                 {mode === 'topup' && (
                   <div style={{ textAlign: 'left', marginTop: '10px', marginBottom: '0px', color: '#979BA2', fontSize: '0.9em' }}>

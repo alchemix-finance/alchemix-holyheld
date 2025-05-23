@@ -74,6 +74,10 @@ body {
   object-fit: contain;
 }
 
+.mobile-docs {
+  display: none;
+}
+
 /* Content Layout */
 .content-wrapper {
   display: flex;
@@ -582,6 +586,14 @@ button.MuiButton-root {
 
   .main-content {
     padding: 1rem;
+  }
+
+  .desktop-docs {
+    display: none;
+  }
+
+  .mobile-docs {
+    display: block;
   }
 }
 
