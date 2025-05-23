@@ -33,6 +33,7 @@ import * as React from "react";
 import { formatUnits, parseUnits } from 'ethers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { erc20Abi } from 'viem';
 import { useMaxAmount } from './hooks/useMaxAmount';
@@ -1284,8 +1285,25 @@ const App: React.FC = () => {
           <div className="main-content">
             {/* Header */}
             <header className="header">
-              <div className="logo-section">
-                <img src={logo} alt="Alchemix Logo" className="logo" />
+              <div className='logo-nav-section'>
+                <div className="logo-section">
+                  <img src={logo} alt="Alchemix Logo" className="logo" />
+                </div>
+                <Link href='https://alchemix-holyheld-doc.netlify.app/' 
+                target='_blank'
+                rel='noreferrer'
+                sx={{
+                  color: '#f5caa4',
+                  fontSize: '1.2em',
+                  fontWeight: 'medium',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    color: '#d4a88c',
+                  },
+                }}
+                >
+                  Docs
+                </Link>
               </div>
               <ConnectButton />
             </header>
